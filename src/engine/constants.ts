@@ -4,7 +4,7 @@
  * simulator scenarios to stay green (from M1 on) and a row in BALANCING.md §10.
  */
 
-export const SAVE_VERSION = 6;
+export const SAVE_VERSION = 7;
 export const TAVERN_REROLL_COST_GEMS = 1;
 
 // Shops (GAME_DESIGN.md §9.5, BALANCING.md §5.3–5.4)

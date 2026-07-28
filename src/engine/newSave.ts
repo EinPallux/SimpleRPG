@@ -121,6 +121,9 @@ export function createNewSave(input: NewHeroInput, nowMs: number): GameSave {
       mountTier: 0,
       gachaPity: {},
       milestonesClaimed: [],
+      // A brand new hero starts at the cold open (GAME_DESIGN §17).
+      onboarding: { step: 0, skipped: false },
+      toursSeen: [],
     },
     stats: {},
   };

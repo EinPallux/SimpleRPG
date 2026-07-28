@@ -199,6 +199,15 @@ export interface GameSave {
     mountTier: number;
     gachaPity: Record<string, { sinceEpic: number; sinceSet: number }>;
     milestonesClaimed: string[];
+    /**
+     * The scripted first-run (GAME_DESIGN §17). `step` indexes ONBOARDING_STEPS
+     * and equals its length once the town is revealed; `skipped` records the
+     * veteran's "I've been here before" door, which grants the same rewards.
+     * Per-hero, not per-device: a second hero is a second first day.
+     */
+    onboarding: { step: number; skipped: boolean };
+    /** screen ids whose 15-second first-visit tour has already played (§17) */
+    toursSeen: string[];
   };
   town: {
     shops: Record<ShopId, ShopState>;

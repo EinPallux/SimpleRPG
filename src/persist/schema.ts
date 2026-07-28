@@ -116,7 +116,7 @@ const shopState = z
 
 export const gameSaveSchema = z
   .object({
-    version: z.literal(6),
+    version: z.literal(7),
     createdAt: isoDate,
     lastSeenAt: isoDate,
     worldSeed: z.string().min(8),
@@ -219,6 +219,10 @@ export const gameSaveSchema = z
             .strict(),
         ),
         milestonesClaimed: z.array(z.string()),
+        onboarding: z
+          .object({ step: z.number().int().min(0), skipped: z.boolean() })
+          .strict(),
+        toursSeen: z.array(z.string()),
       })
       .strict(),
     town: z

@@ -38,6 +38,16 @@ import { canToss, toss, type TossResult } from '@/engine/gacha';
 import { buyMount, canBuyMount } from '@/engine/mounts';
 import { canFeedPet, equipPet, feedPet, feedPetMax, petOwned } from '@/engine/pets';
 import { isoWeekNumber } from '@/engine/time';
+import {
+  advanceOnboarding,
+  currentOnboardingStep,
+  markTourSeen,
+  skipOnboarding,
+  stepSatisfied,
+  tourDue,
+} from '@/engine/onboarding';
+import { loadPrefs, savePrefs, type Prefs } from '@/persist/prefs';
+import { setAudioPrefs } from '@/ui/audio';
 import { createNewSave, deriveEmblem } from '@/engine/newSave';
 import { systemClock } from '@/engine/clock';
 import {
@@ -131,6 +141,10 @@ interface GameStore {
   wheelOutcome: WheelOutcome | null;
   /** the tosses of the last visit to the well, awaiting their reveal (M7) */
   tossOutcome: { bannerId: BannerId; results: TossResult[] } | null;
+  /** device settings (M8) — localStorage, not the save: a pref is a device */
+  prefs: Prefs;
+  /** the screen whose 15-second first-visit tour is showing, if any */
+  tourScreen: string | null;
   /** a meta-layer payout (quest, story step, chest, calendar) awaiting its reveal */
   metaReward: { titleKey: I18nKey; reward: GrantedReward } | null;
 
@@ -181,6 +195,12 @@ interface GameStore {
   closeExpedOutcome(): void;
   wheelSpin(): void;
   closeWheelOutcome(): void;
+
+  // Onboarding, prefs & help (M8)
+  setPrefs(patch: Partial<Prefs>): void;
+  onboardingAck(): void;
+  onboardingSkip(): void;
+  dismissTour(): void;
 
   // Menagerie, Stable & the Wishing Well (M7)
   petEquip(petId: string | null): void;
@@ -248,6 +268,8 @@ export const useGame = create<GameStore>()(
       expedOutcome: null,
       wheelOutcome: null,
       tossOutcome: null,
+      prefs: loadPrefs(),
+      tourScreen: null,
       metaReward: null,
 
       catchUp() {
@@ -516,6 +538,53 @@ export const useGame = create<GameStore>()(
         set((s) => {
           s.tossOutcome = null;
         });
+      },
+
+      setPrefs(patch) {
+        let next: Prefs | null = null;
+        set((s) => {
+          s.prefs = { ...s.prefs, ...patch };
+          next = s.prefs;
+        });
+        if (next) {
+          savePrefs(next);
+          // The audio graph reads prefs directly so a slider is audible while
+          // you are still dragging it, not one interaction later.
+          setAudioPrefs(next);
+        }
+      },
+
+      /**
+       * Finish an `acknowledge` step, or step past a goal step the player has
+       * already satisfied. Goal steps that are NOT yet satisfied ignore this —
+       * the coach mark stays up until the deed is done.
+       */
+      onboardingAck() {
+        set((s) => {
+          if (!s.save) return;
+          const step = currentOnboardingStep(s.save);
+          if (!step) return;
+          if (step.goal.kind === 'acknowledge' || stepSatisfied(s.save, step)) {
+            advanceOnboarding(s.save);
+          }
+        });
+        scheduleAutosave();
+      },
+
+      onboardingSkip() {
+        set((s) => {
+          if (s.save) skipOnboarding(s.save);
+        });
+        get().toast(t('ob.skipped'));
+        scheduleAutosave();
+      },
+
+      dismissTour() {
+        set((s) => {
+          if (s.save && s.tourScreen) markTourSeen(s.save, s.tourScreen);
+          s.tourScreen = null;
+        });
+        scheduleAutosave();
       },
 
       questsEnsureBoards() {
@@ -821,6 +890,10 @@ export const useGame = create<GameStore>()(
       setScreen(screen) {
         set((s) => {
           s.screen = screen;
+          // First visit to a screen with something non-obvious to say (§17).
+          // Never while the scripted sequence is still pointing — `tourDue`
+          // enforces the one-finger rule.
+          s.tourScreen = s.save && tourDue(s.save, screen) ? screen : null;
         });
       },
 
