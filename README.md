@@ -6,8 +6,14 @@ multiplayer: the living world is simulated by deterministic bots that look and b
 No servers, no accounts, no real-money anything. Runs entirely in your browser, deploys as static files
 on Vercel, installs as a PWA.
 
-> **Status: 📐 Planning complete — ready to build.** The full v1.0 specification lives in the documents
-> below. Next step: ROADMAP.md → Phase 1, Milestone M0.
+> **Status: 🏗️ Milestone M0 (Foundation) built.** Themed app shell, save system (3 slots,
+> export/import, backups), tinted Kenney frame system, asset pipeline, CI and tests are in place.
+> Playable systems land next (ROADMAP.md → M1 engine + simulator, M2 tavern loop).
+>
+> ```bash
+> pnpm install && pnpm dev   # play the current build
+> pnpm test && pnpm e2e      # verify (39 unit tests + Playwright smoke)
+> ```
 
 ## The pitch
 

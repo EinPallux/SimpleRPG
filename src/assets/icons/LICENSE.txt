@@ -1,0 +1,22 @@
+SimpleRPG icon set — sources and licenses
+=========================================
+
+Most icons in this folder are from game-icons.net, used under CC BY 3.0
+(https://creativecommons.org/licenses/by/3.0/). Authors: Lorc and Delapouite.
+They are credited in-game (Settings -> Credits) and in ASSETS.md.
+
+game-icons.net (CC BY 3.0, by Lorc): tavern (beer-stein), expedition (compass),
+arena (crossed-swords), hall-of-fame (laurels), forge (anvil), menagerie (paw-print),
+wheel (cartwheel), quests (scroll-unfurled), settings (cog), help (uncertainty),
+gem (cut-diamond), scraps (metal-bar), dust (star-swirl), treats (bone-gnawer),
+honor (laurel-crown), warrior (broadsword), scout (high-shot), mage (crystal-wand),
+assassin (daggers), lock (padlock), dragon (dragon-head), wolf (wolf-head),
+raven (raven), crown (crown), mushroom (mushroom-gills), oak-leaf (maple-leaf).
+
+game-icons.net (CC BY 3.0, by Delapouite): patrol (watchtower), dungeon (dungeon-gate),
+shops (shop), stable (horse-head), well (well), character (person),
+achievements (trophy-cup), codex (book-cover), calendar (calendar), gold (two-coins),
+trash (trash-can), map-pin (position-marker), star (round-star).
+
+Original work for SimpleRPG (CC0): close, plus, chevron-right, export, import,
+and /public/favicon.svg.

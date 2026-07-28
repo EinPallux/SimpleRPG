@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta
+      name="description"
+      content="SimpleRPG — a fully single-player fantasy browser RPG. Missions, arena, dungeons, and a Hall of Fame that never noticed it isn't online."
+    />
+    <meta name="theme-color" content="#0e1420" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="stylesheet" href="/assets/nine-slice.css" />
+    <title>SimpleRPG</title>
+    <style>
+      /* Pre-hydration splash — keeps first paint on-theme */
+      html {
+        background: #0e1420;
+      }
+      #splash {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #d9a94b;
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 20px;
+        letter-spacing: 0.35em;
+        text-transform: uppercase;
+        animation: splash-pulse 1.2s ease-in-out infinite alternate;
+      }
+      @keyframes splash-pulse {
+        from {
+          opacity: 0.45;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"><div id="splash">SimpleRPG</div></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

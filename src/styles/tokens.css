@@ -1,0 +1,56 @@
+/* Design tokens — UI_DESIGN.md §2. The single place colors/spacing/type live. */
+:root {
+  /* Surfaces */
+  --canvas: #0e1420;
+  --panel: #16202e;
+  --panel-raised: #1b2838;
+  --panel-inset: #0b111b;
+
+  /* Ink */
+  --ink: #e8e3d5;
+  --ink-muted: #9aa5b5;
+  --ink-faint: #5e6a7a;
+
+  /* Accents */
+  --gold: #d9a94b;
+  --gold-bright: #f0c75e;
+  --teal: #3fa7a0;
+  --danger: #c0483f;
+  --success: #57b65f;
+
+  /* Meters */
+  --vigor: #e0a23f;
+  --hp: #c0483f;
+  --xp: #57b65f;
+  --honor: #b08fd9;
+  --gem: #7fd1c8;
+
+  /* Rarity */
+  --r-common: #9aa3ad;
+  --r-uncommon: #57b65f;
+  --r-rare: #4c8be0;
+  --r-epic: #a64ce0;
+  --r-legendary: #e08a2e;
+  --r-set: #35c99a;
+
+  /* Classes */
+  --c-warrior: #d96a45;
+  --c-scout: #6fa85a;
+  --c-mage: #5b8dd9;
+  --c-assassin: #9b6dd9;
+
+  /* Type */
+  --font-display: 'Cinzel Variable', Georgia, serif;
+  --font-body: 'Nunito Sans Variable', system-ui, sans-serif;
+
+  /* Motion (UI_DESIGN.md §7) */
+  --motion-fast: 120ms;
+  --motion-base: 200ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+  }
+}

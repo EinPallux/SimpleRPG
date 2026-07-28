@@ -14,10 +14,12 @@
 
 ## Phase 1 — Build to v1.0
 
-**M0 · Foundation** — Vite+React+TS scaffold, CI, Vercel preview, tokens + frame system + fonts, asset
-pipeline (borders tinted, backgrounds optimized, icon sprite), app shell + nav rail + HUD (static),
-save/load (Dexie, slots, export/import), clock module.
+**M0 · Foundation** ✅ *(2026-07-28)* — Vite+React+TS scaffold, CI, Vercel preview, tokens + frame
+system + fonts, asset pipeline (borders tinted, backgrounds optimized, icon sprite), app shell + nav
+rail + HUD (static), save/load (Dexie, slots, export/import), clock module.
 *Done when:* deployed preview shows themed shell on desktop+mobile; save roundtrip test green.
+*Shipped:* 39 unit tests + e2e smoke green; typecheck/lint/build green; 126 KB gz initial JS.
+Vercel config (`vercel.json`) is ready — connect the repo in the Vercel dashboard to get previews.
 
 **M1 · Engine core + simulator** — constants.ts (all BALANCING values), rng streams, stats/xp/attr-cost,
 items/loot generation, **combat engine + fixture tests**, time engine (resets, offline catch-up, tamper
