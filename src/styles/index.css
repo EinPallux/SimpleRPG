@@ -1,0 +1,105 @@
+@import 'tailwindcss';
+@import './tokens.css';
+
+/* Map tokens into Tailwind v4 theme so utilities like bg-panel work. */
+@theme {
+  --color-canvas: #0e1420;
+  --color-panel: #16202e;
+  --color-panel-raised: #1b2838;
+  --color-panel-inset: #0b111b;
+  --color-ink: #e8e3d5;
+  --color-ink-muted: #9aa5b5;
+  --color-ink-faint: #5e6a7a;
+  --color-gold: #d9a94b;
+  --color-gold-bright: #f0c75e;
+  --color-teal: #3fa7a0;
+  --color-danger: #c0483f;
+  --color-success: #57b65f;
+  --color-vigor: #e0a23f;
+  --color-xp: #57b65f;
+  --color-gem: #7fd1c8;
+  --font-display: 'Cinzel Variable', Georgia, serif;
+  --font-body: 'Nunito Sans Variable', system-ui, sans-serif;
+}
+
+html {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-variant-numeric: tabular-nums;
+}
+
+body {
+  min-height: 100dvh;
+  /* Warm hearth vignette over the dark canvas */
+  background:
+    radial-gradient(1200px 600px at 50% -10%, rgba(217, 169, 75, 0.07), transparent 60%),
+    radial-gradient(900px 500px at 85% 110%, rgba(63, 167, 160, 0.05), transparent 60%),
+    var(--canvas);
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+}
+
+/* Panels: interior fill sits inside the 9-slice frame (background-clip trick). */
+.panel-fill {
+  background:
+    linear-gradient(180deg, var(--panel-raised) 0%, var(--panel) 100%);
+  background-clip: padding-box;
+}
+
+.panel-fill-inset {
+  background: var(--panel-inset);
+  background-clip: padding-box;
+}
+
+/* Gold focus ring everywhere (UI_DESIGN.md §8) */
+:focus-visible {
+  outline: 2px solid var(--gold-bright);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+::selection {
+  background: rgba(217, 169, 75, 0.35);
+}
+
+/* Scrollbars on-theme (progressive enhancement) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink-faint) transparent;
+}
+
+/* Screen transition (CSS-only, honors reduced motion via --motion-base) */
+.screen-enter {
+  animation: screen-in var(--motion-base) ease-out;
+}
+@keyframes screen-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.toast-enter {
+  animation: toast-in var(--motion-fast) ease-out;
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

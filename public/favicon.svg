@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Original SimpleRPG mark: gold tankard on dark shield -->
+  <path d="M32 2 58 12v20c0 16-11 26-26 30C17 58 6 48 6 32V12Z" fill="#16202e" stroke="#d9a94b" stroke-width="3"/>
+  <path d="M22 22h16v22H22z" fill="#d9a94b"/>
+  <path d="M38 26h6a4 4 0 0 1 4 4v6a4 4 0 0 1-4 4h-6v-5h5v-4h-5Z" fill="#d9a94b"/>
+  <path d="M20 20h20v4H20z" fill="#f0c75e"/>
+  <circle cx="27" cy="17" r="2.6" fill="#f0c75e"/>
+  <circle cx="33" cy="15" r="2.2" fill="#f0c75e"/>
+</svg>

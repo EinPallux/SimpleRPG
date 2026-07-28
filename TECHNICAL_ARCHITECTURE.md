@@ -37,8 +37,7 @@ no WebGL/canvas engine (DOM+CSS suffices for this UI-driven game; Kenney VFX par
 │   └── assets/        # optimized runtime assets (generated from game_assets/ by script)
 ├── game_assets/       # SOURCE assets (kept pristine; not shipped as-is)
 ├── scripts/
-│   ├── optimize-assets.mjs   # game_assets → public/assets (resize, AVIF/WebP, 9-slice sheets)
-│   └── validate-content.mjs  # zod-validate all content records, referential integrity
+│   └── optimize-assets.mjs   # game_assets → public/assets (tint 9-slice frames, AVIF/WebP, icon sprite)
 ├── src/
 │   ├── main.tsx, App.tsx
 │   ├── engine/        # PURE game logic — no React, no DOM, no Date.now() inside functions
@@ -150,7 +149,7 @@ interface GameSave {
 ## 8. Content pipeline
 
 - Each catalog file exports `const zones: readonly ZoneDef[]` etc. with zod schemas beside the types.
-- `pnpm validate:content` (also a Vitest suite + CI step): unique ids, referential integrity (set pieces
+- `pnpm validate:content` (a Vitest suite over `src/content`, run in CI): unique ids, referential integrity (set pieces
   reference real item defs; dungeon drops reference real sets; quests reference real activities), curve
   monotonicity, banner rotation covers all sets, i18n key existence for every content id, icon refs exist.
 - Content is **versioned by patch tag** (`contentVersion`) enabling post-1.0 patch diffs and save-forward
