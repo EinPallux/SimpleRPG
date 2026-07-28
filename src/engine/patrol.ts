@@ -37,6 +37,28 @@ export interface PatrolCollection {
   xp: XpResult | null;
 }
 
+/** Non-mutating accrual preview for the UI (mirrors collectPatrol's math). */
+export function previewPatrol(
+  save: GameSave,
+  nowMs: number,
+): { ticks: number; gold: number; nextTickInSec: number; capped: boolean } {
+  const patrol = save.activities.patrol;
+  if (!patrol) return { ticks: 0, gold: 0, nextTickInSec: 0, capped: false };
+  const from = Date.parse(patrol.payload.collectedUpTo);
+  const capMs = PATROL_CAP_HOURS * 3_600_000;
+  const elapsed = Math.max(0, nowMs - from);
+  const cappedElapsed = Math.min(elapsed, capMs);
+  const tickMs = PATROL_TICK_MIN * 60_000;
+  const ticks = Math.floor(cappedElapsed / tickMs);
+  const hours = (ticks * PATROL_TICK_MIN) / 60;
+  return {
+    ticks,
+    gold: Math.round(patrolGoldPerHour(save.hero.level) * hours),
+    nextTickInSec: Math.max(0, Math.ceil((tickMs - (cappedElapsed % tickMs)) / 1000)),
+    capped: elapsed >= capMs,
+  };
+}
+
 /**
  * Collect full 30-min ticks accrued up to `untilMs` (capped at 8h per
  * collection window). Partial ticks stay accrued via collectedUpTo.

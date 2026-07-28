@@ -79,14 +79,42 @@ const V1_FIXTURE = {
   stats: {},
 };
 
+/** A v2 (M1) save with a mission in flight — proves payload annotation in v2→v3. */
+const V2_FIXTURE = {
+  ...structuredClone(V1_FIXTURE),
+  version: 2,
+  inventory: {
+    ...structuredClone(V1_FIXTURE.inventory),
+    backpack: [{ ...structuredClone(V1_FIXTURE.inventory.backpack[0]!), classId: null }],
+  },
+  activities: {
+    ...structuredClone(V1_FIXTURE.activities),
+    mission: {
+      kind: 'mission',
+      startedAt: '2026-07-28T11:50:00.000Z',
+      durationSec: 600,
+      payload: { zoneIndex: 1, durationMin: 10, lucky: false, xp: 55, gold: 20 },
+    },
+  },
+};
+
 describe('save migrations', () => {
   it('migrates a v1 (M0) save forward to the current version', () => {
     const save = migrateSave(structuredClone(V1_FIXTURE));
-    expect(save.version).toBe(2);
+    expect(save.version).toBe(3);
     expect(save.hero.name).toBe('Fixture');
     expect(save.inventory.backpack[0]?.classId).toBeNull();
+    expect(save.activities.tavernOffers).toBeNull();
     // Missing rng streams are legal — they lazy-init from the world seed.
     expect(save.rngState).toEqual({});
+  });
+
+  it('migrates a v2 (M1) save with an in-flight mission (payload gains flavor)', () => {
+    const save = migrateSave(structuredClone(V2_FIXTURE));
+    expect(save.version).toBe(3);
+    expect(save.activities.mission?.payload.flavor).toBe(0);
+    expect(save.activities.mission?.payload.xp).toBe(55);
+    expect(save.activities.tavernOffers).toBeNull();
   });
 
   it('refuses saves with no migration path', () => {

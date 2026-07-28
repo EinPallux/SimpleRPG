@@ -69,7 +69,7 @@ export function HudBar() {
             <ProgressBar
               variant="vigor"
               value={daily.vigor}
-              max={VIGOR_DAILY_BASE}
+              max={Math.max(VIGOR_DAILY_BASE, daily.vigor)}
               className="h-2.5"
             />
           </div>

@@ -31,6 +31,8 @@ export interface MissionPayload {
   /** rewards locked in at start (zone multiplier applied) */
   xp: number;
   gold: number;
+  /** flavor-pool roll (mapped to zone/generic mission texts at render) */
+  flavor: number;
 }
 
 export interface PatrolPayload {
@@ -103,6 +105,17 @@ export interface GameSave {
     mission: TimedActivity<MissionPayload> | null;
     expedition: TimedActivity | null;
     patrol: TimedActivity<PatrolPayload> | null;
+    /** the three standing offers on the tavern board (null = roll on next visit) */
+    tavernOffers:
+      | {
+          zoneIndex: number;
+          durationMin: number;
+          lucky: boolean;
+          xp: number;
+          gold: number;
+          flavor: number;
+        }[]
+      | null;
     dungeonCooldowns: Record<string, string>;
     arena: { fightsToday: number; cooldownUntil: string | null };
   };

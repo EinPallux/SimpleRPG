@@ -63,6 +63,7 @@ export function createNewSave(input: NewHeroInput, nowMs: number): GameSave {
       mission: null,
       expedition: null,
       patrol: null,
+      tavernOffers: null,
       dungeonCooldowns: {},
       arena: { fightsToday: 0, cooldownUntil: null },
     },

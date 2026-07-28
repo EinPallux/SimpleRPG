@@ -34,6 +34,23 @@ const MIGRATIONS: Record<number, (raw: RawSave) => RawSave> = {
       },
     };
   },
+  /**
+   * v2 (M1) → v3 (M2): the tavern board persists its three offers, and mission
+   * payloads carry a flavor-text roll. In-flight v2 missions get flavor 0.
+   */
+  3: (raw) => {
+    const activities = raw.activities as Record<string, unknown>;
+    const mission = activities.mission as { payload?: Record<string, unknown> } | null;
+    return {
+      ...raw,
+      version: 3,
+      activities: {
+        ...activities,
+        tavernOffers: null,
+        mission: mission ? { ...mission, payload: { flavor: 0, ...mission.payload } } : null,
+      },
+    };
+  },
 };
 
 export function migrateSave(raw: unknown): GameSave {

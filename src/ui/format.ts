@@ -10,6 +10,16 @@ export function fmt(n: number): string {
   return `${(n / 1_000_000_000).toFixed(2)}B`;
 }
 
+/** "4:05" under an hour, "1:04:05" above. For countdowns and timers. */
+export function formatCountdown(totalSec: number): string {
+  const s = Math.max(0, Math.floor(totalSec));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  const mm = h > 0 ? String(m).padStart(2, '0') : String(m);
+  return `${h > 0 ? `${h}:` : ''}${mm}:${String(sec).padStart(2, '0')}`;
+}
+
 export function relativeTime(iso: string, nowMs: number): string {
   const delta = Math.max(0, nowMs - Date.parse(iso));
   const minutes = Math.floor(delta / 60_000);

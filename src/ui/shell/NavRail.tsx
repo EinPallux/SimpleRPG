@@ -1,7 +1,20 @@
+import { missionEndsAt } from '@/engine/missions';
 import { t } from '@/i18n';
 import { useGame, type ScreenId } from '@/state/store';
 import { NAV_GROUPS, type NavEntry } from '../nav';
 import { Icon } from '../components/Icon';
+import { useGameClock } from '../hooks/useGameClock';
+
+/** Live attention badges: mission ready to claim, patrol on duty. */
+function useNavBadges(): Partial<Record<ScreenId, string>> {
+  const now = useGameClock(5000);
+  const mission = useGame((s) => s.save?.activities.mission ?? null);
+  const patrolling = useGame((s) => Boolean(s.save?.activities.patrol));
+  const badges: Partial<Record<ScreenId, string>> = {};
+  if (mission && now >= missionEndsAt(mission)) badges.tavern = '!';
+  if (patrolling) badges.patrol = '💤';
+  return badges;
+}
 
 function useNavActions() {
   const level = useGame((s) => s.save?.hero.level ?? 1);
@@ -25,12 +38,14 @@ function RailEntry({
   screen,
   onActivate,
   labels = 'auto',
+  badge,
 }: {
   entry: NavEntry;
   level: number;
   screen: ScreenId;
   onActivate: (entry: NavEntry) => void;
   labels?: 'auto' | 'always';
+  badge?: string | undefined;
 }) {
   const locked = level < entry.unlockLevel;
   const active = screen === entry.screen;
@@ -53,6 +68,11 @@ function RailEntry({
         {locked && (
           <Icon id="lock" size={11} className="absolute -right-1.5 -bottom-1 text-ink-faint" />
         )}
+        {!locked && badge && (
+          <span className="absolute -top-1.5 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-gold px-0.5 text-[9px] font-extrabold text-canvas">
+            {badge}
+          </span>
+        )}
       </span>
       <span className={`${labelClass} min-w-0 flex-1 truncate`}>{t(entry.labelKey)}</span>
       {locked && (
@@ -69,6 +89,7 @@ function RailEntry({
 /** Desktop navigation rail (≥lg). Locked entries are visible silhouettes — anticipation is content. */
 export function NavRail() {
   const { level, screen, activate } = useNavActions();
+  const badges = useNavBadges();
   return (
     <nav
       aria-label="Main"
@@ -89,6 +110,7 @@ export function NavRail() {
               level={level}
               screen={screen}
               onActivate={activate}
+              badge={badges[entry.screen]}
             />
           ))}
         </div>
@@ -100,6 +122,7 @@ export function NavRail() {
 /** Mobile bottom bar (<lg): Tavern direct + one sheet per group. */
 export function MobileTabBar({ onOpenSheet }: { onOpenSheet: (groupIndex: number) => void }) {
   const { screen, activate } = useNavActions();
+  const badges = useNavBadges();
   const tavern = NAV_GROUPS[0]!.entries[0]!;
   const groups = NAV_GROUPS;
   return (
@@ -113,7 +136,14 @@ export function MobileTabBar({ onOpenSheet }: { onOpenSheet: (groupIndex: number
         aria-current={screen === 'tavern' ? 'page' : undefined}
         className={`flex flex-1 flex-col items-center gap-0.5 py-1 text-[10px] font-bold ${screen === 'tavern' ? 'text-gold' : 'text-ink-muted'}`}
       >
-        <Icon id="tavern" size={22} />
+        <span className="relative">
+          <Icon id="tavern" size={22} />
+          {badges.tavern && (
+            <span className="absolute -top-1 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-gold px-0.5 text-[9px] font-extrabold text-canvas">
+              {badges.tavern}
+            </span>
+          )}
+        </span>
         {t('nav.tavern')}
       </button>
       {groups.map((group, i) => {

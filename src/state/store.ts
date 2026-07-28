@@ -7,7 +7,19 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { createNewSave, deriveEmblem } from '@/engine/newSave';
 import { systemClock } from '@/engine/clock';
+import {
+  acceptTavernOffer,
+  canStartMission,
+  claimMission,
+  getTavernOffers,
+  isMissionComplete,
+  rerollTavernOffers,
+  tavernRerollCost,
+  type MissionRewards,
+} from '@/engine/missions';
+import { canStartPatrol, collectPatrol, startPatrol, stopPatrol } from '@/engine/patrol';
 import { applyTimePassage } from '@/engine/timePassage';
+import { buyAle, canBuyAle, canClaimSecondWind, claimSecondWind } from '@/engine/vigor';
 import type { ClassId, EmblemSpec, GameSave, SlotSummary } from '@/engine/types';
 import { CodecError, decodeSave, encodeSave } from '@/persist/codec';
 import {
@@ -58,10 +70,27 @@ interface GameStore {
   toasts: Toast[];
   /** true while the device clock sits behind the save's high-water mark */
   timeFrozen: boolean;
+  /** pending mission rewards to present in the RewardReveal modal */
+  reveal: MissionRewards | null;
 
   bootstrap(): Promise<void>;
   /** Run offline catch-up / clock-guard check against the wall clock. */
   catchUp(): void;
+
+  // Tavern & vigor (M2)
+  tavernEnsureOffers(): void;
+  tavernAccept(index: number): void;
+  tavernClaim(): void;
+  tavernReroll(): void;
+  setZonePin(zoneIndex: number | null): void;
+  secondWind(): void;
+  ale(): void;
+  closeReveal(): void;
+
+  // Patrol (M2)
+  patrolStart(): void;
+  patrolCollect(): void;
+  patrolStop(): void;
   refreshSlots(): Promise<void>;
   createHero(
     slot: number,
@@ -103,12 +132,95 @@ export const useGame = create<GameStore>()(
       settingsOpen: false,
       toasts: [],
       timeFrozen: false,
+      reveal: null,
 
       catchUp() {
         set((s) => {
           if (!s.save) return;
           const result = applyTimePassage(s.save, systemClock.now());
           s.timeFrozen = result.frozen;
+        });
+        scheduleAutosave();
+      },
+
+      tavernEnsureOffers() {
+        // Fills the board when empty — called from an effect, never during render.
+        set((s) => {
+          if (s.save && !s.save.activities.tavernOffers) getTavernOffers(s.save);
+        });
+        scheduleAutosave();
+      },
+
+      tavernAccept(index) {
+        set((s) => {
+          if (!s.save) return;
+          const offer = getTavernOffers(s.save)[index];
+          if (!offer || !canStartMission(s.save, offer)) return;
+          acceptTavernOffer(s.save, index, systemClock.now());
+        });
+        scheduleAutosave();
+      },
+
+      tavernClaim() {
+        set((s) => {
+          if (!s.save || !isMissionComplete(s.save, systemClock.now())) return;
+          s.reveal = claimMission(s.save, systemClock.now());
+        });
+        scheduleAutosave();
+      },
+
+      tavernReroll() {
+        set((s) => {
+          if (!s.save || s.save.hero.gems < tavernRerollCost(s.save)) return;
+          rerollTavernOffers(s.save);
+        });
+        scheduleAutosave();
+      },
+
+      setZonePin(zoneIndex) {
+        set((s) => {
+          if (s.save) s.save.progress.zonePinned = zoneIndex;
+        });
+        scheduleAutosave();
+      },
+
+      secondWind() {
+        set((s) => {
+          if (s.save && canClaimSecondWind(s.save)) claimSecondWind(s.save);
+        });
+        scheduleAutosave();
+      },
+
+      ale() {
+        set((s) => {
+          if (s.save && canBuyAle(s.save)) buyAle(s.save);
+        });
+        scheduleAutosave();
+      },
+
+      closeReveal() {
+        set((s) => {
+          s.reveal = null;
+        });
+      },
+
+      patrolStart() {
+        set((s) => {
+          if (s.save && canStartPatrol(s.save)) startPatrol(s.save, systemClock.now());
+        });
+        scheduleAutosave();
+      },
+
+      patrolCollect() {
+        set((s) => {
+          if (s.save?.activities.patrol) collectPatrol(s.save, systemClock.now());
+        });
+        scheduleAutosave();
+      },
+
+      patrolStop() {
+        set((s) => {
+          if (s.save?.activities.patrol) stopPatrol(s.save, systemClock.now());
         });
         scheduleAutosave();
       },
