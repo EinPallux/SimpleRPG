@@ -51,6 +51,18 @@ const MIGRATIONS: Record<number, (raw: RawSave) => RawSave> = {
       },
     };
   },
+  /** v3 (M2) → v4 (M3): the town's shops keep their daily stock in the save. */
+  4: (raw) => ({
+    ...raw,
+    version: 4,
+    town: {
+      shops: {
+        weaponsmith: { stock: null, rerollUsed: false },
+        armorer: { stock: null, rerollUsed: false },
+        arcanum: { stock: null, rerollUsed: false },
+      },
+    },
+  }),
 };
 
 export function migrateSave(raw: unknown): GameSave {

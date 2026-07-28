@@ -148,7 +148,18 @@ export interface GameSave {
     gachaPity: Record<string, { sinceEpic: number; sinceSet: number }>;
     milestonesClaimed: string[];
   };
+  town: {
+    shops: Record<ShopId, ShopState>;
+  };
   stats: Record<string, number>;
+}
+
+export type ShopId = 'weaponsmith' | 'armorer' | 'arcanum';
+
+export interface ShopState {
+  /** null = roll fresh stock on next visit (daily reset clears it) */
+  stock: (ItemInstance | null)[] | null;
+  rerollUsed: boolean;
 }
 
 export interface SlotSummary {

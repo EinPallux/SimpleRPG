@@ -43,9 +43,16 @@ nav attention badges, 30 mission flavor texts (zones 1–3 + generic) and 10 pat
 drops auto-sell. E2E day-1 loop runs under Playwright clock emulation. *Deviation:* story-offer ribbons
 ship with the quest system in M6 (they need story state to advance).
 
-**M3 · Hero & economy** — Character screen (paper-doll, StatRows + attribute buying), Backpack, item
-tooltips/compare, 3 shops + stock refresh, potions, Forge (upgrade/dismantle), sell flow.
+**M3 · Hero & economy** ✅ *(2026-07-28)* — Character screen (paper-doll, StatRows + attribute buying),
+Backpack, item tooltips/compare, 3 shops + stock refresh, potions, Forge (upgrade/dismantle), sell flow.
 *Done when:* full item lifecycle playable; economy audit table (§6) matches sim output ±10%.
+*Shipped:* the infinite attribute sink live (+1/×10 with escalating costs), equip/unequip with class cuts
+and swap, Backpack tab (sort, action modal with compare vs equipped), 3 shops with save-persisted daily
+stock (schema v4) + free reroll then 1 💎, 15-elixir Arcanum rack (3 sockets, 24h, replace-same-attribute),
+Forge upgrade bench (+20, scraps+gold) + dismantle bench (5/day pips), derived combat sheet from the real
+combat builders. Sim now equips upgrades and the §6 audit is CI-asserted — which corrected the doc:
+drop-vendoring measured at ~0.2% of income (accepted as design; loot's value is equipping + scraps,
+BALANCING §10). E2E covers the full lifecycle via a deterministic imported save.
 
 **M4 · Arena & the living ladder** — bot world generation (names/guilds/archetypes), Hall of Fame,
 arena offers/fights/honor/milestones, sparring, profile peek, combat playback polish.

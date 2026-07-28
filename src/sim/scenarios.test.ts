@@ -41,6 +41,23 @@ describe('anti-rush contract (optimal play ceilings)', () => {
     expect(casual.finalLevel).toBeGreaterThan(optimal.finalLevel * 0.5);
   });
 
+  it('gold-faucet audit (M3 done-when): sources and the attribute sink match BALANCING §6 intent', () => {
+    const r = simulateDays('optimal', 21);
+    const earned = r.goldFrom.missions + r.goldFrom.patrol + r.goldFrom.selling;
+    // Attributes must absorb the majority of lifetime gold (the infinite sink).
+    expect(r.goldSpentOnAttrs / earned).toBeGreaterThan(0.6);
+    // Missions are the backbone; patrol and selling are meaningful side streams.
+    expect(r.goldFrom.missions / earned).toBeGreaterThan(0.6);
+    expect(r.goldFrom.patrol / r.goldFrom.missions).toBeGreaterThan(0.08);
+    expect(r.goldFrom.patrol / r.goldFrom.missions).toBeLessThan(0.35);
+    // Vendoring generic drops is deliberately pocket change (§6, §10 2026-07-28):
+    // loot's value is equipping and scraps. Present, but bounded.
+    expect(r.goldFrom.selling).toBeGreaterThan(0);
+    expect(r.goldFrom.selling / r.goldFrom.missions).toBeLessThan(0.05);
+    // The equip heuristic dressed the hero (item lifecycle works end to end).
+    expect(r.equippedCount).toBeGreaterThanOrEqual(5);
+  });
+
   it('simulation is fully deterministic per seed', () => {
     const a = simulateDays('optimal', 5, 'seed-a');
     const b = simulateDays('optimal', 5, 'seed-a');

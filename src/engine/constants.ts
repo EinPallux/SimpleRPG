@@ -4,8 +4,30 @@
  * simulator scenarios to stay green (from M1 on) and a row in BALANCING.md §10.
  */
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 export const TAVERN_REROLL_COST_GEMS = 1;
+
+// Shops (GAME_DESIGN.md §9.5, BALANCING.md §5.3–5.4)
+export const SHOP_STOCK_SIZE = 6;
+export const SHOP_REROLL_COST_GEMS = 1;
+export const DROP_WEIGHTS_SHOP = [
+  ['common', 30],
+  ['uncommon', 34],
+  ['rare', 26],
+  ['epic', 10],
+] as const;
+
+// Elixirs (GAME_DESIGN.md §9.5, BALANCING.md §5.4)
+export const POTION_SLOTS = 3;
+export const ELIXIR_PCT = [0.1, 0.15, 0.25] as const; // tier 1..3: % of the attribute
+export const ELIXIR_PRICE_MULT = [1.5, 4, 10] as const; // × missionGold(L,10)
+export const ELIXIR_DURATION_H = 24;
+
+// Forge (BALANCING.md §5.5)
+export const FORGE_UPGRADE_MAX = 20;
+export const UPGRADE_STAT_PER_LEVEL = 0.025;
+export const FORGE_GOLD_COEF = 0.12; // gold = 0.12 × k^1.8 × shopPrice(item)
+export const FORGE_GOLD_EXP = 1.8;
 
 // Vigor — the daily adventure energy (GAME_DESIGN.md §4)
 export const VIGOR_DAILY_BASE = 100;

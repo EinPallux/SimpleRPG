@@ -43,6 +43,15 @@ for (const r of result.records) {
 console.log(
   `\nFinal: level ${result.finalLevel}, gold ${Math.round(result.finalGold)}, attrs ${JSON.stringify(result.finalAttrs)}`,
 );
+const earned = result.goldFrom.missions + result.goldFrom.patrol + result.goldFrom.selling;
+console.log(
+  `Faucets: missions ${Math.round(result.goldFrom.missions)} (${Math.round((result.goldFrom.missions / earned) * 100)}%) · ` +
+    `patrol ${Math.round(result.goldFrom.patrol)} (${Math.round((result.goldFrom.patrol / earned) * 100)}%) · ` +
+    `selling ${Math.round(result.goldFrom.selling)} (${Math.round((result.goldFrom.selling / earned) * 100)}%)`,
+);
+console.log(
+  `Attribute sink: ${Math.round(result.goldSpentOnAttrs)} gold (${Math.round((result.goldSpentOnAttrs / earned) * 100)}% of earnings) · equipped pieces: ${result.equippedCount}`,
+);
 
 if (wantPar) {
   console.log('\nPar check (measured evenly-spread attr vs analytic parMainAttr):');

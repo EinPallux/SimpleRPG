@@ -6,6 +6,8 @@
  */
 import { CLOCK_ROLLBACK_GRACE_MS, VIGOR_DAILY_BASE } from './constants';
 import { collectPatrol } from './patrol';
+import { prunePotions } from './potions';
+import { resetShopsDaily } from './shops';
 import { isoWeekKey, localDayKey, localMonthKey } from './time';
 import type { GameSave } from './types';
 
@@ -37,6 +39,7 @@ export function applyDailyReset(save: GameSave, newDayMs: number): void {
   save.daily.questProgress = {};
   save.activities.arena.fightsToday = 0;
   save.activities.arena.cooldownUntil = null;
+  resetShopsDaily(save); // fresh merchant stock at midnight (GAME_DESIGN §9.5)
 }
 
 export function applyWeeklyReset(save: GameSave, newWeekMs: number): void {
@@ -97,6 +100,7 @@ export function applyTimePassage(save: GameSave, nowMs: number): TimePassageResu
     boundary = nextMidnight(cursor);
   }
 
+  prunePotions(save, nowMs);
   save.lastSeenAt = new Date(nowMs).toISOString();
   return {
     frozen: false,
