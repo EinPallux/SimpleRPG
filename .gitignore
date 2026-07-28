@@ -1,0 +1,21 @@
+# Dependencies & builds (for the upcoming Vite scaffold)
+node_modules/
+dist/
+coverage/
+.vercel/
+*.tsbuildinfo
+
+# Generated runtime assets (built from game_assets/ by scripts/optimize-assets.mjs)
+public/assets/
+
+# Editors & OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Env & logs
+*.log
+.env
+.env.*
