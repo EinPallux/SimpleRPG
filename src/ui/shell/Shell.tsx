@@ -8,13 +8,17 @@ import { RewardReveal } from '../components/RewardReveal';
 import { useGameClock } from '../hooks/useGameClock';
 import { findNavEntry } from '../nav';
 import { ArenaPlayback } from '../components/ArenaPlayback';
+import { DungeonPlayback, ExpedPlayback } from '../components/PvePlayback';
 import { ArenaScreen } from '../screens/ArenaScreen';
 import { CharacterScreen } from '../screens/CharacterScreen';
+import { DungeonsScreen } from '../screens/DungeonsScreen';
+import { ExpeditionScreen } from '../screens/ExpeditionScreen';
 import { ForgeScreen } from '../screens/ForgeScreen';
 import { HallOfFameScreen } from '../screens/HallOfFameScreen';
 import { PatrolScreen } from '../screens/PatrolScreen';
 import { ShopsScreen } from '../screens/ShopsScreen';
 import { TavernScreen } from '../screens/TavernScreen';
+import { WheelScreen } from '../screens/WheelScreen';
 import { HudBar } from './HudBar';
 import { MobileTabBar, NavRail, NavSheet } from './NavRail';
 import { SettingsModal } from './SettingsModal';
@@ -28,6 +32,9 @@ const SCREENS: Partial<Record<ScreenId, () => React.JSX.Element | null>> = {
   forge: ForgeScreen,
   arena: ArenaScreen,
   hallOfFame: HallOfFameScreen,
+  dungeons: DungeonsScreen,
+  expeditions: ExpeditionScreen,
+  wheel: WheelScreen,
 };
 
 /** Catch the local-midnight rollover while the tab stays open (GAME_DESIGN §14). */
@@ -76,6 +83,8 @@ export function Shell() {
       {sheet !== null && <NavSheet groupIndex={sheet} onClose={() => setSheet(null)} />}
       {reveal && <RewardReveal rewards={reveal} onClose={closeReveal} />}
       <ArenaPlayback />
+      <DungeonPlayback />
+      <ExpedPlayback />
       <SettingsModal />
     </div>
   );

@@ -68,9 +68,22 @@ profile peek (derived gear snapshots, attrs, 14-day honor sparkline, fight-from-
 policies + CI ladder contract: top-100 days 80–115, rank 1 days 150–250, ladder moves ≥ 20 of 30 days.
 *Deviation:* rank-milestone titles ship with the title system in M6 (gems pay out now).
 
-**M5 · Active pillars** — Dungeons 1–5 (50 bosses, walls, cooldowns, set drops), Expeditions (4 locales,
-encounter cards, heroism chests), Wheel of Destiny.
+**M5 · Active pillars** ✅ *(2026-07-28)* — Dungeons 1–5 (50 bosses, walls, cooldowns, set drops),
+Expeditions (4 locales, encounter cards, heroism chests), Wheel of Destiny.
 *Done when:* `dungeon-walls` + `dungeon-final` scenarios green; a wall-bounce-return cycle plays well.
+*Shipped:* all 14 item sets live as data AND mechanics — 2/4-pc stat tiers plus every full-set combat
+behavior in the engine (reflect, heal-on-block, counter-buff, after-evade crit, guaranteed first strike,
+every-4th-strike, DR pierce, offhand 70%, poison crits, double-crit bonus, mission-item pp, expedition
+perks), fixture-tested; 50 named bosses with intro threats + trait flags as §4 stat walls, hourly free
+attempts, floors 5/10 drop dupe-protected set pieces (D2/D4 pity into class sets), per-floor gems and
+one-time XP; expeditions as persisted 5-encounter card runs (fight/treasure/event/mini-boss, bold-or-safe
+vignettes, heroism → Bronze/Silver/Gold chests, Twilight Wanderer widens the day); Wheel of Destiny with
+honest odds table, rising spin costs, mystery re-rolls and a Legendary jackpot; three new screens + shared
+playback, nav badges, schema v5 (+ migration fixture). Sim runs all of it: expedition/dungeon/wheel
+policies, faucet audit refreshed to measured shares (§6), expedition payouts re-anchored to the 1.125×
+target, BOT_DAILY_EQUIV +5% keeps rank 1 at day ~155–180, new CI contracts `dungeon-walls` +
+`dungeon-final` + 90/180-day ceilings (§10 changelog ×2). *Deviations:* dungeons gate by level until story
+keys land (M6); the jackpot's Gilded Snail fallback waits for pets (M7) — it pays Legendary gear until then.
 
 **M6 · Meta layer** — story chapters 1–8, daily/weekly/monthly quests + Activity chest, achievements (70)
 + titles, Codex, login calendar, unlock-ladder gating with locked-silhouette nav.

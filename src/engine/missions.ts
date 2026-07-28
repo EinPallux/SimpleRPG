@@ -13,6 +13,7 @@ import {
 import { missionGold, missionXp, zoneMultiplier } from './economy';
 import { effectiveItemChance, rollDrop, sellPrice, type DropSource } from './items';
 import { getStream } from './rng';
+import { activeEffect } from './sets';
 import { totalAttribute } from './stats';
 import type { GameSave, ItemInstance, MissionPayload, TimedActivity } from './types';
 import { applyXp, type XpResult } from './xpGain';
@@ -153,7 +154,9 @@ export function claimMission(save: GameSave, nowMs: number): MissionRewards {
 
   const loot = getStream(save.rngState, save.worldSeed, 'loot');
   const luck = totalAttribute(save, 'lck');
-  const item = loot.chance(effectiveItemChance(luck, save.hero.level))
+  // Innkeeper's Regalia full set: +pp on top of the luck-capped chance (§4.6).
+  const setItemPP = (activeEffect(save, 'missionItemPP')?.pp ?? 0) / 100;
+  const item = loot.chance(effectiveItemChance(luck, save.hero.level) + setItemPP)
     ? rollDrop('mission' as DropSource, save.hero.level, save.hero.classId, loot)
     : null;
   const chest = loot.chance(MISSION_CHEST_CHANCE)

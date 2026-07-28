@@ -1,7 +1,8 @@
-/** Derived hero stats (BALANCING.md §3.1, §5.2). */
+/** Derived hero stats (BALANCING.md §3.1, §5.2, set tiers §4.6). */
 import { getClass } from '@/content/classes';
 import { CAP_CRIT_DMG_BONUS, CAP_GOLD_FIND, CAP_XP_BONUS } from './constants';
 import { potionPercent } from './potions';
+import { setAggregate } from './sets';
 import type { AttributeId, GameSave, ItemInstance } from './types';
 import { baseAttribute } from './newSave';
 
@@ -10,7 +11,7 @@ function equippedItems(save: GameSave): ItemInstance[] {
 }
 
 /**
- * Attribute total: (class start + bought + gear lines) × active elixir %.
+ * Attribute total: (class start + bought + gear lines) × elixir % × set %.
  * Expired potions are pruned by catch-up (≤30 s staleness by design;
  * TECHNICAL_ARCHITECTURE §6). Achievements bonuses join in M6.
  */
@@ -21,14 +22,16 @@ export function totalAttribute(save: GameSave, attr: AttributeId): number {
       if (line.attr === attr || line.attr === 'all') total += line.value;
     }
   }
-  return Math.round(total * (1 + potionPercent(save, attr)));
+  const setPct = setAggregate(save).attrPct[attr];
+  return Math.round(total * (1 + potionPercent(save, attr)) * (1 + setPct));
 }
 
-/** Percent bonuses from gear, engine-capped (BALANCING §5.2). Values are fractions. */
+/** Percent bonuses from gear lines + set tiers, engine-capped (§5.2). Fractions. */
 export function gearPercents(save: GameSave): { critDmg: number; goldFind: number; xp: number } {
-  let critDmg = 0;
-  let goldFind = 0;
-  let xp = 0;
+  const sets = setAggregate(save);
+  let critDmg = sets.critDmgPct / 100;
+  let goldFind = sets.goldPct;
+  let xp = sets.xpPct;
   for (const item of equippedItems(save)) {
     for (const line of item.lines) {
       if (line.attr === 'critDmg') critDmg += line.value / 100;
@@ -43,8 +46,11 @@ export function gearPercents(save: GameSave): { critDmg: number; goldFind: numbe
   };
 }
 
-/** maxHP = CON_total × hpFactor(class) × (level + 1) */
+/** maxHP = CON_total × hpFactor(class) × (level + 1), × set HP bonus. */
 export function heroMaxHp(save: GameSave): number {
   const cls = getClass(save.hero.classId);
-  return Math.round(totalAttribute(save, 'con') * cls.hpFactor * (save.hero.level + 1));
+  const hpPct = setAggregate(save).hpPct;
+  return Math.round(
+    totalAttribute(save, 'con') * cls.hpFactor * (save.hero.level + 1) * (1 + hpPct),
+  );
 }

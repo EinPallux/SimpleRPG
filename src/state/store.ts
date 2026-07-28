@@ -7,6 +7,21 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { canFight, fightArena, skipCooldown, type ArenaOutcome } from '@/engine/arena';
 import { ARENA_COOLDOWN_SKIP_GEMS } from '@/engine/constants';
+import { bossNameKey, getDungeon } from '@/content/dungeons';
+import {
+  attemptFloor,
+  canAttemptFloor,
+  type DungeonOutcome,
+} from '@/engine/dungeons';
+import {
+  abandonExpedition,
+  canStartExpedition,
+  ensureCards,
+  resolveCard,
+  startExpedition,
+  type ExpeditionStepOutcome,
+} from '@/engine/expeditions';
+import { canSpinWheel, spinWheel, type WheelOutcome } from '@/engine/wheel';
 import { createNewSave, deriveEmblem } from '@/engine/newSave';
 import { systemClock } from '@/engine/clock';
 import {
@@ -49,7 +64,7 @@ import {
   randomWorldSeed,
   setActiveSlot,
 } from '@/persist/saves';
-import { t } from '@/i18n';
+import { t, type I18nKey } from '@/i18n';
 
 export type ScreenId =
   | 'tavern'
@@ -92,6 +107,12 @@ interface GameStore {
   reveal: MissionRewards | null;
   /** finished arena bout awaiting playback (Shell renders the overlay) */
   arenaOutcome: ArenaOutcome | null;
+  /** finished dungeon attempt awaiting playback */
+  dungeonOutcome: DungeonOutcome | null;
+  /** resolved expedition card (fights carry a combat log for playback) */
+  expedOutcome: ExpeditionStepOutcome | null;
+  /** landed wheel spin awaiting the reveal */
+  wheelOutcome: WheelOutcome | null;
 
   bootstrap(): Promise<void>;
   /** Run offline catch-up / clock-guard check against the wall clock. */
@@ -116,6 +137,17 @@ interface GameStore {
   arenaFight(offerIndex: number): void;
   arenaSkipCooldown(): void;
   closeArenaOutcome(): void;
+
+  // Dungeons, expeditions, wheel (M5)
+  dungeonFight(dungeonId: string): void;
+  closeDungeonOutcome(): void;
+  expedStart(localeId: string): void;
+  expedEnsureCards(): void;
+  expedResolve(cardIndex: number, choice?: 'safe' | 'bold'): void;
+  expedAbandon(): void;
+  closeExpedOutcome(): void;
+  wheelSpin(): void;
+  closeWheelOutcome(): void;
 
   // Hero economy (M3)
   buyAttr(attr: AttributeId, times?: number): void;
@@ -171,6 +203,9 @@ export const useGame = create<GameStore>()(
       timeFrozen: false,
       reveal: null,
       arenaOutcome: null,
+      dungeonOutcome: null,
+      expedOutcome: null,
+      wheelOutcome: null,
 
       catchUp() {
         set((s) => {
@@ -291,6 +326,96 @@ export const useGame = create<GameStore>()(
       closeArenaOutcome() {
         set((s) => {
           s.arenaOutcome = null;
+        });
+      },
+
+      dungeonFight(dungeonId) {
+        let toastText: string | null = null;
+        set((s) => {
+          if (!s.save || !canAttemptFloor(s.save, dungeonId, systemClock.now()).ok) return;
+          const floor = (s.save.progress.dungeonFloors[dungeonId] ?? 0) + 1;
+          const slug = getDungeon(dungeonId).bosses[floor - 1]!.slug;
+          const outcome = attemptFloor(
+            s.save,
+            dungeonId,
+            systemClock.now(),
+            t(bossNameKey(slug) as I18nKey),
+          );
+          s.dungeonOutcome = outcome;
+          if (outcome.won && outcome.setDrop && outcome.drop) {
+            toastText = t('toast.setDrop', { name: itemName(outcome.drop) });
+          }
+        });
+        if (toastText) get().toast(toastText);
+        scheduleAutosave();
+      },
+
+      closeDungeonOutcome() {
+        set((s) => {
+          s.dungeonOutcome = null;
+        });
+      },
+
+      expedStart(localeId) {
+        set((s) => {
+          if (!s.save || !canStartExpedition(s.save).ok) return;
+          startExpedition(s.save, localeId);
+          ensureCards(s.save);
+        });
+        scheduleAutosave();
+      },
+
+      expedEnsureCards() {
+        // Rolls the current encounter's cards when missing — effect-driven.
+        set((s) => {
+          if (s.save?.activities.expedition && !s.save.activities.expedition.cards) {
+            ensureCards(s.save);
+          }
+        });
+        scheduleAutosave();
+      },
+
+      expedResolve(cardIndex, choice) {
+        let toastText: string | null = null;
+        set((s) => {
+          if (!s.save?.activities.expedition) return;
+          const outcome = resolveCard(s.save, cardIndex, choice);
+          s.expedOutcome = outcome;
+          if (outcome.chest?.setDrop && outcome.chest.item) {
+            toastText = t('toast.setDrop', { name: itemName(outcome.chest.item) });
+          }
+        });
+        if (toastText) get().toast(toastText);
+        scheduleAutosave();
+      },
+
+      expedAbandon() {
+        set((s) => {
+          if (!s.save?.activities.expedition) return;
+          abandonExpedition(s.save);
+          s.expedOutcome = null;
+        });
+        get().toast(t('exped.abandoned'));
+        scheduleAutosave();
+      },
+
+      closeExpedOutcome() {
+        set((s) => {
+          s.expedOutcome = null;
+        });
+      },
+
+      wheelSpin() {
+        set((s) => {
+          if (!s.save || !canSpinWheel(s.save)) return;
+          s.wheelOutcome = spinWheel(s.save);
+        });
+        scheduleAutosave();
+      },
+
+      closeWheelOutcome() {
+        set((s) => {
+          s.wheelOutcome = null;
         });
       },
 

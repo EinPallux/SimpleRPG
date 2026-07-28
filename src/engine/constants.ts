@@ -4,7 +4,7 @@
  * simulator scenarios to stay green (from M1 on) and a row in BALANCING.md §10.
  */
 
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 export const TAVERN_REROLL_COST_GEMS = 1;
 
 // Shops (GAME_DESIGN.md §9.5, BALANCING.md §5.3–5.4)
@@ -79,11 +79,11 @@ export const BOT_ARCHETYPE_DIST = [
 ] as const;
 /** daily mission-equivalents (10-vigor units) each archetype averages */
 export const BOT_DAILY_EQUIV = {
-  nolifer: 19.5, // ≈ a full-optimal player before gem income — the long rival
-  dedicated: 15,
-  regular: 10.5,
-  casual: 5,
-  dormant: 1.2,
+  nolifer: 20.5, // ≈ a full-optimal player incl. expeditions/dungeons — the long rival
+  dedicated: 16,
+  regular: 11,
+  casual: 5.2,
+  dormant: 1.25,
 } as const;
 export const BOT_WEEKEND_MULT = 1.3;
 export const BOT_QUIT_CHANCE_PER_MONTH = 0.02; // rage-quit → replaced by a fresh joiner
@@ -117,6 +117,48 @@ export const ARENA_MILESTONES: readonly (readonly [number, number])[] = [
   [3, 30],
   [1, 50],
 ];
+
+// Dungeons (GAME_DESIGN.md §15, BALANCING.md §4/§4.6) — the stat walls
+export const DUNGEON_BOSS_ATTR_BASE = 1.15; // M_attr(f) = 1.15 + 0.01×f
+export const DUNGEON_BOSS_ATTR_PER_FLOOR = 0.01;
+export const DUNGEON_BOSS_HP_BASE = 2.2; // M_hp(f) = 2.2 + 0.08×f
+export const DUNGEON_BOSS_HP_PER_FLOOR = 0.08;
+export const DUNGEON_BOSS_ARMOR_MULT = 1.1;
+export const DUNGEON_FLOOR_GOLD_MULT = 1.0; // × missionGold(L,10), on clear
+export const DUNGEON_FLOOR_XP_MULT = 1.5; // × missionXp(L,10), on clear (one-time by design)
+export const DUNGEON_FLOOR_GEMS = 3; // every floor clear…
+export const DUNGEON_SET_FLOOR_GEMS = 5; // …but set floors (5 & 10) pay more…
+export const DUNGEON_CLEAR_GEMS = 10; // …and finishing floor 10 adds this on top
+
+// Expeditions (GAME_DESIGN.md §16, BALANCING.md §4.6)
+export const EXPEDITION_STEPS = 5;
+export const EXPED_CARD_WEIGHTS = [
+  ['fight', 60],
+  ['treasure', 25],
+  ['event', 15],
+] as const;
+export const HEROISM_SILVER = 20; // chest tiers: Bronze < 20 ≤ Silver < 35 ≤ Gold
+export const HEROISM_GOLD = 35;
+export const HEROISM_FIGHT_WIN = 8;
+export const HEROISM_FIGHT_LOSS = 3; // losing never bricks a run — it just pays less
+export const HEROISM_MINIBOSS_WIN = 14;
+export const HEROISM_MINIBOSS_LOSS = 4;
+export const HEROISM_TREASURE = 4;
+export const EXPED_TREASURE_GOLD_MULT = 0.35; // × missionGold(L,10)
+export const EXPED_FIGHT_GOLD_MULT = 0.15; // per won fight (miniboss ×2)
+export const EXPED_CHEST_GOLD = { bronze: 1.1, silver: 1.4, gold: 1.7 } as const; // × M10
+export const EXPED_CHEST_XP = { bronze: 0.9, silver: 1.1, gold: 1.35 } as const; // × M10-XP
+export const EXPED_GOLD_CHEST_SET_CHANCE = 0.12; // Gold chests may hold a set piece
+
+// Wheel of Destiny (GAME_DESIGN.md §14, CONTENT_CATALOG.md §11)
+export const WHEEL_SPIN_COSTS = [0, 0.4, 0.8, 1.6, 3.2] as const; // × missionGold(L,10)
+export const WHEEL_GOLD = { goldS: 0.5, goldM: 1.0, goldL: 2.5 } as const; // × M10
+export const WHEEL_XP_MULT = 0.6; // × missionXp(L,10)
+export const WHEEL_SCRAPS = 6;
+export const WHEEL_TREATS = 3;
+export const WHEEL_DUST = 2;
+export const WHEEL_GEMS = 1;
+export const WHEEL_JACKPOT_GEMS = 25; // fallback once pets exist and the snail is owned (M7)
 
 // Progression curves (BALANCING.md §2)
 export const XP_BASE = 100; // xpToNext = ceil(XP_BASE × L^XP_EXP)

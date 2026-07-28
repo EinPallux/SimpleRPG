@@ -7,7 +7,18 @@ import { hasKey } from '@/i18n';
 import { ICON_IDS } from '@/ui/icons.gen';
 import { NAV_GROUPS } from '@/ui/nav';
 import { CLASSES, classSchema } from './classes';
+import {
+  allBossSlugs,
+  bossIntroKey,
+  bossNameKey,
+  DUNGEONS,
+  dungeonSchema,
+  floorLevel,
+} from './dungeons';
 import { EMBLEM_ICONS, EMBLEM_PALETTES } from './emblems';
+import { EVENTS, eventSchema, LOCALES, localeSchema } from './expeditions';
+import { classSetAt, getSet, SETS, setSchema } from './sets';
+import { WHEEL_SLOTS, wheelSlotSchema } from './wheel';
 
 const iconSet = new Set<string>(ICON_IDS);
 
@@ -73,5 +84,88 @@ describe('navigation registry', () => {
     expect(bySc.get('dungeons')?.unlockLevel).toBe(12);
     expect(bySc.get('well')?.unlockLevel).toBe(18);
     expect(bySc.get('menagerie')?.unlockLevel).toBe(35);
+  });
+});
+
+describe('item sets (M5)', () => {
+  it('validate, are unique, and cover every class at 20/60/100', () => {
+    for (const set of SETS) expect(() => setSchema.parse(set)).not.toThrow();
+    expect(new Set(SETS.map((s) => s.id)).size).toBe(14);
+    for (const level of [20, 60, 100] as const) {
+      for (const cls of ['warrior', 'scout', 'mage', 'assassin'] as const) {
+        expect(classSetAt(level, cls).classId).toBe(cls);
+      }
+    }
+  });
+
+  it('piece slots are unique per set and named in i18n', () => {
+    for (const set of SETS) {
+      expect(new Set(set.slots).size).toBe(set.slots.length);
+      expect(hasKey(set.nameKey)).toBe(true);
+    }
+  });
+});
+
+describe('dungeons (M5)', () => {
+  it('validate: five wings, ten bosses each, slugs globally unique', () => {
+    for (const d of DUNGEONS) expect(() => dungeonSchema.parse(d)).not.toThrow();
+    expect(DUNGEONS).toHaveLength(5);
+    const slugs = allBossSlugs();
+    expect(slugs).toHaveLength(50);
+    expect(new Set(slugs).size).toBe(50);
+  });
+
+  it('every boss has a name and an intro threat (CONTENT §13)', () => {
+    for (const slug of allBossSlugs()) {
+      expect(hasKey(bossNameKey(slug))).toBe(true);
+      expect(hasKey(bossIntroKey(slug))).toBe(true);
+    }
+    for (const d of DUNGEONS) expect(hasKey(d.nameKey)).toBe(true);
+  });
+
+  it('floors ramp toward the next dungeon and fixed set pools resolve', () => {
+    for (const d of DUNGEONS) {
+      for (let f = 2; f <= 10; f++) {
+        expect(floorLevel(d, f)).toBeGreaterThanOrEqual(floorLevel(d, f - 1));
+      }
+      // §4: floor 1 lands at Ld + ceil(span/11) — up to +4 on D5's wide window
+      expect(floorLevel(d, 1)).toBeLessThanOrEqual(d.entryLevel + 4);
+      expect(floorLevel(d, 10)).toBeLessThan(d.nextLevel);
+      const pool = d.setPool;
+      if (pool.kind === 'fixed') expect(() => getSet(pool.setId)).not.toThrow();
+    }
+  });
+});
+
+describe('expeditions (M5)', () => {
+  it('locales validate, map to real art, and speak', () => {
+    for (const locale of LOCALES) {
+      expect(() => localeSchema.parse(locale)).not.toThrow();
+      expect(hasKey(locale.nameKey)).toBe(true);
+      expect(hasKey(`miniboss.${locale.minibossSlug}.name`)).toBe(true);
+      expect(hasKey(`miniboss.${locale.minibossSlug}.intro`)).toBe(true);
+    }
+    expect(new Set(LOCALES.map((l) => l.bg)).size).toBe(4);
+  });
+
+  it('all 24 events validate and carry their five strings', () => {
+    expect(EVENTS).toHaveLength(24);
+    for (const event of EVENTS) {
+      expect(() => eventSchema.parse(event)).not.toThrow();
+      for (const part of ['prompt', 'safe', 'bold', 'safeOut', 'boldOut']) {
+        expect(hasKey(`exped.event.${event.index}.${part}`)).toBe(true);
+      }
+    }
+  });
+});
+
+describe('wheel of destiny (M5)', () => {
+  it('twelve slots, weights sum to 100, labels resolve', () => {
+    expect(WHEEL_SLOTS).toHaveLength(12);
+    expect(WHEEL_SLOTS.reduce((sum, s) => sum + s.weight, 0)).toBe(100);
+    for (const slot of WHEEL_SLOTS) {
+      expect(() => wheelSlotSchema.parse(slot)).not.toThrow();
+      expect(hasKey(slot.labelKey)).toBe(true);
+    }
   });
 });
