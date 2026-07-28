@@ -12,6 +12,7 @@ export function HudBar() {
   const save = useGame((s) => s.save);
   const openSettings = useGame((s) => s.setSettingsOpen);
   const toast = useGame((s) => s.toast);
+  const timeFrozen = useGame((s) => s.timeFrozen);
   if (!save) return null;
 
   const { hero, daily } = save;
@@ -19,6 +20,11 @@ export function HudBar() {
 
   return (
     <header className="frame-secondary--muted panel-fill sticky top-0 z-40 mx-2 mt-2 px-3 py-2 md:mx-3">
+      {timeFrozen && (
+        <div className="mb-2 rounded-sm bg-panel-inset px-3 py-1.5 text-xs font-bold text-[#e0c07a]">
+          {t('hud.frozenBanner')}
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         {/* Identity */}
         <div className="flex min-w-0 items-center gap-3">

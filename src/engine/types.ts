@@ -17,10 +17,25 @@ export interface EmblemSpec {
 }
 
 /** Any real-time activity: remaining time is always derived, never counted down. */
-export interface TimedActivity {
+export interface TimedActivity<P = unknown> {
   kind: string;
   startedAt: string; // ISO
   durationSec: number;
+  payload: P;
+}
+
+export interface MissionPayload {
+  zoneIndex: number;
+  durationMin: number;
+  lucky: boolean;
+  /** rewards locked in at start (zone multiplier applied) */
+  xp: number;
+  gold: number;
+}
+
+export interface PatrolPayload {
+  /** accrual already collected up to this instant */
+  collectedUpTo: string;
 }
 
 export interface ActivePotion {
@@ -29,12 +44,17 @@ export interface ActivePotion {
   expiresAt: string; // ISO
 }
 
+export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'set' | 'legendary';
+export type BonusLineType = AttributeId | 'all' | 'critDmg' | 'goldFind' | 'xp';
+
 export interface ItemInstance {
   id: string;
   defId: string;
   ilvl: number;
-  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'set' | 'legendary';
-  lines: { attr: AttributeId | 'all' | 'critDmg' | 'goldFind' | 'xp'; value: number }[];
+  rarity: Rarity;
+  /** class the piece is cut for (armor weight, weapon type); null = any class */
+  classId: ClassId | null;
+  lines: { attr: BonusLineType; value: number }[];
   upgrade: number;
   seed: number;
 }
@@ -56,8 +76,8 @@ export interface GameSave {
   createdAt: string;
   lastSeenAt: string;
   worldSeed: string;
-  /** Serialized rng stream states arrive with M1 (src/engine/rng.ts). */
-  rngState: Record<string, unknown>;
+  /** Serialized rng stream states (src/engine/rng.ts); missing streams lazy-init from worldSeed. */
+  rngState: Partial<Record<import('./rng').StreamName, import('./rng').RngState>>;
   hero: {
     name: string;
     classId: ClassId;
@@ -80,9 +100,9 @@ export interface GameSave {
     capacity: number;
   };
   activities: {
-    mission: TimedActivity | null;
+    mission: TimedActivity<MissionPayload> | null;
     expedition: TimedActivity | null;
-    patrol: TimedActivity | null;
+    patrol: TimedActivity<PatrolPayload> | null;
     dungeonCooldowns: Record<string, string>;
     arena: { fightsToday: number; cooldownUntil: string | null };
   };

@@ -7,6 +7,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { createNewSave, deriveEmblem } from '@/engine/newSave';
 import { systemClock } from '@/engine/clock';
+import { applyTimePassage } from '@/engine/timePassage';
 import type { ClassId, EmblemSpec, GameSave, SlotSummary } from '@/engine/types';
 import { CodecError, decodeSave, encodeSave } from '@/persist/codec';
 import {
@@ -55,8 +56,12 @@ interface GameStore {
   screen: ScreenId;
   settingsOpen: boolean;
   toasts: Toast[];
+  /** true while the device clock sits behind the save's high-water mark */
+  timeFrozen: boolean;
 
   bootstrap(): Promise<void>;
+  /** Run offline catch-up / clock-guard check against the wall clock. */
+  catchUp(): void;
   refreshSlots(): Promise<void>;
   createHero(
     slot: number,
@@ -97,6 +102,16 @@ export const useGame = create<GameStore>()(
       screen: 'tavern',
       settingsOpen: false,
       toasts: [],
+      timeFrozen: false,
+
+      catchUp() {
+        set((s) => {
+          if (!s.save) return;
+          const result = applyTimePassage(s.save, systemClock.now());
+          s.timeFrozen = result.frozen;
+        });
+        scheduleAutosave();
+      },
 
       async bootstrap() {
         const [slots, lastActive] = await Promise.all([listSlotSummaries(), getActiveSlot()]);
@@ -135,7 +150,9 @@ export const useGame = create<GameStore>()(
       async continueSlot(slot) {
         const save = await loadSlot(slot);
         if (!save) return;
-        save.lastSeenAt = new Date(systemClock.now()).toISOString();
+        // Offline catch-up: bank patrol, apply crossed daily/weekly/monthly
+        // resets, honor the clock-rollback guard (engine/timePassage.ts).
+        const passage = applyTimePassage(save, systemClock.now());
         await persistSlot(slot, save);
         await setActiveSlot(slot);
         set((s) => {
@@ -144,6 +161,7 @@ export const useGame = create<GameStore>()(
           s.lastActiveSlot = slot;
           s.phase = 'ingame';
           s.screen = 'tavern';
+          s.timeFrozen = passage.frozen;
         });
       },
 
@@ -238,10 +256,14 @@ export const useGame = create<GameStore>()(
   }),
 );
 
-/** Flush pending writes when the tab hides — the classic browser-game lifesaver. */
+/**
+ * Tab lifecycle: flush writes when hiding, run offline catch-up when returning
+ * — the classic browser-game pair.
+ */
 export function attachLifecyclePersistence(): () => void {
   const onVisibility = () => {
     if (document.visibilityState === 'hidden') void useGame.getState().saveNow();
+    else useGame.getState().catchUp();
   };
   document.addEventListener('visibilitychange', onVisibility);
   return () => document.removeEventListener('visibilitychange', onVisibility);

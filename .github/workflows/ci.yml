@@ -34,6 +34,9 @@ jobs:
       - name: Unit tests (engine, persistence, content, UI)
         run: pnpm test
 
+      - name: Anti-rush contract (balance sim scenarios, BALANCING.md §8.2)
+        run: pnpm exec vitest run src/sim
+
       - name: Build
         run: pnpm exec vite build
 

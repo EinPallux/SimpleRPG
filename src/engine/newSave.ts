@@ -11,6 +11,7 @@ import {
   VIGOR_DAILY_BASE,
 } from './constants';
 import { localDayKey, localMonthKey, isoWeekKey } from './time';
+import { initialRngState } from './rng';
 import type { ClassId, EmblemSpec, GameSave } from './types';
 import { CLASSES, getClass } from '@/content/classes';
 import { EMBLEM_ICONS, EMBLEM_PALETTES } from '@/content/emblems';
@@ -40,7 +41,7 @@ export function createNewSave(input: NewHeroInput, nowMs: number): GameSave {
     createdAt: iso,
     lastSeenAt: iso,
     worldSeed: input.worldSeed,
-    rngState: {},
+    rngState: initialRngState(input.worldSeed),
     hero: {
       name: input.name.trim(),
       classId: input.classId,

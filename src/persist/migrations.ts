@@ -11,7 +11,29 @@ import { parseGameSave } from './schema';
 type RawSave = Record<string, unknown>;
 
 const MIGRATIONS: Record<number, (raw: RawSave) => RawSave> = {
-  // 2: (raw) => ({ ...raw, version: 2, /* new fields with defaults */ }),
+  /**
+   * v1 (M0) → v2 (M1): activities carry typed payloads, items carry a class
+   * cut, rng streams live in the save. v1 saves had no activities or items in
+   * flight, so this is mostly annotation; rng streams lazy-init from worldSeed.
+   */
+  2: (raw) => {
+    const inventory = raw.inventory as {
+      equipped: Record<string, Record<string, unknown>>;
+      backpack: Record<string, unknown>[];
+    };
+    const addClass = (item: Record<string, unknown>) => ({ classId: null, ...item });
+    return {
+      ...raw,
+      version: 2,
+      inventory: {
+        ...inventory,
+        equipped: Object.fromEntries(
+          Object.entries(inventory.equipped).map(([slot, item]) => [slot, addClass(item)]),
+        ),
+        backpack: inventory.backpack.map(addClass),
+      },
+    };
+  },
 };
 
 export function migrateSave(raw: unknown): GameSave {
