@@ -9,7 +9,7 @@ import { collectPatrol } from './patrol';
 import { prunePotions } from './potions';
 import { resetShopsDaily } from './shops';
 import { isoWeekKey, localDayKey, localMonthKey } from './time';
-import type { GameSave } from './types';
+import type { GameSave, QuestBlock } from './types';
 
 export interface TimePassageResult {
   frozen: boolean;
@@ -25,6 +25,18 @@ function nextMidnight(ms: number): number {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 0, 0, 0, 0).getTime();
 }
 
+/**
+ * Start a cadence's quest slate over: clear the board and re-snapshot the stat
+ * ledger, so the new period's progress counts from zero (types.ts QuestBlock).
+ * The board itself is rolled lazily on first visit (engine/quests.ts).
+ */
+function resetQuestBlock(save: GameSave, block: QuestBlock): void {
+  block.questIds = [];
+  block.questProgress = {};
+  block.questsClaimed = [];
+  block.statsAt = { ...save.stats };
+}
+
 export function applyDailyReset(save: GameSave, newDayMs: number): void {
   save.daily.dayKey = localDayKey(newDayMs);
   save.daily.vigor = VIGOR_DAILY_BASE; // unspent vigor is lost at reset (§4)
@@ -36,24 +48,24 @@ export function applyDailyReset(save: GameSave, newDayMs: number): void {
   save.daily.tavernRerollUsed = false;
   save.daily.freeTossUsed = false;
   save.daily.activity = 0;
-  save.daily.questIds = [];
-  save.daily.questProgress = {};
+  save.daily.questSwapUsed = false;
+  save.daily.activityChestClaimed = false;
+  resetQuestBlock(save, save.daily);
   save.activities.arena.fightsToday = 0;
   save.activities.arena.cooldownUntil = null;
+  save.stats.daysPlayed = (save.stats.daysPlayed ?? 0) + 1;
   resetShopsDaily(save); // fresh merchant stock at midnight (GAME_DESIGN §9.5)
 }
 
 export function applyWeeklyReset(save: GameSave, newWeekMs: number): void {
   save.weekly.weekKey = isoWeekKey(newWeekMs);
-  save.weekly.questIds = [];
-  save.weekly.questProgress = {};
+  resetQuestBlock(save, save.weekly);
 }
 
 export function applyMonthlyReset(save: GameSave, newMonthMs: number): void {
   const key = localMonthKey(newMonthMs);
   save.monthly.monthKey = key;
-  save.monthly.questIds = [];
-  save.monthly.questProgress = {};
+  resetQuestBlock(save, save.monthly);
   save.calendar.monthKey = key;
   save.calendar.claimedDays = [];
 }

@@ -1,8 +1,16 @@
 import { DUNGEONS } from '@/content/dungeons';
-import { ARENA_FIGHTS_PER_DAY } from '@/engine/constants';
+import { getQuest } from '@/content/quests';
+import { claimableAchievements } from '@/engine/achievements';
+import { canClaimCalendar } from '@/engine/calendar';
+import {
+  ARENA_FIGHTS_PER_DAY,
+  CALENDAR_UNLOCK_LEVEL,
+  QUESTS_UNLOCK_LEVEL,
+} from '@/engine/constants';
 import { canAttemptFloor } from '@/engine/dungeons';
 import { expeditionsLeft } from '@/engine/expeditions';
 import { missionEndsAt } from '@/engine/missions';
+import { canClaimActivityChest, canClaimQuest, questBlock } from '@/engine/quests';
 import { wheelSpinsLeft } from '@/engine/wheel';
 import { t } from '@/i18n';
 import { useGame, type ScreenId } from '@/state/store';
@@ -34,6 +42,21 @@ function useNavBadges(): Partial<Record<ScreenId, string>> {
     if (ready > 0) badges.dungeons = String(ready);
   }
   if (level >= 5 && wheelSpinsLeft(save) > 0) badges.wheel = String(wheelSpinsLeft(save));
+  // Meta layer: only ever badge things that are actually claimable right now.
+  if (level >= QUESTS_UNLOCK_LEVEL) {
+    const ready =
+      (['daily', 'weekly', 'monthly'] as const).reduce(
+        (sum, cadence) =>
+          sum +
+          questBlock(save, cadence).questIds.filter((id) => canClaimQuest(save, getQuest(id)))
+            .length,
+        0,
+      ) + (canClaimActivityChest(save) ? 1 : 0);
+    if (ready > 0) badges.quests = String(ready);
+  }
+  const achievementsReady = claimableAchievements(save).length;
+  if (achievementsReady > 0) badges.achievements = String(achievementsReady);
+  if (level >= CALENDAR_UNLOCK_LEVEL && canClaimCalendar(save, now)) badges.calendar = '!';
   return badges;
 }
 

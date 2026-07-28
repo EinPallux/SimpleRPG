@@ -27,6 +27,7 @@ import { heroToCombatant } from './combatants';
 import { missionGold, missionXp } from './economy';
 import { fnv1a } from './hash';
 import { rollDrop, sellPrice } from './items';
+import { bump, lower, raise, recordCombat, recordDrop } from './ledger';
 import {
   botCombatant,
   botLadder,
@@ -174,6 +175,7 @@ export function fightArena(save: GameSave, offerIndex: number, nowMs: number): A
   const combatStream = getStream(save.rngState, save.worldSeed, 'combat');
   const result = simulateCombat(hero, rival, combatStream.deriveSeed());
   const won = result.winner === 0;
+  recordCombat(save, result);
 
   let honorDelta = 0;
   let gold = 0;
@@ -188,13 +190,17 @@ export function fightArena(save: GameSave, offerIndex: number, nowMs: number): A
       nowMs + ARENA_COOLDOWN_MIN * 60_000,
     ).toISOString();
 
+    bump(save, 'arenaFights');
     if (won) {
       honorDelta = honorOnWin(save.hero.honor, offer.bot.honor);
       gold = Math.round(missionGold(save.hero.level, 10) * ARENA_WIN_GOLD_MULT);
-      save.stats.arenaWins = (save.stats.arenaWins ?? 0) + 1;
+      bump(save, 'arenaWins');
+      bump(save, 'arenaWinStreak');
+      raise(save, 'arenaBestStreak', save.stats.arenaWinStreak ?? 0);
       const loot = getStream(save.rngState, save.worldSeed, 'loot');
       if (loot.chance(ARENA_CHEST_CHANCE)) {
         chest = rollDrop('chest', save.hero.level, save.hero.classId, loot);
+        recordDrop(save, chest);
         if (save.inventory.backpack.length < save.inventory.capacity) {
           save.inventory.backpack.push(chest);
         } else {
@@ -205,7 +211,12 @@ export function fightArena(save: GameSave, offerIndex: number, nowMs: number): A
     } else {
       honorDelta = -honorOnLoss(save.hero.honor, offer.bot.honor);
       gold = Math.round(missionGold(save.hero.level, 10) * ARENA_LOSS_GOLD_MULT);
-      save.stats.arenaLosses = (save.stats.arenaLosses ?? 0) + 1;
+      bump(save, 'arenaLosses');
+      save.stats.arenaWinStreak = 0;
+    }
+    // Using every rewarded bout in a day is its own small feat (§10 mastery).
+    if (save.activities.arena.fightsToday === ARENA_FIGHTS_PER_DAY) {
+      bump(save, 'perfectArenaDays');
     }
 
     save.hero.honor = Math.max(HONOR_FLOOR, save.hero.honor + honorDelta);
@@ -217,6 +228,7 @@ export function fightArena(save: GameSave, offerIndex: number, nowMs: number): A
   }
 
   const newRank = playerRank(save, nowMs);
+  lower(save, 'arenaBestRank', newRank);
   for (const [threshold, gems] of ARENA_MILESTONES) {
     const key = `arena-rank-${threshold}`;
     if (newRank <= threshold && !save.progress.milestonesClaimed.includes(key)) {

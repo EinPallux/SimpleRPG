@@ -6,18 +6,19 @@ multiplayer: the living world is simulated by deterministic bots that look and b
 No servers, no accounts, no real-money anything. Runs entirely in your browser, deploys as static files
 on Vercel, installs as a PWA.
 
-> **Status: 🎮 Milestones M0–M5 built — the active pillars are open.** Fifty named bosses now wall the
-> mid-game across five dungeons (free hourly attempts, floors 5 & 10 drop dupe-protected set pieces), all
-> 14 item sets work for real — from +8% STR up to blocked-hits-reflect-30% — expeditions deal five
-> encounters of revealed cards for heroism-tiered chests, and Lorenzo's Wheel of Destiny posts its odds
-> like an honest man. The sim plays every system daily: rank 1 stays a ~5–6 month climb, the Pale King
-> holds past day 140, and the wheel stays gold-negative, as designed.
-> Next: M6 — story chapters, quests, achievements, and the meta layer.
+> **Status: 🎮 Milestones M0–M6 built — the game has a memory.** On top of the idle loop, hero economy,
+> simulated ladder and active pillars, there's now a reason to come back tomorrow: three rotating daily
+> quests feeding an Activity meter and its chest, weeklies and month-long marathons, 70 achievements whose
+> every tier is +3 to all attributes forever, 29 earnable titles, a 28-day innkeeper's calendar, an
+> 80-monster Codex whose completed pages pay real gold-find and XP, and *The Ballad of Brambleford* — 40
+> story steps across 8 chapters that gate by level and advance independently. It all runs off one
+> append-only stat ledger, so nothing can desync and offline catch-up is free.
+> Next: M7 — pets, mounts, and the Wishing Well.
 >
 > ```bash
 > pnpm install && pnpm dev                     # play the current build
-> pnpm test && pnpm e2e                        # verify (170 unit tests + clock-emulated e2e)
-> pnpm sim -- --profile optimal --days 270     # watch the anti-rush + ladder + dungeon contracts hold
+> pnpm test && pnpm e2e                        # verify (277 unit tests + clock-emulated e2e)
+> pnpm sim -- --profile optimal --days 270     # watch every contract hold, gem ledger included
 > ```
 
 ## The pitch

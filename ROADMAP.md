@@ -85,9 +85,25 @@ target, BOT_DAILY_EQUIV +5% keeps rank 1 at day ~155–180, new CI contracts `du
 `dungeon-final` + 90/180-day ceilings (§10 changelog ×2). *Deviations:* dungeons gate by level until story
 keys land (M6); the jackpot's Gilded Snail fallback waits for pets (M7) — it pays Legendary gear until then.
 
-**M6 · Meta layer** — story chapters 1–8, daily/weekly/monthly quests + Activity chest, achievements (70)
-+ titles, Codex, login calendar, unlock-ladder gating with locked-silhouette nav.
+**M6 · Meta layer** ✅ *(2026-07-28)* — story chapters 1–8, daily/weekly/monthly quests + Activity chest,
+achievements (70) + titles, Codex, login calendar, unlock-ladder gating with locked-silhouette nav.
 *Done when:* every unlock from L1→L95 triggers correctly in an accelerated sim playthrough.
+*Shipped:* the **stat ledger** architecture (GAME_DESIGN §12.3) — `save.stats` is append-only and every
+meta system is a pure read of it: quests measure a period delta against a reset snapshot, achievements and
+story steps read lifetime values, and one `engine/metrics.ts` switch resolves the derived metrics. No event
+bus, nothing to desync, offline catch-up free. Content: 40 story steps across 8 independently-gated
+chapters (128 strings of prose), 42 quests, 70 achievements in 7 categories (146 tiers, +3 all-attrs each),
+29 titles, 80 bestiary monsters with lore, 28 calendar slots + 12 monthly frames — authored by five
+parallel agents against a shared `content/meta.ts` contract, each with its own validation suite. Bestiary
+pages now fill from play: expedition fight cards draw **named** zone monsters and missions record
+sightings. Four screens (Quest Board with Activity meter + free daily swap, Achievements, Codex with
+completion bonuses that feed gold-find/XP, Calendar), a story banner with guided deep-links, and a title
+picker. Schema v6 + migration. *Balance:* the gem ledger caught a 106.9/wk faucet against §6's ~30/wk line
+and was re-anchored to 44.6/wk blended; the early §8.2 ceilings moved (7d 27→35, 30d 55→62) with a written
+rationale — **the long-horizon ceilings did not move and still pass** (day-90 85 ≤ 90, day-180 110 ≤ 118).
+`casual-30d` and `zone-frontier` came off the todo list; only `gem-strategies` remains, waiting on M7's
+Wishing Well to give gems a competitor. *Deviations:* chapter 5 needs pets (M7) so a full run banks 35 of
+40 steps; the Armory codex page is a completion meter rather than a per-design gallery.
 
 **M7 · Pets, mounts, gacha** — Menagerie (16 pets, treats, collection bonus), Stable (4 mounts),
 Wishing Well (3 banner types, pity, dupes→dust, free toss, odds UI).

@@ -66,5 +66,7 @@ export function buyAttributePoint(
   save.hero.gold -= cost;
   save.hero.attrsBought[attr] += 1;
   save.stats.attrsBought = (save.stats.attrsBought ?? 0) + 1;
+  save.stats.goldSpent = (save.stats.goldSpent ?? 0) + cost;
+  save.stats.biggestAttrPurchase = Math.max(save.stats.biggestAttrPurchase ?? 0, cost);
   return cost;
 }

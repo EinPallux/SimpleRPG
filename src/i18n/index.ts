@@ -2,15 +2,34 @@
  * Minimal typed i18n layer (invariant 8: every user-facing string goes through
  * here). English-only at v1.0; the flat-key catalog keeps the door open for
  * additional locales as a post-1.0 patch without refactoring call sites.
+ *
+ * The catalog is split: `en.json` holds the UI chrome, `parts/*.json` hold the
+ * bulk content pools (story prose, achievements, bestiary lore…). Keys are
+ * globally flat and unique — the merge is a plain spread, and `I18nKey` stays
+ * a literal union across every file, so typos remain compile errors.
  */
 import en from './en.json';
+import achievements from './parts/achievements.json';
+import bestiary from './parts/bestiary.json';
+import calendar from './parts/calendar.json';
+import quests from './parts/quests.json';
+import story from './parts/story.json';
+import titles from './parts/titles.json';
 
-export type I18nKey = keyof typeof en;
+const catalog = {
+  ...en,
+  ...achievements,
+  ...bestiary,
+  ...calendar,
+  ...quests,
+  ...story,
+  ...titles,
+};
 
-const catalog: Record<I18nKey, string> = en;
+export type I18nKey = keyof typeof catalog;
 
 export function t(key: I18nKey, params?: Record<string, string | number>): string {
-  let text = catalog[key] ?? key;
+  let text: string = catalog[key] ?? key;
   if (params) {
     for (const [name, value] of Object.entries(params)) {
       text = text.replaceAll(`{${name}}`, String(value));

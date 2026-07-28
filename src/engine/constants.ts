@@ -4,7 +4,7 @@
  * simulator scenarios to stay green (from M1 on) and a row in BALANCING.md §10.
  */
 
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 export const TAVERN_REROLL_COST_GEMS = 1;
 
 // Shops (GAME_DESIGN.md §9.5, BALANCING.md §5.3–5.4)
@@ -126,9 +126,11 @@ export const DUNGEON_BOSS_HP_PER_FLOOR = 0.08;
 export const DUNGEON_BOSS_ARMOR_MULT = 1.1;
 export const DUNGEON_FLOOR_GOLD_MULT = 1.0; // × missionGold(L,10), on clear
 export const DUNGEON_FLOOR_XP_MULT = 1.5; // × missionXp(L,10), on clear (one-time by design)
-export const DUNGEON_FLOOR_GEMS = 3; // every floor clear…
-export const DUNGEON_SET_FLOOR_GEMS = 5; // …but set floors (5 & 10) pay more…
-export const DUNGEON_CLEAR_GEMS = 10; // …and finishing floor 10 adds this on top
+// Gem purses are sized against the §6 one-time pool (~55 across all 50 floors),
+// not per-floor generosity — see §10 2026-07-28 (M6 gem re-anchor).
+export const DUNGEON_FLOOR_GEMS = 1; // every floor clear…
+export const DUNGEON_SET_FLOOR_GEMS = 3; // …but set floors (5 & 10) pay more…
+export const DUNGEON_CLEAR_GEMS = 5; // …and finishing floor 10 adds this on top
 
 // Expeditions (GAME_DESIGN.md §16, BALANCING.md §4.6)
 export const EXPEDITION_STEPS = 5;
@@ -159,6 +161,30 @@ export const WHEEL_TREATS = 3;
 export const WHEEL_DUST = 2;
 export const WHEEL_GEMS = 1;
 export const WHEEL_JACKPOT_GEMS = 25; // fallback once pets exist and the snail is owned (M7)
+
+// Quests, Activity meter & the meta layer (GAME_DESIGN.md §12–14)
+export const QUEST_SLOTS = 3; // dailies on the board
+export const WEEKLY_QUEST_SLOTS = 3;
+export const MONTHLY_QUEST_SLOTS = 2;
+export const QUESTS_UNLOCK_LEVEL = 6;
+export const CODEX_UNLOCK_LEVEL = 25;
+export const CALENDAR_UNLOCK_LEVEL = 18;
+export const ACTIVITY_MAX = 100;
+/** Core-loop trickle into the Activity meter — dailies carry the rest. */
+export const ACTIVITY_PER_MISSION = 1.5;
+export const ACTIVITY_PER_ARENA_FIGHT = 1.5;
+export const ACTIVITY_PER_EXPEDITION = 6;
+export const ACTIVITY_PER_DUNGEON_FLOOR = 4;
+export const ACTIVITY_PER_WHEEL_SPIN = 1;
+/** The Daily Chest at 100 activity (GAME_DESIGN §12.2). */
+export const ACTIVITY_CHEST_GOLD_MULT = 3; // × missionGold(L,10)
+export const ACTIVITY_CHEST_SCRAPS = 8;
+export const ACTIVITY_CHEST_GEM_CHANCE = 0.4;
+/** Achievements: every claimed tier is +3 to ALL attributes, forever (§13). */
+export const ACHIEVEMENT_ATTR_PER_TIER = 3;
+/** Codex page-completion bonuses, capped globally by CAP_GOLD_FIND / CAP_XP_BONUS. */
+export const CODEX_GOLD_PER_ZONE = 0.01; // +1% gold find per completed zone page
+export const CODEX_XP_PER_ARMORY_TIER = 0.01; // +1% XP per completed armory tier
 
 // Progression curves (BALANCING.md §2)
 export const XP_BASE = 100; // xpToNext = ceil(XP_BASE × L^XP_EXP)

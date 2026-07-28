@@ -32,6 +32,7 @@ import { simulateCombat, type Combatant, type CombatResult } from './combat';
 import { heroToCombatant } from './combatants';
 import { missionGold, missionXp } from './economy';
 import { generateItem, sellPrice } from './items';
+import { flag, recordCombat, recordDrop } from './ledger';
 import { parArmor, parCon, parHp, parMainAttr, parOffAttr } from './par';
 import { getStream } from './rng';
 import { ownsFullSet, rollSetPiece } from './sets';
@@ -178,6 +179,7 @@ export function attemptFloor(
   const combatStream = getStream(save.rngState, save.worldSeed, 'combat');
   const result = simulateCombat(hero, boss, combatStream.deriveSeed());
   const won = result.winner === 0;
+  recordCombat(save, result, { boss: { level: boss.level } });
 
   save.activities.dungeonCooldowns[dungeonId] = new Date(
     nowMs + DUNGEON_COOLDOWN_MIN * 60_000,
@@ -227,6 +229,7 @@ export function attemptFloor(
         loot,
       );
     }
+    recordDrop(save, drop);
     if (save.inventory.backpack.length < save.inventory.capacity) {
       save.inventory.backpack.push(drop);
     } else {
@@ -237,6 +240,7 @@ export function attemptFloor(
     save.hero.gems += gems;
     save.stats.goldEarned = (save.stats.goldEarned ?? 0) + gold + autoSoldGold;
     save.stats.dungeonFloors = (save.stats.dungeonFloors ?? 0) + 1;
+    flag(save, 'dungeonFloor', `${dungeonId}-${floor}`);
     xp = applyXp(save, Math.round(missionXp(save.hero.level, 10) * DUNGEON_FLOOR_XP_MULT));
   } else {
     save.stats.dungeonBounces = (save.stats.dungeonBounces ?? 0) + 1;

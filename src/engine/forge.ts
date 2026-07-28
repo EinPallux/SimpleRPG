@@ -38,6 +38,8 @@ export function upgradeItem(save: GameSave, loc: ItemLocation): ItemInstance {
   save.hero.gold -= cost.gold;
   item.upgrade += 1;
   save.stats.upgradesForged = (save.stats.upgradesForged ?? 0) + 1;
+  save.stats.goldSpent = (save.stats.goldSpent ?? 0) + cost.gold;
+  save.stats.maxUpgradeReached = Math.max(save.stats.maxUpgradeReached ?? 0, item.upgrade);
   return item;
 }
 

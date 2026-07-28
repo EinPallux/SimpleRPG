@@ -6,6 +6,8 @@
  * the `combat` stream, chests the `loot` stream: nothing here is fishable.
  */
 import { EVENTS, getLocale } from '@/content/expeditions';
+import { monstersOfArchetype } from '@/content/bestiary';
+import { frontierZoneIndex } from '@/content/zones';
 import {
   EXPED_CARD_WEIGHTS,
   EXPED_CHEST_GOLD,
@@ -28,6 +30,7 @@ import { simulateCombat, type Combatant, type CombatResult } from './combat';
 import { archetypeCombatant, heroToCombatant } from './combatants';
 import { missionGold, missionXp } from './economy';
 import { rollDrop, sellPrice } from './items';
+import { bump, flag, recordCombat, recordDrop, recordMonster } from './ledger';
 import { getStream } from './rng';
 import { activeEffect, rollSetPiece } from './sets';
 import { SETS } from '@/content/sets';
@@ -60,6 +63,8 @@ export function startExpedition(save: GameSave, localeId: string): ExpeditionSta
   getLocale(localeId); // throws on unknown locale
   save.daily.vigor -= EXPEDITION_COST;
   save.daily.expeditions += 1;
+  bump(save, 'vigorSpent', EXPEDITION_COST);
+  flag(save, 'localeVisited', localeId);
   const state: ExpeditionState = {
     localeId,
     step: 0,
@@ -87,7 +92,11 @@ export function ensureCards(save: GameSave): ExpeditionCard[] {
         ['caster', 20],
         ['brute', 15],
       ] as const);
-      cards.push({ kind: 'fight', foe });
+      // Name the beast: expeditions are where the Bestiary fills up (§4).
+      const zone = frontierZoneIndex(save.hero.level);
+      const pool = monstersOfArchetype(zone, foe);
+      const monster = pool.length > 0 ? rng.pick(pool) : null;
+      cards.push({ kind: 'fight', foe, ...(monster ? { monsterId: monster.id } : {}) });
     } else if (kind === 'treasure') {
       cards.push({ kind: 'treasure' });
     } else {
@@ -155,6 +164,7 @@ function finishExpedition(save: GameSave): ExpeditionChest {
     item = rollDrop(tier === 'bronze' ? 'mission' : 'chest', save.hero.level, save.hero.classId, loot);
   }
   let autoSoldGold = 0;
+  recordDrop(save, item);
   if (save.inventory.backpack.length < save.inventory.capacity) {
     save.inventory.backpack.push(item);
   } else {
@@ -163,6 +173,7 @@ function finishExpedition(save: GameSave): ExpeditionChest {
   save.hero.gold += gold + autoSoldGold;
   save.stats.goldEarned = (save.stats.goldEarned ?? 0) + gold + autoSoldGold;
   save.stats.expeditions = (save.stats.expeditions ?? 0) + 1;
+  if (tier === 'gold') bump(save, 'expeditionsGold');
   const xp = applyXp(save, Math.round(missionXp(save.hero.level, 10) * EXPED_CHEST_XP[tier]));
   save.activities.expedition = null;
   return { tier, gold, xp, item, setDrop, autoSoldGold };
@@ -205,6 +216,8 @@ export function resolveCard(
     const combatStream = getStream(save.rngState, save.worldSeed, 'combat');
     result = simulateCombat(hero, foe, combatStream.deriveSeed());
     won = result.winner === 0;
+    recordCombat(save, result);
+    if (won && card.kind === 'fight' && card.monsterId) recordMonster(save, card.monsterId);
     if (card.kind === 'miniboss') {
       heroismGained = won ? HEROISM_MINIBOSS_WIN : HEROISM_MINIBOSS_LOSS;
       gold = won ? Math.round(m10 * EXPED_FIGHT_GOLD_MULT * 2) : 0;
@@ -237,6 +250,7 @@ export function resolveCard(
 
   exp.step += 1;
   exp.cards = null;
+  bump(save, 'expeditionCards');
   let chest: ExpeditionChest | null = null;
   if (exp.step >= EXPEDITION_STEPS) {
     chest = finishExpedition(save);
