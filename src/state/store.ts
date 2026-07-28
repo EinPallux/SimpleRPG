@@ -5,6 +5,8 @@
  */
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
+import { canFight, fightArena, skipCooldown, type ArenaOutcome } from '@/engine/arena';
+import { ARENA_COOLDOWN_SKIP_GEMS } from '@/engine/constants';
 import { createNewSave, deriveEmblem } from '@/engine/newSave';
 import { systemClock } from '@/engine/clock';
 import {
@@ -88,6 +90,8 @@ interface GameStore {
   timeFrozen: boolean;
   /** pending mission rewards to present in the RewardReveal modal */
   reveal: MissionRewards | null;
+  /** finished arena bout awaiting playback (Shell renders the overlay) */
+  arenaOutcome: ArenaOutcome | null;
 
   bootstrap(): Promise<void>;
   /** Run offline catch-up / clock-guard check against the wall clock. */
@@ -107,6 +111,11 @@ interface GameStore {
   patrolStart(): void;
   patrolCollect(): void;
   patrolStop(): void;
+
+  // Arena (M4)
+  arenaFight(offerIndex: number): void;
+  arenaSkipCooldown(): void;
+  closeArenaOutcome(): void;
 
   // Hero economy (M3)
   buyAttr(attr: AttributeId, times?: number): void;
@@ -161,6 +170,7 @@ export const useGame = create<GameStore>()(
       toasts: [],
       timeFrozen: false,
       reveal: null,
+      arenaOutcome: null,
 
       catchUp() {
         set((s) => {
@@ -251,6 +261,37 @@ export const useGame = create<GameStore>()(
           if (s.save?.activities.patrol) stopPatrol(s.save, systemClock.now());
         });
         scheduleAutosave();
+      },
+
+      arenaFight(offerIndex) {
+        let milestone: { rank: number; gems: number } | null = null;
+        set((s) => {
+          if (!s.save || !canFight(s.save, systemClock.now())) return;
+          const outcome = fightArena(s.save, offerIndex, systemClock.now());
+          s.arenaOutcome = outcome;
+          if (outcome.milestoneGems > 0) {
+            milestone = { rank: outcome.newRank, gems: outcome.milestoneGems };
+          }
+        });
+        if (milestone) {
+          get().toast(t('toast.rankMilestone', milestone));
+        }
+        scheduleAutosave();
+      },
+
+      arenaSkipCooldown() {
+        set((s) => {
+          if (!s.save || s.save.hero.gems < ARENA_COOLDOWN_SKIP_GEMS) return;
+          if (!s.save.activities.arena.cooldownUntil) return;
+          skipCooldown(s.save);
+        });
+        scheduleAutosave();
+      },
+
+      closeArenaOutcome() {
+        set((s) => {
+          s.arenaOutcome = null;
+        });
       },
 
       buyAttr(attr, times = 1) {

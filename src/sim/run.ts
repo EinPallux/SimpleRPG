@@ -8,6 +8,8 @@
  * the policies in their milestones — bounds already reserve headroom for them.
  */
 import { ATTRIBUTE_IDS, type AttributeId, type GameSave, type ItemInstance } from '@/engine/types';
+import { fightArena, fightsLeft } from '@/engine/arena';
+import { playerRank } from '@/engine/botworld';
 import { attrCost, buyAttributePoint } from '@/engine/economy';
 import { canEquip, equipItem } from '@/engine/inventoryOps';
 import { itemArmor, sellPrice, slotOf, weaponDamage } from '@/engine/items';
@@ -35,6 +37,8 @@ export interface DayRecord {
   attrsTotal: number;
   missions: number;
   patrolTicks: number;
+  honor: number;
+  rank: number;
 }
 
 export interface SimResult {
@@ -45,9 +49,10 @@ export interface SimResult {
   finalGold: number;
   finalAttrs: Record<AttributeId, number>;
   /** Gold-faucet/sink audit (BALANCING.md §6 — asserted in scenarios) */
-  goldFrom: { missions: number; patrol: number; selling: number };
+  goldFrom: { missions: number; patrol: number; selling: number; arena: number };
   goldSpentOnAttrs: number;
   equippedCount: number;
+  finalRank: number;
   records: DayRecord[];
 }
 
@@ -59,12 +64,31 @@ interface PolicyConfig {
   secondWind: boolean;
   patrolCollections: number; // extra same-day collections (0 = midnight bank only)
   playStartHour: number;
+  arenaFights: number; // rewarded bouts attempted per day (UI unlocks at L5)
 }
 
 const POLICIES: Record<Profile, PolicyConfig> = {
-  optimal: { vigorBudget: Infinity, secondWind: true, patrolCollections: 1, playStartHour: 8 },
-  casual: { vigorBudget: 60, secondWind: false, patrolCollections: 0, playStartHour: 18 },
-  'idle-only': { vigorBudget: 20, secondWind: false, patrolCollections: 0, playStartHour: 20 },
+  optimal: {
+    vigorBudget: Infinity,
+    secondWind: true,
+    patrolCollections: 1,
+    playStartHour: 8,
+    arenaFights: 10,
+  },
+  casual: {
+    vigorBudget: 60,
+    secondWind: false,
+    patrolCollections: 0,
+    playStartHour: 18,
+    arenaFights: 6,
+  },
+  'idle-only': {
+    vigorBudget: 20,
+    secondWind: false,
+    patrolCollections: 0,
+    playStartHour: 20,
+    arenaFights: 0,
+  },
 };
 
 function bestAffordableIndex(offers: MissionOffer[], vigor: number): number {
@@ -138,7 +162,7 @@ export function simulateDays(profile: Profile, days: number, seed = 'sim-seed'):
     START + policy.playStartHour * HOUR,
   );
   const records: DayRecord[] = [];
-  const goldFrom = { missions: 0, patrol: 0, selling: 0 };
+  const goldFrom = { missions: 0, patrol: 0, selling: 0, arena: 0 };
   let goldSpentOnAttrs = 0;
 
   for (let day = 1; day <= days; day++) {
@@ -168,6 +192,18 @@ export function simulateDays(profile: Profile, days: number, seed = 'sim-seed'):
       spent += duration;
     }
 
+    // Arena bouts (cooldowns interleave with the mission clock; L5 unlock).
+    // Optimal fights UP (offer 2): honor gap-close is where the climb lives
+    // (BALANCING §4.5); losses are cheap next to the closed gap.
+    if (save.hero.level >= 5) {
+      const offerIdx = profile === 'optimal' ? 2 : 0;
+      for (let f = 0; f < policy.arenaFights && fightsLeft(save) > 0; f++) {
+        const outcome = fightArena(save, offerIdx, now);
+        goldFrom.arena += outcome.gold;
+        now += 10.5 * 60_000;
+      }
+    }
+
     equipUpgrades(save);
     goldFrom.selling += sellBackpack(save);
     goldSpentOnAttrs += buyAttributes(save);
@@ -190,6 +226,8 @@ export function simulateDays(profile: Profile, days: number, seed = 'sim-seed'):
       attrsTotal: ATTRIBUTE_IDS.reduce((sum, a) => sum + save.hero.attrsBought[a], 0),
       missions: (save.stats.missionsCompleted ?? 0) - missionsBefore,
       patrolTicks: save.stats.patrolTicks ?? 0,
+      honor: save.hero.honor,
+      rank: playerRank(save, now),
     });
   }
 
@@ -203,6 +241,7 @@ export function simulateDays(profile: Profile, days: number, seed = 'sim-seed'):
     goldFrom,
     goldSpentOnAttrs,
     equippedCount: Object.values(save.inventory.equipped).filter(Boolean).length,
+    finalRank: records[records.length - 1]?.rank ?? 751,
     records,
   };
 }

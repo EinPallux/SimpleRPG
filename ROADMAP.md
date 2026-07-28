@@ -54,9 +54,19 @@ combat builders. Sim now equips upgrades and the §6 audit is CI-asserted — wh
 drop-vendoring measured at ~0.2% of income (accepted as design; loot's value is equipping + scraps,
 BALANCING §10). E2E covers the full lifecycle via a deterministic imported save.
 
-**M4 · Arena & the living ladder** — bot world generation (names/guilds/archetypes), Hall of Fame,
-arena offers/fights/honor/milestones, sparring, profile peek, combat playback polish.
+**M4 · Arena & the living ladder** ✅ *(2026-07-28)* — bot world generation (names/guilds/archetypes),
+Hall of Fame, arena offers/fights/honor/milestones, sparring, profile peek, combat playback polish.
 *Done when:* ladder feels alive across 30 simulated days (`ladder-rank1` scenario green).
+*Shipped:* 750 deterministic bots derived from (worldSeed, dayIndex) — three name styles + guild tags,
+archetype progression with weekend bumps/noise/rage-quits, nothing stored; arena with 3 ranked offers
+(below/par/above), win-chance words from rehearsal sims, 10 rewarded bouts + 10-min cooldown (1 💎 skip),
+sparring afterwards; honor as **capped place-swap** (BALANCING §4.5 — replaced ELO-lite gap-close after
+270-day sims showed rank 1 falling by day ~90; summit is now power-gated) with first-time rank milestone
+gems; CombatPlayback theater (HP bars, floating numbers, 1×/2×/skip, summary card) shared for M5 reuse;
+Hall of Fame with windowed 751-row ladder, sticky standing bar, jump-to-me/top, class filter + search,
+profile peek (derived gear snapshots, attrs, 14-day honor sparkline, fight-from-profile); sim arena
+policies + CI ladder contract: top-100 days 80–115, rank 1 days 150–250, ladder moves ≥ 20 of 30 days.
+*Deviation:* rank-milestone titles ship with the title system in M6 (gems pay out now).
 
 **M5 · Active pillars** — Dungeons 1–5 (50 bosses, walls, cooldowns, set drops), Expeditions (4 locales,
 encounter cards, heroism chests), Wheel of Destiny.

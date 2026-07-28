@@ -31,24 +31,27 @@ const result = simulateDays(profile, days, seed);
 const ms = (performance.now() - started).toFixed(0);
 
 console.log(`\nSimpleRPG balance sim — profile=${profile} days=${days} seed=${seed} (${ms} ms)\n`);
-console.log('day | level |   gold accum |  attrs | missions | patrol ticks');
-console.log('----+-------+--------------+--------+----------+-------------');
-const show = new Set([1, 2, 3, 5, 7, 10, 14, 21, 30, 45, 60, 90, 120, 150, 180, days]);
+console.log('day | level |   gold accum |  attrs |  honor |  rank | missions');
+console.log('----+-------+--------------+--------+--------+-------+---------');
+const show = new Set([1, 2, 3, 5, 7, 10, 14, 21, 30, 45, 60, 75, 90, 120, 150, 180, 210, 240, days]);
 for (const r of result.records) {
   if (!show.has(r.day)) continue;
   console.log(
-    `${String(r.day).padStart(3)} | ${String(r.level).padStart(5)} | ${String(Math.round(r.gold)).padStart(12)} | ${String(r.attrsTotal).padStart(6)} | ${String(r.missions).padStart(8)} | ${String(r.patrolTicks).padStart(12)}`,
+    `${String(r.day).padStart(3)} | ${String(r.level).padStart(5)} | ${String(Math.round(r.gold)).padStart(12)} | ${String(r.attrsTotal).padStart(6)} | ${String(r.honor).padStart(6)} | ${String(r.rank).padStart(5)} | ${String(r.missions).padStart(8)}`,
   );
 }
 console.log(
   `\nFinal: level ${result.finalLevel}, gold ${Math.round(result.finalGold)}, attrs ${JSON.stringify(result.finalAttrs)}`,
 );
-const earned = result.goldFrom.missions + result.goldFrom.patrol + result.goldFrom.selling;
+const earned =
+  result.goldFrom.missions + result.goldFrom.patrol + result.goldFrom.selling + result.goldFrom.arena;
 console.log(
   `Faucets: missions ${Math.round(result.goldFrom.missions)} (${Math.round((result.goldFrom.missions / earned) * 100)}%) · ` +
+    `arena ${Math.round(result.goldFrom.arena)} (${Math.round((result.goldFrom.arena / earned) * 100)}%) · ` +
     `patrol ${Math.round(result.goldFrom.patrol)} (${Math.round((result.goldFrom.patrol / earned) * 100)}%) · ` +
     `selling ${Math.round(result.goldFrom.selling)} (${Math.round((result.goldFrom.selling / earned) * 100)}%)`,
 );
+console.log(`Final ladder rank: ${result.finalRank}`);
 console.log(
   `Attribute sink: ${Math.round(result.goldSpentOnAttrs)} gold (${Math.round((result.goldSpentOnAttrs / earned) * 100)}% of earnings) · equipped pieces: ${result.equippedCount}`,
 );

@@ -1,3 +1,4 @@
+import { ARENA_FIGHTS_PER_DAY } from '@/engine/constants';
 import { missionEndsAt } from '@/engine/missions';
 import { t } from '@/i18n';
 import { useGame, type ScreenId } from '@/state/store';
@@ -5,14 +6,19 @@ import { NAV_GROUPS, type NavEntry } from '../nav';
 import { Icon } from '../components/Icon';
 import { useGameClock } from '../hooks/useGameClock';
 
-/** Live attention badges: mission ready to claim, patrol on duty. */
+/** Live attention badges: mission ready, patrol on duty, arena bouts waiting. */
 function useNavBadges(): Partial<Record<ScreenId, string>> {
   const now = useGameClock(5000);
   const mission = useGame((s) => s.save?.activities.mission ?? null);
   const patrolling = useGame((s) => Boolean(s.save?.activities.patrol));
+  const level = useGame((s) => s.save?.hero.level ?? 1);
+  const arenaFightsToday = useGame((s) => s.save?.activities.arena.fightsToday ?? null);
   const badges: Partial<Record<ScreenId, string>> = {};
   if (mission && now >= missionEndsAt(mission)) badges.tavern = '!';
   if (patrolling) badges.patrol = '💤';
+  if (arenaFightsToday !== null && level >= 5 && arenaFightsToday < ARENA_FIGHTS_PER_DAY) {
+    badges.arena = String(ARENA_FIGHTS_PER_DAY - arenaFightsToday);
+  }
   return badges;
 }
 

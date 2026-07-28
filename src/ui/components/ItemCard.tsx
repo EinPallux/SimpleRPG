@@ -2,15 +2,7 @@ import { itemArmor, slotOf, weaponDamage } from '@/engine/items';
 import type { ItemInstance } from '@/engine/types';
 import { t, type I18nKey } from '@/i18n';
 import { itemName, lineText } from '../itemName';
-
-const RARITY_TEXT: Record<ItemInstance['rarity'], string> = {
-  common: 'text-[#9aa3ad]',
-  uncommon: 'text-[#57b65f]',
-  rare: 'text-[#4c8be0]',
-  epic: 'text-[#a64ce0]',
-  set: 'text-[#35c99a]',
-  legendary: 'text-[#e08a2e]',
-};
+import { RARITY_TEXT } from '../rarity';
 
 /** Compact item card: rarity frame, name, base stat, bonus lines, colorblind pips. */
 export function ItemCard({ item, className = '' }: { item: ItemInstance; className?: string }) {
