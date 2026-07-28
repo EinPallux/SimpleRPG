@@ -63,6 +63,22 @@ const MIGRATIONS: Record<number, (raw: RawSave) => RawSave> = {
       },
     },
   }),
+  /**
+   * v4 (M3) → v5 (M5): expeditions become interactive step sessions (the old
+   * timed shape never shipped a start button, so nothing can be in flight),
+   * and the day tracks how many were embarked on. Set pieces carry `setId`
+   * (optional — pre-M5 items simply have none).
+   */
+  5: (raw) => {
+    const activities = raw.activities as Record<string, unknown>;
+    const daily = raw.daily as Record<string, unknown>;
+    return {
+      ...raw,
+      version: 5,
+      activities: { ...activities, expedition: null },
+      daily: { ...daily, expeditions: 0 },
+    };
+  },
 };
 
 export function migrateSave(raw: unknown): GameSave {

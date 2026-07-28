@@ -21,6 +21,7 @@ import {
 import type { Combatant } from './combat';
 import { itemArmor, weaponDamage } from './items';
 import { parArmor, parCon, parMainAttr, parOffAttr } from './par';
+import { setAggregate } from './sets';
 import { gearPercents, heroMaxHp, totalAttribute } from './stats';
 import type { ClassId, GameSave } from './types';
 
@@ -88,11 +89,24 @@ function unarmed(level: number): { min: number; max: number } {
   return { min: UNARMED_DAMAGE[0], max: UNARMED_DAMAGE[1] + Math.floor(level / 3) };
 }
 
-/** Build the hero's fighter from save state (gear, class kit, percent-line caps). */
+/** Scale a damage range by a fraction, keeping min ≤ max and both ≥ 1. */
+function scaleWeapon(
+  weapon: { min: number; max: number },
+  pct: number,
+): { min: number; max: number } {
+  if (pct === 0) return weapon;
+  return {
+    min: Math.max(1, Math.round(weapon.min * (1 + pct))),
+    max: Math.max(1, Math.round(weapon.max * (1 + pct))),
+  };
+}
+
+/** Build the hero's fighter from save state (gear, class kit, set tiers §4.6). */
 export function heroToCombatant(save: GameSave): Combatant {
   const cls = getClass(save.hero.classId);
   const sig = classSignature(save.hero.classId);
   const pct = gearPercents(save);
+  const sets = setAggregate(save);
 
   const weaponItem = save.inventory.equipped.weapon;
   const offhandItem = save.inventory.equipped.offhand;
@@ -101,9 +115,55 @@ export function heroToCombatant(save: GameSave): Combatant {
     0,
   );
 
-  const weapon = weaponItem ? weaponDamage(weaponItem) : unarmed(save.hero.level);
+  const weapon = scaleWeapon(
+    weaponItem ? weaponDamage(weaponItem) : unarmed(save.hero.level),
+    sets.weaponDmgPct,
+  );
   const offhandWeapon =
-    save.hero.classId === 'assassin' && offhandItem ? weaponDamage(offhandItem) : undefined;
+    save.hero.classId === 'assassin' && offhandItem
+      ? scaleWeapon(weaponDamage(offhandItem), sets.weaponDmgPct)
+      : undefined;
+
+  // Full-set combat behaviors → Combatant flags (engine/combat.ts hooks).
+  const fx: Partial<Combatant> = {};
+  let strikeMult = sig.strikeMult;
+  for (const effect of sets.effects) {
+    switch (effect.kind) {
+      case 'healOnBlock':
+        fx.healOnBlockPct = effect.pctMaxHp;
+        break;
+      case 'afterBlockNextHit':
+        fx.afterBlockNextHitMult = effect.mult;
+        break;
+      case 'reflectOnBlock':
+        fx.reflectOnBlockPct = effect.pct;
+        break;
+      case 'afterEvadeCrit':
+        fx.afterEvadeCrit = true;
+        break;
+      case 'firstStrike':
+        fx.firstStrikeOverride = true;
+        fx.firstStrikeDmgMult = effect.bonusDmg;
+        break;
+      case 'everyNthStrike':
+        fx.everyNthStrike = { n: effect.n, mult: effect.mult };
+        break;
+      case 'enemyDrCap':
+        fx.enemyDrCap = effect.cap;
+        break;
+      case 'offhandMult':
+        strikeMult = effect.mult;
+        break;
+      case 'poisonOnCrit':
+        fx.poisonOnCrit = { pct: effect.pct, rounds: effect.rounds };
+        break;
+      case 'doubleCritBonus':
+        fx.doubleCritBonusMult = effect.mult;
+        break;
+      default:
+        break; // economy effects (missionItemPP, expedition) live outside combat
+    }
+  }
 
   return {
     id: 'hero',
@@ -118,17 +178,19 @@ export function heroToCombatant(save: GameSave): Combatant {
       lck: totalAttribute(save, 'lck'),
     },
     maxHp: heroMaxHp(save),
-    armor,
+    armor: Math.round(armor * (1 + sets.armorPct)),
     weapon,
     ...(offhandWeapon ? { offhandWeapon } : {}),
-    blockChance: Math.min(CAP_BLOCK, sig.blockChance),
-    evadeChance: Math.min(CAP_EVADE, sig.evadeChance),
+    blockChance: Math.min(CAP_BLOCK, sig.blockChance + sets.blockPP / 100),
+    evadeChance: Math.min(CAP_EVADE, sig.evadeChance + sets.evadePP / 100),
     unblockable: sig.unblockable,
     strikes: sig.strikes,
-    strikeMult: sig.strikeMult,
+    strikeMult,
     dmgMult: sig.dmgMult,
-    critCap: sig.critCap,
+    critCap: Math.max(sig.critCap, sets.critCap ?? 0),
     critMult: Math.min(sig.critMult + CAP_CRIT_DMG_BONUS, sig.critMult + pct.critDmg),
+    ...(sets.critPP > 0 ? { critBonus: sets.critPP / 100 } : {}),
+    ...fx,
   };
 }
 

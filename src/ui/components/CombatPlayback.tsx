@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { CombatResult, Combatant, StrikeEvent } from '@/engine/combat';
 import type { ClassId, EmblemSpec } from '@/engine/types';
 import { t } from '@/i18n';
+import type { IconId } from '../icons.gen';
 import { fmt } from '../format';
 import { EmblemAvatar } from './EmblemAvatar';
 import { FButton } from './FButton';
@@ -10,8 +11,25 @@ import { ProgressBar } from './ProgressBar';
 
 export interface PlaybackSide {
   combatant: Combatant;
-  emblem: EmblemSpec;
-  classId: ClassId;
+  /** player-style portrait… */
+  emblem?: EmblemSpec;
+  classId?: ClassId;
+  /** …or a monster/boss glyph */
+  icon?: IconId;
+}
+
+function SidePortrait({ side }: { side: PlaybackSide }) {
+  if (side.emblem && side.classId) {
+    return <EmblemAvatar emblem={side.emblem} classId={side.classId} size={52} />;
+  }
+  return (
+    <span
+      className="frame-secondary--muted panel-fill-inset flex h-[52px] w-[52px] shrink-0 items-center justify-center"
+      style={{ ['--frame-w' as string]: '8px' }}
+    >
+      <Icon id={side.icon ?? 'dungeon'} size={30} className="text-ink-muted" />
+    </span>
+  );
 }
 
 interface FlatEvent {
@@ -50,7 +68,7 @@ function FighterColumn({
   return (
     <div className={`relative flex min-w-0 flex-1 flex-col gap-2 ${mirrored ? 'items-end' : 'items-start'}`}>
       <div className={`flex items-center gap-2.5 ${mirrored ? 'flex-row-reverse' : ''}`}>
-        <EmblemAvatar emblem={side.emblem} classId={side.classId} size={52} />
+        <SidePortrait side={side} />
         <div className={`min-w-0 ${mirrored ? 'text-right' : ''}`}>
           <div className="truncate font-display text-sm font-bold text-ink">{c.name}</div>
           <div className="text-[11px] font-bold text-ink-faint">

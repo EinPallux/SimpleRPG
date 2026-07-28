@@ -27,6 +27,7 @@ import {
   WEAPON_SPREAD,
 } from './constants';
 import { getClass } from '@/content/classes';
+import { getSet } from '@/content/sets';
 import type { Rng } from './rng';
 import type { AttributeId, BonusLineType, ClassId, EquipSlot, ItemInstance, Rarity } from './types';
 
@@ -167,6 +168,17 @@ export function effectiveItemChance(luck: number, level: number): number {
     ITEM_CHANCE_CAP,
     MISSION_ITEM_CHANCE + (luck / (luck + 50 * level)) * ITEM_CHANCE_LUCK_MAX_BONUS,
   );
+}
+
+/** A set piece: fixed slot, fixed ilvl (the set's level), set rarity + setId. */
+export function generateSetPiece(setId: string, slot: EquipSlot, rng: Rng): ItemInstance {
+  const def = getSet(setId);
+  const item = generateItem(
+    { ilvl: def.level, rarity: 'set', slot, classId: def.classId },
+    rng,
+  );
+  item.setId = setId;
+  return item;
 }
 
 export type DropSource = 'mission' | 'chest';

@@ -8,11 +8,21 @@
  * the policies in their milestones — bounds already reserve headroom for them.
  */
 import { ATTRIBUTE_IDS, type AttributeId, type GameSave, type ItemInstance } from '@/engine/types';
+import { DUNGEONS } from '@/content/dungeons';
+import { LOCALES } from '@/content/expeditions';
 import { fightArena, fightsLeft } from '@/engine/arena';
 import { playerRank } from '@/engine/botworld';
+import { attemptFloor, canAttemptFloor } from '@/engine/dungeons';
 import { attrCost, buyAttributePoint } from '@/engine/economy';
+import {
+  canStartExpedition,
+  ensureCards,
+  resolveCard,
+  startExpedition,
+} from '@/engine/expeditions';
 import { canEquip, equipItem } from '@/engine/inventoryOps';
 import { itemArmor, sellPrice, slotOf, weaponDamage } from '@/engine/items';
+import { canSpinWheel, spinWheel } from '@/engine/wheel';
 import {
   acceptTavernOffer,
   claimMission,
@@ -39,6 +49,14 @@ export interface DayRecord {
   patrolTicks: number;
   honor: number;
   rank: number;
+  /** total dungeon floors cleared across all wings (0..50) */
+  dungeonFloors: number;
+}
+
+export interface FloorClear {
+  dungeonId: string;
+  floor: number;
+  day: number;
 }
 
 export interface SimResult {
@@ -49,10 +67,21 @@ export interface SimResult {
   finalGold: number;
   finalAttrs: Record<AttributeId, number>;
   /** Gold-faucet/sink audit (BALANCING.md §6 — asserted in scenarios) */
-  goldFrom: { missions: number; patrol: number; selling: number; arena: number };
+  goldFrom: {
+    missions: number;
+    patrol: number;
+    selling: number;
+    arena: number;
+    expeditions: number;
+    dungeons: number;
+    wheel: number;
+  };
   goldSpentOnAttrs: number;
+  goldSpentOnWheel: number;
   equippedCount: number;
   finalRank: number;
+  /** every dungeon floor beaten, with the day it fell (dungeon-walls scenario) */
+  floorClears: FloorClear[];
   records: DayRecord[];
 }
 
@@ -65,6 +94,10 @@ interface PolicyConfig {
   patrolCollections: number; // extra same-day collections (0 = midnight bank only)
   playStartHour: number;
   arenaFights: number; // rewarded bouts attempted per day (UI unlocks at L5)
+  expeditions: number; // embarkations attempted (L8+, 25 vigor each)
+  dungeonSessions: number; // daily visits to the walls (attempts are free, hourly)
+  wheelSpins: number; // spins attempted (first free, then rising gold)
+  boldEvents: boolean; // expedition events: bold vs safe picks
 }
 
 const POLICIES: Record<Profile, PolicyConfig> = {
@@ -74,6 +107,10 @@ const POLICIES: Record<Profile, PolicyConfig> = {
     patrolCollections: 1,
     playStartHour: 8,
     arenaFights: 10,
+    expeditions: 3, // the limit clamps to 2 until Twilight Wanderer completes
+    dungeonSessions: 3,
+    wheelSpins: 5,
+    boldEvents: true,
   },
   casual: {
     vigorBudget: 60,
@@ -81,6 +118,10 @@ const POLICIES: Record<Profile, PolicyConfig> = {
     patrolCollections: 0,
     playStartHour: 18,
     arenaFights: 6,
+    expeditions: 1,
+    dungeonSessions: 1,
+    wheelSpins: 2,
+    boldEvents: false,
   },
   'idle-only': {
     vigorBudget: 20,
@@ -88,15 +129,24 @@ const POLICIES: Record<Profile, PolicyConfig> = {
     patrolCollections: 0,
     playStartHour: 20,
     arenaFights: 0,
+    expeditions: 0,
+    dungeonSessions: 0,
+    wheelSpins: 0,
+    boldEvents: false,
   },
 };
 
+/** Optimal players pick by value per vigor (xp+gold), not by duration. */
 function bestAffordableIndex(offers: MissionOffer[], vigor: number): number {
   let best = -1;
+  let bestScore = -1;
   for (let i = 0; i < offers.length; i++) {
     const o = offers[i]!;
-    if (o.durationMin <= vigor && (best === -1 || o.durationMin > offers[best]!.durationMin)) {
+    if (o.durationMin > vigor) continue;
+    const score = (o.xp + o.gold) / o.durationMin;
+    if (score > bestScore) {
       best = i;
+      bestScore = score;
     }
   }
   return best;
@@ -122,6 +172,11 @@ function itemScore(item: ItemInstance): number {
   return item.lines.reduce((sum, l) => sum + l.value, 0) * 3;
 }
 
+/** Set pieces carry bonus potential beyond raw stats — nudge the heuristic. */
+function scoreWithSetBias(item: ItemInstance, raw: number): number {
+  return item.rarity === 'set' ? raw * 1.2 : raw;
+}
+
 /** Equip strictly-better drops before selling the rest (the real player habit). */
 function equipUpgrades(save: GameSave): void {
   for (let pass = 0; pass < 2; pass++) {
@@ -129,7 +184,10 @@ function equipUpgrades(save: GameSave): void {
       const item = save.inventory.backpack[i]!;
       if (!canEquip(save, item)) continue;
       const current = save.inventory.equipped[slotOf(item)];
-      if (!current || itemScore(item) > itemScore(current)) {
+      if (
+        !current ||
+        scoreWithSetBias(item, itemScore(item)) > scoreWithSetBias(current, itemScore(current))
+      ) {
         equipItem(save, i);
         i = -1; // indices shifted; restart the scan
       }
@@ -162,8 +220,18 @@ export function simulateDays(profile: Profile, days: number, seed = 'sim-seed'):
     START + policy.playStartHour * HOUR,
   );
   const records: DayRecord[] = [];
-  const goldFrom = { missions: 0, patrol: 0, selling: 0, arena: 0 };
+  const goldFrom = {
+    missions: 0,
+    patrol: 0,
+    selling: 0,
+    arena: 0,
+    expeditions: 0,
+    dungeons: 0,
+    wheel: 0,
+  };
   let goldSpentOnAttrs = 0;
+  let goldSpentOnWheel = 0;
+  const floorClears: FloorClear[] = [];
 
   for (let day = 1; day <= days; day++) {
     const dayStart = START + (day - 1) * 24 * HOUR;
@@ -173,6 +241,25 @@ export function simulateDays(profile: Profile, days: number, seed = 'sim-seed'):
     goldFrom.patrol += applyTimePassage(save, now).patrolGoldBanked;
 
     if (policy.secondWind && !save.daily.secondWindUsed) claimSecondWind(save);
+
+    // Expeditions first (L8+): 12.5% better per vigor than missions, so the
+    // optimizer spends this budget before the tavern board. Picks chase
+    // heroism — mini-boss, then fights, then treasure; events by nerve.
+    if (save.hero.level >= 8) {
+      for (let e = 0; e < policy.expeditions && canStartExpedition(save).ok; e++) {
+        startExpedition(save, LOCALES[(day + e) % LOCALES.length]!.id);
+        while (save.activities.expedition) {
+          const cards = ensureCards(save);
+          let pick = cards.findIndex((c) => c.kind === 'miniboss');
+          if (pick === -1) pick = cards.findIndex((c) => c.kind === 'fight');
+          if (pick === -1) pick = cards.findIndex((c) => c.kind === 'treasure');
+          if (pick === -1) pick = 0;
+          const out = resolveCard(save, pick, policy.boldEvents ? 'bold' : 'safe');
+          goldFrom.expeditions += out.gold + (out.chest?.gold ?? 0) + (out.chest?.autoSoldGold ?? 0);
+          now += 4 * 60_000;
+        }
+      }
+    }
 
     // Mission grind through the persisted tavern board (the real player path).
     let spent = 0;
@@ -204,6 +291,26 @@ export function simulateDays(profile: Profile, days: number, seed = 'sim-seed'):
       }
     }
 
+    // Dungeon walls: free hourly attempts across up-to-N daily sessions.
+    for (let session = 0; session < policy.dungeonSessions; session++) {
+      const sessionTime = now + session * 2 * HOUR;
+      for (const dungeon of DUNGEONS) {
+        if (!canAttemptFloor(save, dungeon.id, sessionTime).ok) continue;
+        const out = attemptFloor(save, dungeon.id, sessionTime);
+        goldFrom.dungeons += out.gold + out.autoSoldGold;
+        if (out.won) floorClears.push({ dungeonId: dungeon.id, floor: out.floor, day });
+      }
+    }
+
+    // The Wheel (L5): a net-negative gold sink that pays in items, gems, treats.
+    if (save.hero.level >= 5) {
+      for (let w = 0; w < policy.wheelSpins && canSpinWheel(save); w++) {
+        const out = spinWheel(save);
+        goldFrom.wheel += out.gold + out.autoSoldGold;
+        goldSpentOnWheel += out.cost;
+      }
+    }
+
     equipUpgrades(save);
     goldFrom.selling += sellBackpack(save);
     goldSpentOnAttrs += buyAttributes(save);
@@ -228,6 +335,7 @@ export function simulateDays(profile: Profile, days: number, seed = 'sim-seed'):
       patrolTicks: save.stats.patrolTicks ?? 0,
       honor: save.hero.honor,
       rank: playerRank(save, now),
+      dungeonFloors: Object.values(save.progress.dungeonFloors).reduce((sum, f) => sum + f, 0),
     });
   }
 
@@ -240,8 +348,10 @@ export function simulateDays(profile: Profile, days: number, seed = 'sim-seed'):
     finalAttrs: { ...save.hero.attrsBought },
     goldFrom,
     goldSpentOnAttrs,
+    goldSpentOnWheel,
     equippedCount: Object.values(save.inventory.equipped).filter(Boolean).length,
     finalRank: records[records.length - 1]?.rank ?? 751,
+    floorClears,
     records,
   };
 }

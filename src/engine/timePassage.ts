@@ -32,6 +32,7 @@ export function applyDailyReset(save: GameSave, newDayMs: number): void {
   save.daily.aleUsed = 0;
   save.daily.wheelSpins = 0;
   save.daily.dismantles = 0;
+  save.daily.expeditions = 0;
   save.daily.tavernRerollUsed = false;
   save.daily.freeTossUsed = false;
   save.daily.activity = 0;

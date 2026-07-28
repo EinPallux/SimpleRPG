@@ -6,17 +6,18 @@ multiplayer: the living world is simulated by deterministic bots that look and b
 No servers, no accounts, no real-money anything. Runs entirely in your browser, deploys as static files
 on Vercel, installs as a PWA.
 
-> **Status: 🎮 Milestones M0–M4 built — the fake MMO is alive.** On top of the idle loop and hero economy,
-> the realm now has 750 deterministic "players": fight three ranked arena offers a day (win-chance words,
-> honor, chests, rank-milestone gems), watch bouts in the combat theater (HP bars, floating crits, 2×/skip),
-> and climb a searchable 751-row Hall of Fame where every name is inspectable — gear, attributes, a
-> two-week honor sparkline. The CI ladder contract keeps rank 1 a season-long climb (days 150–250 optimal).
-> Next: M5 — dungeons, expeditions, and the Wheel of Destiny.
+> **Status: 🎮 Milestones M0–M5 built — the active pillars are open.** Fifty named bosses now wall the
+> mid-game across five dungeons (free hourly attempts, floors 5 & 10 drop dupe-protected set pieces), all
+> 14 item sets work for real — from +8% STR up to blocked-hits-reflect-30% — expeditions deal five
+> encounters of revealed cards for heroism-tiered chests, and Lorenzo's Wheel of Destiny posts its odds
+> like an honest man. The sim plays every system daily: rank 1 stays a ~5–6 month climb, the Pale King
+> holds past day 140, and the wheel stays gold-negative, as designed.
+> Next: M6 — story chapters, quests, achievements, and the meta layer.
 >
 > ```bash
 > pnpm install && pnpm dev                     # play the current build
-> pnpm test && pnpm e2e                        # verify (130 unit tests + clock-emulated e2e)
-> pnpm sim -- --profile optimal --days 270     # watch the anti-rush + ladder contracts hold
+> pnpm test && pnpm e2e                        # verify (170 unit tests + clock-emulated e2e)
+> pnpm sim -- --profile optimal --days 270     # watch the anti-rush + ladder + dungeon contracts hold
 > ```
 
 ## The pitch

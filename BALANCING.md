@@ -151,9 +151,10 @@ Arena bots use their ladder profile (§GAME_DESIGN 8.3) with par-based gear at t
 ### 4.5 Bot ladder & honor (M4)
 
 **Bot progression.** Each of the 750 bots earns daily mission-equivalents by archetype
-(`BOT_DAILY_EQUIV`: no-lifer 19.5 · dedicated 15 · regular 10.5 · casual 5 · dormant 1.2), with a ×1.3
-weekend bump, fortnightly noise streaks (lazy weeks / binges), join-days spread across the world's first
-3 weeks (`WORLD_AGE_DAYS = 21`), and ~2%/month rage-quits whose slots restart as fresh level-1 joiners.
+(`BOT_DAILY_EQUIV`: no-lifer 20.5 · dedicated 16 · regular 11 · casual 5.2 · dormant 1.25 — raised with
+M5's expedition/dungeon XP per the standing note), with a ×1.3 weekend bump, fortnightly noise streaks
+(lazy weeks / binges), join-days spread across the world's first 3 weeks (`WORLD_AGE_DAYS = 21`), and
+~2%/month rage-quits whose slots restart as fresh level-1 joiners.
 Level derives by inverting the cumulative MPL curve: `n = 12 × (∛(E/4.8 + 1) − 1)`.
 
 **Bot honor.** `honor = 90 × levelEquiv^1.15 × affinity(0.7–1.3)`, floored at HONOR_START.
@@ -169,8 +170,44 @@ passing a stronger rival takes *sustained* wins, so ladder position tracks repea
 top of the ladder is gated by the power curve (beating L+15 no-lifers), not by honor arithmetic. Measured
 optimal arc: top-100 ≈ day 95, top-10 ≈ day 125–140, rank 1 ≈ day 155–180 — enforced by `ladder-rank1`.
 Arena also pays 0.6 M10 gold + 0.25 M10-XP per win, 20% chest; losses pay 0.09 M10 consolation.
-*Standing note:* when M6 lands (gem income → Golden Ale), optimal player equivalents rise ~25% — the
-`ladder-rank1` scenario will flag it and BOT_DAILY_EQUIV gets its planned bump in the same PR.
+*Standing note:* M5's expedition/dungeon XP consumed part of the planned bump (equiv table raised ~5%,
+measured arc re-verified: top-100 ≈ d92 · top-10 ≈ d125 · rank 1 ≈ d155–180). When M6 lands (gem income →
+Golden Ale + quest XP), the `ladder-rank1` scenario will flag the remainder and BOT_DAILY_EQUIV rises
+again in the same PR.
+
+### 4.6 Dungeon rewards, boss traits, expeditions & wheel payouts (M5 seed values)
+
+**Boss traits.** Each of the 50 bosses carries one flavor trait layered on the §4 boss multipliers:
+`swift` (+10 pp evade) · `caster` (unblockable) · `brute` (every 3rd round ×1.5) · `elite` (+5 pp crit) ·
+`none`. Traits are content (CONTENT §5), not extra stat budget.
+
+**Dungeon floor rewards** (each floor is beaten exactly once — every clear is a first clear):
+```
+floorGold = 1.0 × missionGold(L,10)      floorXP = 1.5 × missionXp(L,10)
+gems: 3 per floor · 5 on set floors (5 & 10) · +10 extra on floor 10
+drops: floors 1–4 Rare+ (chest table, rarity floored to rare) · 6–9 Epic ·
+       5 & 10 a SET PIECE from the dungeon's pool (§CONTENT 5), preferring
+       slots the hero doesn't own; fixed-pool dungeons (D2/D4) fall back to
+       the pity class set once their set is complete
+```
+
+**Expedition heroism** (5 picks; chest at Bronze < 20 ≤ Silver < 35 ≤ Gold):
+```
+fight win 8 / loss 3 · mini-boss win 14 / loss 4 · treasure 4 · events 3–7 by choice
+card mix: fight 60% / treasure 25% / event 15%; encounter 3 offers the locale mini-boss
+treasure gold 0.35 M10 · fight spoils 0.15 M10 (mini-boss ×2) · losses never end a run
+chest: gold 1.1/1.4/1.7 M10 + XP 0.9/1.1/1.35 M10-XP by tier + item
+       (Silver+ uses the §5.3 chest table; Gold has 12% set-piece chance)
+Sim-measured: a fight-priority Gold run totals ≈ 2.84 M10 per 25 vigor — on the
+§2.3 target of 1.125 × frontier missions (2.8125).
+```
+
+**Wheel of Destiny** (slots & weights CONTENT §11; spin costs §2.3):
+```
+gold S/M/L = 0.5/1.0/2.5 M10 · XP 0.6 M10-XP · scraps 6 · treats 3 · dust 2 · gem 1
+mystery: re-roll another slot, payout doubled · jackpot: Legendary item
+(pet fallback arrives with the Menagerie, M7) · salute: nothing, warmly
+```
 
 ---
 
@@ -230,16 +267,20 @@ Values expressed in "M10" = one 10-vigor frontier mission's gold, to stay level-
 
 | Faucet (daily, optimal) | Gold (M10) | Notes |
 |---|---|---|
-| Missions ~250 vigor | 25.0 | the backbone |
+| Missions ~200 vigor | 20.0 | the backbone (50 vigor moves to expeditions from M5) |
+| Expeditions ×2 | 5.6 | 2.8 M10 per 25-vigor run (§4.6) — active play's premium |
 | Patrol 8–11h | 2.4–3.3 | 0.3/h; sim-measured ≈ 20–25% of mission income without ale |
 | Arena 10 wins | 6.0 | + chests |
-| Quests/activity | 3.5 | avg |
-| Wheel (net) | −1.5 | costs > direct gold EV (it pays in items/gems/treats) |
+| Dungeon floors | ~0.2 avg | 1.0 M10 per clear, one-time ×50 — a trickle, not a faucet |
+| Quests/activity | 3.5 | avg (M6) |
+| Wheel gross | 2.2 | net **−1.5 to −5**: spins cost ≈ 3× the gold they return (sink; pays in items/gems/treats) |
 | Selling drops | ~0.05 | pocket change (sim-measured ≈ 0.2% of missions) — loot's value is equipping & scraps, not vendoring |
-| **Total ≈ 36 M10/day** | | |
+| **Total ≈ 39 M10/day gross** | | |
 
 *The faucet/sink split is asserted by the sim (`gold-faucet audit` scenario): attributes must absorb
-≥ 60% of earned gold; patrol/missions and selling/missions ratios must stay in their bands.*
+≥ 60% of earned gold; missions stay the largest single faucet (≥ 40% of lifetime gold — measured 42%
+at day 270 with expeditions ≈ 19%, arena ≈ 20%, patrol ≈ 11%, wheel gross ≈ 7%); expeditions/missions,
+patrol/missions and selling/missions ratios hold their bands; the wheel stays gold-negative.*
 
 | Sink | Capacity | Intent |
 |---|---|---|
@@ -333,6 +374,8 @@ stays viable at ~6 min for streak preservation. Both must remain true through tu
 | 2026-07-28 | v0 seed values established | initial design | baseline |
 | 2026-07-28 | MPL re-anchored: `12×(1+L/40)^1.5` → `1.2×(1+L/12)^2` (M1) | old curve cost ~12 missions for level 2 → day-1 ended ≈ L2, nowhere near the §8.3 day-1 ≈ L10 intent; new curve starts at ~1.4 missions/level and grows steeper | optimal-24h/7d/30d scenarios green with ~20% headroom reserved for arena/quest XP landing in M4–M6 |
 | 2026-07-28 | §6 audit corrected from sim measurement (M3): selling ≈ 0.05 M10/day (was 2.5), patrol 2.4–3.3 | first real audit run showed drop-vendoring is ~0.2% of mission income (sell = 20% of ilvl^1.75 vs missions ∝ L^1.9) — accepted as design: loot's value is equipping + dismantling, not gold | no constant changed; `gold-faucet audit` scenario added to CI |
+| 2026-07-28 | M5 tuning pass: EXPED_CHEST_GOLD 1.6/2.0/2.5→1.1/1.4/1.7, EXPED_CHEST_XP 1.2/1.5/1.9→0.9/1.1/1.35, treasure 0.5→0.35, fight spoils 0.2→0.15; BOT_DAILY_EQUIV +5% (no-lifer 19.5→20.5 etc.); §6 audit refreshed to measured M5 shares | first sim runs showed expedition payouts landing ~2.8× realized mission value per vigor (the board's zone decay makes realized missions ~0.65× frontier) — re-anchored to the §2.3 target of 1.125× frontier (measured 2.84 vs 2.8125 M10/run); the planned bot bump keeps rank 1 at day ~155–180 now that expedition/dungeon XP is live | full contract green: 24h L8 · 7d L26 · 30d L48 · 90d L73 · 180d L94; top-100 d92 · rank-1 d155–180; D4 F10 d129 · D5 F10 > d270 |
+| 2026-07-28 | §4.6 added: M5 seed values — dungeon floor rewards (1.0 M10 gold · 1.5 M10-XP · gems 3/5/+10), boss traits, expedition heroism table + chest tiers (1.6/2.0/2.5 M10), wheel payouts (XP 0.6 M10-XP, scraps 6, treats 3, dust 2, gem 1) | dungeons/expeditions/wheel land in M5 and every number must live here first (invariant 5); values sized against the §6 audit rows (wheel net-negative on gold, expeditions ≈ 1.125× missions) | `dungeon-final`/`dungeon-walls` scenarios wired this milestone assert the pacing |
 | 2026-07-28 | §4.5 honor model: gap-close ELO-lite → **capped place-swap**; BOT_HONOR_COEF 90; BOT_DAILY_EQUIV raised (no-lifer 17→19.5 etc.); §8.2 ladder windows re-anchored to the measured arc (top-100 80–115, rank-1 150–250) (M4) | 270-day sims showed percentage gap-closing is exponentially fast once adjacent and loss-spam up the ladder was free — rank 1 fell anywhere from day 70–90 under every ELO-lite variant; capped place-swap makes the summit power-gated (sustained wins vs higher-level no-lifers), which is the S&F feel | `ladder-rank1` green: top-100 ≈ d95, top-10 ≈ d130, rank-1 ≈ d160; re-tune scheduled with M6 gem income |
 
 *(Every future tuning PR appends a row here.)*

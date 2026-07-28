@@ -40,6 +40,23 @@ export interface PatrolPayload {
   collectedUpTo: string;
 }
 
+/** One face-down card in an expedition encounter (GAME_DESIGN §16). */
+export type ExpeditionCard =
+  | { kind: 'fight'; foe: 'grunt' | 'swift' | 'caster' | 'brute' }
+  | { kind: 'miniboss' }
+  | { kind: 'treasure' }
+  | { kind: 'event'; eventIndex: number };
+
+/** An expedition in progress: 5 encounters, pick 1 of 3 revealed cards each. */
+export interface ExpeditionState {
+  localeId: string;
+  /** encounter index 0..4 */
+  step: number;
+  heroism: number;
+  /** current encounter's three cards (null = roll on next visit) */
+  cards: ExpeditionCard[] | null;
+}
+
 export interface ActivePotion {
   elixirId: string;
   attribute: AttributeId;
@@ -59,6 +76,8 @@ export interface ItemInstance {
   lines: { attr: BonusLineType; value: number }[];
   upgrade: number;
   seed: number;
+  /** set membership (rarity 'set' pieces only; content/sets.ts) */
+  setId?: string;
 }
 
 export type EquipSlot =
@@ -103,7 +122,7 @@ export interface GameSave {
   };
   activities: {
     mission: TimedActivity<MissionPayload> | null;
-    expedition: TimedActivity | null;
+    expedition: ExpeditionState | null;
     patrol: TimedActivity<PatrolPayload> | null;
     /** the three standing offers on the tavern board (null = roll on next visit) */
     tavernOffers:
@@ -126,6 +145,8 @@ export interface GameSave {
     aleUsed: number;
     wheelSpins: number;
     dismantles: number;
+    /** expeditions embarked on today (cap EXPEDITIONS_PER_DAY, +1 with Twilight full set) */
+    expeditions: number;
     tavernRerollUsed: boolean;
     freeTossUsed: boolean;
     activity: number;

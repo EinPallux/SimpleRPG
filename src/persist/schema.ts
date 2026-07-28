@@ -44,12 +44,21 @@ const patrolActivity = z
   })
   .strict();
 
-const genericActivity = z
+const expeditionCard = z.union([
+  z
+    .object({ kind: z.literal('fight'), foe: z.enum(['grunt', 'swift', 'caster', 'brute']) })
+    .strict(),
+  z.object({ kind: z.literal('miniboss') }).strict(),
+  z.object({ kind: z.literal('treasure') }).strict(),
+  z.object({ kind: z.literal('event'), eventIndex: z.number().int().min(0).max(23) }).strict(),
+]);
+
+const expeditionState = z
   .object({
-    kind: z.string(),
-    startedAt: isoDate,
-    durationSec: z.number().nonnegative(),
-    payload: z.unknown(),
+    localeId: z.string(),
+    step: z.number().int().min(0).max(4),
+    heroism: z.number().min(0),
+    cards: z.array(expeditionCard).length(3).nullable(),
   })
   .strict();
 
@@ -70,6 +79,7 @@ const itemInstance = z
     lines: z.array(itemLine),
     upgrade: z.number().int().min(0).max(20),
     seed: z.number().int(),
+    setId: z.string().optional(),
   })
   .strict();
 
@@ -100,7 +110,7 @@ const shopState = z
 
 export const gameSaveSchema = z
   .object({
-    version: z.literal(4),
+    version: z.literal(5),
     createdAt: isoDate,
     lastSeenAt: isoDate,
     worldSeed: z.string().min(8),
@@ -143,7 +153,7 @@ export const gameSaveSchema = z
     activities: z
       .object({
         mission: missionActivity.nullable(),
-        expedition: genericActivity.nullable(),
+        expedition: expeditionState.nullable(),
         patrol: patrolActivity.nullable(),
         tavernOffers: z.array(missionOffer).length(3).nullable(),
         dungeonCooldowns: z.record(isoDate),
@@ -160,6 +170,7 @@ export const gameSaveSchema = z
         aleUsed: z.number().int().min(0),
         wheelSpins: z.number().int().min(0),
         dismantles: z.number().int().min(0),
+        expeditions: z.number().int().min(0),
         tavernRerollUsed: z.boolean(),
         freeTossUsed: z.boolean(),
         activity: z.number().min(0),

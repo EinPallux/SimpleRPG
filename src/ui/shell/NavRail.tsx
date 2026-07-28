@@ -1,24 +1,39 @@
+import { DUNGEONS } from '@/content/dungeons';
 import { ARENA_FIGHTS_PER_DAY } from '@/engine/constants';
+import { canAttemptFloor } from '@/engine/dungeons';
+import { expeditionsLeft } from '@/engine/expeditions';
 import { missionEndsAt } from '@/engine/missions';
+import { wheelSpinsLeft } from '@/engine/wheel';
 import { t } from '@/i18n';
 import { useGame, type ScreenId } from '@/state/store';
 import { NAV_GROUPS, type NavEntry } from '../nav';
 import { Icon } from '../components/Icon';
 import { useGameClock } from '../hooks/useGameClock';
 
-/** Live attention badges: mission ready, patrol on duty, arena bouts waiting. */
+/** Live attention badges: mission ready, patrol on duty, daily activities waiting. */
 function useNavBadges(): Partial<Record<ScreenId, string>> {
   const now = useGameClock(5000);
-  const mission = useGame((s) => s.save?.activities.mission ?? null);
-  const patrolling = useGame((s) => Boolean(s.save?.activities.patrol));
-  const level = useGame((s) => s.save?.hero.level ?? 1);
-  const arenaFightsToday = useGame((s) => s.save?.activities.arena.fightsToday ?? null);
+  const save = useGame((s) => s.save);
   const badges: Partial<Record<ScreenId, string>> = {};
+  if (!save) return badges;
+  const level = save.hero.level;
+  const mission = save.activities.mission;
   if (mission && now >= missionEndsAt(mission)) badges.tavern = '!';
-  if (patrolling) badges.patrol = '💤';
-  if (arenaFightsToday !== null && level >= 5 && arenaFightsToday < ARENA_FIGHTS_PER_DAY) {
-    badges.arena = String(ARENA_FIGHTS_PER_DAY - arenaFightsToday);
+  if (save.activities.patrol) badges.patrol = '💤';
+  if (level >= 5 && save.activities.arena.fightsToday < ARENA_FIGHTS_PER_DAY) {
+    badges.arena = String(ARENA_FIGHTS_PER_DAY - save.activities.arena.fightsToday);
   }
+  if (level >= 8) {
+    const left = expeditionsLeft(save);
+    if (left > 0 || save.activities.expedition) {
+      badges.expeditions = save.activities.expedition ? '!' : String(left);
+    }
+  }
+  if (level >= 12) {
+    const ready = DUNGEONS.filter((d) => canAttemptFloor(save, d.id, now).ok).length;
+    if (ready > 0) badges.dungeons = String(ready);
+  }
+  if (level >= 5 && wheelSpinsLeft(save) > 0) badges.wheel = String(wheelSpinsLeft(save));
   return badges;
 }
 

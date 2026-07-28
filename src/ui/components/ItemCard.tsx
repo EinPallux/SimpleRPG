@@ -23,6 +23,11 @@ export function ItemCard({ item, className = '' }: { item: ItemInstance; classNa
       <div className="mt-0.5 text-[10px] text-ink-faint">
         {t(`item.rarity.${item.rarity}` as I18nKey)} · {t('item.ilvl', { ilvl: item.ilvl })}
       </div>
+      {item.setId && (
+        <div className="text-[10px] font-bold text-[#35c99a]">
+          {t(`set.${item.setId}` as I18nKey)}
+        </div>
+      )}
       {dmg && (
         <div className="mt-1.5 text-xs font-bold text-ink">
           {t('item.stat.damage', { min: dmg.min, max: dmg.max })}

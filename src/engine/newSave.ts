@@ -74,6 +74,7 @@ export function createNewSave(input: NewHeroInput, nowMs: number): GameSave {
       aleUsed: 0,
       wheelSpins: 0,
       dismantles: 0,
+      expeditions: 0,
       tavernRerollUsed: false,
       freeTossUsed: false,
       activity: 0,

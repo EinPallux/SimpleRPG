@@ -98,25 +98,53 @@ const V2_FIXTURE = {
   },
 };
 
+/** A v4 (M3/M4) save — proves the v5 expedition/daily upgrade. */
+const V4_FIXTURE = {
+  ...structuredClone(V2_FIXTURE),
+  version: 4,
+  activities: {
+    ...structuredClone(V1_FIXTURE.activities),
+    mission: null,
+    tavernOffers: null,
+  },
+  town: {
+    shops: {
+      weaponsmith: { stock: null, rerollUsed: false },
+      armorer: { stock: null, rerollUsed: false },
+      arcanum: { stock: null, rerollUsed: false },
+    },
+  },
+};
+
 describe('save migrations', () => {
   it('migrates a v1 (M0) save forward to the current version', () => {
     const save = migrateSave(structuredClone(V1_FIXTURE));
-    expect(save.version).toBe(4);
+    expect(save.version).toBe(5);
     expect(save.hero.name).toBe('Fixture');
     expect(save.inventory.backpack[0]?.classId).toBeNull();
     expect(save.activities.tavernOffers).toBeNull();
     expect(save.town.shops.weaponsmith).toEqual({ stock: null, rerollUsed: false });
+    expect(save.daily.expeditions).toBe(0);
     // Missing rng streams are legal — they lazy-init from the world seed.
     expect(save.rngState).toEqual({});
   });
 
   it('migrates a v2 (M1) save with an in-flight mission (payload gains flavor)', () => {
     const save = migrateSave(structuredClone(V2_FIXTURE));
-    expect(save.version).toBe(4);
+    expect(save.version).toBe(5);
     expect(save.activities.mission?.payload.flavor).toBe(0);
     expect(save.activities.mission?.payload.xp).toBe(55);
     expect(save.activities.tavernOffers).toBeNull();
     expect(save.town.shops.arcanum.stock).toBeNull();
+  });
+
+  it('migrates a v4 (M3/M4) save: expeditions reset, day counter added', () => {
+    const save = migrateSave(structuredClone(V4_FIXTURE));
+    expect(save.version).toBe(5);
+    expect(save.activities.expedition).toBeNull();
+    expect(save.daily.expeditions).toBe(0);
+    // pre-M5 items simply carry no setId
+    expect(save.inventory.backpack[0]?.setId).toBeUndefined();
   });
 
   it('refuses saves with no migration path', () => {
