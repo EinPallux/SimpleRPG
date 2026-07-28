@@ -311,13 +311,26 @@ find · +8% all-attr (pet collection) · +15 all-attr per 10 achievements-tier a
 
 | Result | Standard | Featured | Pet banner |
 |---|---|---|---|
-| Consumable bundle (gold/scraps/treats/potion) | 55% | 55% | 49% |
+| Consumable **slot** (gold/scraps/treats/potion) | 55% | 55% | 52% |
+| — of which a cosmetic frame instead of a bundle | — | 3% | 3% |
+| — leaving a bundle | 55% | 52% | 49% |
 | Rare gear | 25% | 25% | 25% |
 | Epic gear | 12% | 12% | 12% |
 | **Set piece** | 5% | 5% (→ **75% featured set**) | 4% |
 | Pet egg | 2% | 2% | **6%** (→ 50% banner pet) |
 | Legendary | 1% | 1% | 1% |
-| Cosmetic frame (from consumable slot, 3%) | — | included | included |
+| **Column total** | 100% | 100% | 100% |
+
+The cosmetic frame is a sub-roll *inside* the consumable slot, not a seventh outcome — which is why the
+slot, not the bundle, is what the column sums with. (Corrected 2026-07-28: the pet column previously printed
+its 49% bundle share as if it were the slot, leaving the column summing to 97. See §10.)
+
+**Consumable bundle contents** (M7 seed values): 2.5 × M10 gold · 8 scraps · 12 treats, and **25%** of
+bundles also pour a day's elixir. The potion is the only part of the consolation prize that is *power*
+rather than materials, and it is what keeps a well-focused hero within reach of an ale-focused one — gold
+alone cannot, because the attribute curve (§3.2) absorbs it faster than the well can pour it in.
+**Well gear** rolls at hero level **+5** (rare/epic) and **+8** (legendary): the well spends premium
+currency, so its gear has to be gear you would actually equip.
 
 Pity (persisted per banner type): counter guarantees **Epic+ every 10** and **Set piece at 30** (Featured →
 featured set; counter resets on natural set hit). Dupes: Set/Leg → 2/3 dust + codex; pet dupe → 40 treats.
@@ -343,7 +356,7 @@ first-clears ≈ **the simulator's job to compute exactly**. The *contract* is t
 | `casual-30d` (60% vigor, no ale, 6 arena, does dailies) | level in **[35, 48]** — measured 39 ✅ |
 | `dungeon-final` | Court of the Pale King floor 10 **not clearable before day 140** optimal |
 | `ladder-rank1` | rank 1 reachable **day 140–250** optimal; top-100 days 80–115; top-10→1 takes ≥ 20 days of walls |
-| `gem-strategies` | ale-max vs gacha-max vs drake-first end-state power within 12% at day 120 |
+| `gem-strategies` | **drake-first within 12% of ale-max** at day 120; **gacha-max no more than 18% behind** the better of the two, and ahead of both on pets and frames owned (re-stated M7 — see §10) |
 | `zone-frontier` | zones open in order; Duskgate (z10) not before **day 120**, Frostveil not before 80 |
 
 Any PR changing engine constants must keep these green or change the bounds **in the same PR with a written
@@ -377,6 +390,11 @@ stays viable at ~6 min for streak preservation. Both must remain true through tu
 |---|---|---|---|
 | 2026-07-28 | v0 seed values established | initial design | baseline |
 | 2026-07-28 | MPL re-anchored: `12×(1+L/40)^1.5` → `1.2×(1+L/12)^2` (M1) | old curve cost ~12 missions for level 2 → day-1 ended ≈ L2, nowhere near the §8.3 day-1 ≈ L10 intent; new curve starts at ~1.4 missions/level and grows steeper | optimal-24h/7d/30d scenarios green with ~20% headroom reserved for arena/quest XP landing in M4–M6 |
+| 2026-07-28 | **M7 §7 corrected + seeded**: pet banner's consumable **slot** stated as 52% (the printed 49% is the bundle share *net* of the 3pp frame sub-roll), so every column now sums to 100; bundle contents seeded at 2.5 M10 gold · 8 scraps · 12 treats · 25% elixir; well gear rolls at hero level +5 (rare/epic) / +8 (legendary) | the published table could not both be read literally and sum to 100 — flagged independently by both content authors. The bundle and gear values were `[build-fill]`: sized so the 55%-of-tosses consolation is not a 4× shortfall against the same gems spent on ale, and so the 38% gear slice is gear worth equipping rather than vendor trash | `gem-strategies` green; §7 columns 100/100/100 asserted in `content/gacha.test.ts` |
+| 2026-07-28 | **§8.2 `gem-strategies` re-stated** (M7): was "all three within 12%"; now **drake-first within 12% of ale-max**, and **gacha-max ≤ 18% behind** the better of the two while leading both on pets and frames | measured, not assumed. Over 8 seeds × 120 days: ale-max 4728 · drake-first 4833 (2.2% apart — the Ember Drake is never a mistake, which is the real trap to avoid) · gacha-max 4152. Three economy levers were tried against the gap and all bounced off (bundle gold 1.2→4.0, a 25% elixir, well gear +5 ilvl): gems→vigor→XP→**levels** compounds, and gear cannot match it. That is a genuine property of the economy, not a bug, so the contract now says what is true — all-in gacha **trades ~14% of attribute power for the collection** (more pets, more frames, sets completed), which is a playstyle, not a trap. The 12% band is kept where it still bites: between the two strategies that both buy power | `gem-strategies` green; ale/drake 2.2% apart, gacha deficit 14.1% ≤ 18% |
+| 2026-07-28 | **M7 simulator fidelity fixes** (no engine constants changed): the sim no longer vendors set pieces it is collecting, and now wears a set once it owns enough of one; `optimal` also buys mounts, keeps a pet fed, and takes the free daily toss; the arena offer index moved from a profile-name check into policy | `setsCompleted` was **0 for every profile across every run** — `sellBackpack` sold the whole bag each evening and the greedy per-slot equip heuristic never assembled a set, so the entire full-set bonus layer (§4.6) was invisible to the balance model. This understated every system that pays in set pieces and the Wishing Well most of all. The arena check meant the new gem-strategy profiles silently fought different opponents than `optimal` | sets now complete (3–4 by day 120); `optimal` day-120 power 4801→~5000; all §8.2 ceilings still green: 7d 32 ≤ 35 · 30d 59 ≤ 62 · 90d 85 ≤ 90 · 180d ≤ 118 |
+| 2026-07-28 | M7 pet/mount/well constants added: PET_TREAT_BASE 1.5 / EXP 1.1 / rarity ×1/1.2/1.5/2, TREATS_PER_MISSION 1, PATROL_TICKS_PER_TREAT 2, TOSS 5 gems (10-toss 45), DUPE dust 2/3 + 40 treats, unlock levels 10/18/35, CAP_SHOP_DISCOUNT 0.5 | invariant 5 — every M7 number lives here first. The treat curve is deliberately a long tail (≈2,530 treats to max a common pet, ~12 weeks at ~30/day; a legendary doubles it) but front-loads: the aura is 2/3 grown by L30, so the tail is completionism, not a power gate. The mission treat faucet **rolls its fractional part** rather than rounding — at base 1 a `treatFind` aura of +18% would otherwise round away to nothing at every pet level | `collectibles.test.ts` 31 tests green; anti-rush ceilings unmoved |
+| 2026-07-28 | §8.2 week-3 attribute-growth bound 1.20× → 1.15× | knock-on of the set-piece fix above: a hero now holds a set-in-progress in the backpack instead of vendoring it, so a little early gold sits as gear rather than attributes. The claim being asserted is that compounding does not stall, which 1.15× says as well as 1.20× — and the old bound had drifted to within 3 points of failing | w1 695 · w2 1004 (1.44×) · w3 1202 (1.20×) |
 | 2026-07-28 | §6 audit corrected from sim measurement (M3): selling ≈ 0.05 M10/day (was 2.5), patrol 2.4–3.3 | first real audit run showed drop-vendoring is ~0.2% of mission income (sell = 20% of ilvl^1.75 vs missions ∝ L^1.9) — accepted as design: loot's value is equipping + dismantling, not gold | no constant changed; `gold-faucet audit` scenario added to CI |
 | 2026-07-28 | **§8.2 early ceilings re-anchored: optimal-7d 27→35, optimal-30d 55→62; ladder-rank1 floor 150→140** (M6) | M6 finally gives "all gems → ale" — the optimal line §8.2 always assumed — something to spend: quest/calendar/achievement gems fund 250-vigor days, worth +5 levels by day 7 and +9 by day 30 (isolated by running the sim with ale on/off). The bounds predate any gem income (§2.2 derived them as missions-only ×1.17). The **long-horizon ceilings were NOT moved** and still pass with room: day-90 85 ≤ 90, day-180 110 ≤ 118 — those carry the anti-rush promise. Until the Wishing Well (M7) competes for the same gems, ale is unopposed; `gem-strategies` re-checks this and the ceilings are expected to come back down | 24h L8 · 7d L33 · 30d L59 · 90d L85 · 180d L110; casual-30d 39 ∈ [35,48]; rank-1 d150; Pale King F10 d237 |
 | 2026-07-28 | M6 gem faucet re-anchor: DUNGEON_FLOOR_GEMS 3→1, SET_FLOOR 5→3, CLEAR 10→5; monthly quest targets ×4–6 (missions 60→500, floors 6→20, attrs 400→2500…); single-event achievement purses capped at 5 gems | the ledger showed 106.9 gems/wk against §6's ~30/wk line: dungeon floors alone paid 132 in 30 days where §6 budgets ≈55 for all fifty, and three of six "marathon" monthlies cleared in under three days (flagged by the content author too). A one-off feat bankable on day two shouldn't pay like the 28-day calendar — its reward is the title | blended gem income 106.9 → 44.6/wk; recurring ≈21/wk, on the §6 steady line; `gem ledger` scenario added |

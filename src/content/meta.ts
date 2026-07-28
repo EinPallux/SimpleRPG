@@ -63,6 +63,11 @@ export const STAT_KEYS = [
   'wheelJackpots',
   'gachaTosses',
   'gachaPityHits',
+  'gachaDupes', // set/legendary/pet dupes converted rather than wasted
+  // Menagerie & Stable (M7) — how many pets OWNED is derived (`petsOwned`);
+  // these two are the things only the ledger can remember.
+  'petLevelsFed',
+  'mountsBought',
   // Collection
   'setPiecesFound',
   'legendariesFound',
@@ -140,6 +145,8 @@ export interface MetaReward {
   frameId?: string;
   /** title awarded (story chapters, signature achievements) */
   titleId?: string;
+  /** a pet joins the menagerie (chapter 5 — Fenn's three friends) */
+  petId?: string;
 }
 
 export const metaRewardSchema = z
@@ -155,6 +162,7 @@ export const metaRewardSchema = z
     elixir: z.boolean().optional(),
     frameId: z.string().optional(),
     titleId: z.string().optional(),
+    petId: z.string().optional(),
   })
   .strict();
 
@@ -197,13 +205,7 @@ export const questSchema = z
 // ---------------------------------------------------------------------------
 
 export type AchievementCategory =
-  | 'progression'
-  | 'combat'
-  | 'collection'
-  | 'economy'
-  | 'exploration'
-  | 'mastery'
-  | 'secrets';
+  'progression' | 'combat' | 'collection' | 'economy' | 'exploration' | 'mastery' | 'secrets';
 
 export interface AchievementDef {
   id: string;
@@ -211,7 +213,12 @@ export interface AchievementDef {
   metric: MetricId;
   /** ascending thresholds; 1 entry = untiered, 3 = bronze/silver/gold */
   tiers: number[];
-  /** i18n `achv.{id}.name` + `achv.{id}.desc` */
+  /**
+   * The i18n BASE key (`achv.{id}`) — not a resolvable key on its own. Use
+   * `achievementNameKey(id)` / `achievementDescKey(id)`, which append `.name`
+   * and `.desc`. (Sets store a complete key here; achievements and pets store a
+   * base. Passing this straight to `t()` silently renders the raw key.)
+   */
   nameKey: string;
   /** gems paid on the FINAL tier (§13: gold tiers pay gems) */
   gems?: number;
@@ -243,14 +250,14 @@ export interface TitleDef {
   id: string;
   /** i18n `title.{id}` — the suffix shown after a name ("the Patient") */
   nameKey: string;
-  source: 'achievement' | 'story' | 'arena' | 'secret';
+  source: 'achievement' | 'story' | 'arena' | 'secret' | 'mount';
 }
 
 export const titleSchema = z
   .object({
     id: z.string().regex(/^[a-z0-9-]+$/),
     nameKey: z.string(),
-    source: z.enum(['achievement', 'story', 'arena', 'secret']),
+    source: z.enum(['achievement', 'story', 'arena', 'secret', 'mount']),
   })
   .strict();
 

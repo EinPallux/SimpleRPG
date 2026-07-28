@@ -9,11 +9,7 @@ import { canFight, fightArena, skipCooldown, type ArenaOutcome } from '@/engine/
 import { ARENA_COOLDOWN_SKIP_GEMS, QUESTS_UNLOCK_LEVEL } from '@/engine/constants';
 import { bossNameKey, getDungeon } from '@/content/dungeons';
 import { getQuest } from '@/content/quests';
-import {
-  canClaimAchievement,
-  claimAchievement,
-  claimAllAchievements,
-} from '@/engine/achievements';
+import { canClaimAchievement, claimAchievement, claimAllAchievements } from '@/engine/achievements';
 import { canClaimCalendar, claimCalendarDay } from '@/engine/calendar';
 import { readLore } from '@/engine/codex';
 import {
@@ -27,11 +23,7 @@ import {
 } from '@/engine/quests';
 import type { GrantedReward } from '@/engine/rewards';
 import { canClaimStep, claimStep } from '@/engine/story';
-import {
-  attemptFloor,
-  canAttemptFloor,
-  type DungeonOutcome,
-} from '@/engine/dungeons';
+import { attemptFloor, canAttemptFloor, type DungeonOutcome } from '@/engine/dungeons';
 import {
   abandonExpedition,
   canStartExpedition,
@@ -41,6 +33,11 @@ import {
   type ExpeditionStepOutcome,
 } from '@/engine/expeditions';
 import { canSpinWheel, spinWheel, type WheelOutcome } from '@/engine/wheel';
+import type { BannerId } from '@/content/collectibles';
+import { canToss, toss, type TossResult } from '@/engine/gacha';
+import { buyMount, canBuyMount } from '@/engine/mounts';
+import { canFeedPet, equipPet, feedPet, feedPetMax, petOwned } from '@/engine/pets';
+import { isoWeekNumber } from '@/engine/time';
 import { createNewSave, deriveEmblem } from '@/engine/newSave';
 import { systemClock } from '@/engine/clock';
 import {
@@ -132,6 +129,8 @@ interface GameStore {
   expedOutcome: ExpeditionStepOutcome | null;
   /** landed wheel spin awaiting the reveal */
   wheelOutcome: WheelOutcome | null;
+  /** the tosses of the last visit to the well, awaiting their reveal (M7) */
+  tossOutcome: { bannerId: BannerId; results: TossResult[] } | null;
   /** a meta-layer payout (quest, story step, chest, calendar) awaiting its reveal */
   metaReward: { titleKey: I18nKey; reward: GrantedReward } | null;
 
@@ -182,6 +181,14 @@ interface GameStore {
   closeExpedOutcome(): void;
   wheelSpin(): void;
   closeWheelOutcome(): void;
+
+  // Menagerie, Stable & the Wishing Well (M7)
+  petEquip(petId: string | null): void;
+  petFeed(petId: string): void;
+  petFeedMax(petId: string): void;
+  mountBuy(tier: number): void;
+  wellToss(bannerId: BannerId, count?: number): void;
+  closeTossOutcome(): void;
 
   // Hero economy (M3)
   buyAttr(attr: AttributeId, times?: number): void;
@@ -240,6 +247,7 @@ export const useGame = create<GameStore>()(
       dungeonOutcome: null,
       expedOutcome: null,
       wheelOutcome: null,
+      tossOutcome: null,
       metaReward: null,
 
       catchUp() {
@@ -451,6 +459,62 @@ export const useGame = create<GameStore>()(
       closeWheelOutcome() {
         set((s) => {
           s.wheelOutcome = null;
+        });
+      },
+
+      petEquip(petId) {
+        set((s) => {
+          if (!s.save) return;
+          if (petId !== null && !petOwned(s.save, petId)) return;
+          equipPet(s.save, petId);
+        });
+        scheduleAutosave();
+      },
+
+      petFeed(petId) {
+        set((s) => {
+          if (!s.save || !canFeedPet(s.save, petId)) return;
+          feedPet(s.save, petId);
+        });
+        scheduleAutosave();
+      },
+
+      petFeedMax(petId) {
+        let fed = 0;
+        set((s) => {
+          if (!s.save) return;
+          fed = feedPetMax(s.save, petId);
+        });
+        if (fed > 0) get().toast(t('menagerie.fedLevels', { n: fed }));
+        scheduleAutosave();
+      },
+
+      mountBuy(tier) {
+        let bought: { name: string } | null = null;
+        set((s) => {
+          if (!s.save || !canBuyMount(s.save, tier)) return;
+          const purchase = buyMount(s.save, tier);
+          bought = { name: t(`${purchase.mount.nameKey}` as I18nKey) };
+        });
+        if (bought) get().toast(t('stable.bought', bought));
+        scheduleAutosave();
+      },
+
+      wellToss(bannerId, count = 1) {
+        set((s) => {
+          if (!s.save || !canToss(s.save, bannerId, count)) return;
+          const week = isoWeekNumber(systemClock.now());
+          s.tossOutcome = {
+            bannerId,
+            results: toss(s.save, bannerId, week, count, systemClock.now()),
+          };
+        });
+        scheduleAutosave();
+      },
+
+      closeTossOutcome() {
+        set((s) => {
+          s.tossOutcome = null;
         });
       },
 

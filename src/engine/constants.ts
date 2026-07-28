@@ -162,6 +162,80 @@ export const WHEEL_DUST = 2;
 export const WHEEL_GEMS = 1;
 export const WHEEL_JACKPOT_GEMS = 25; // fallback once pets exist and the snail is owned (M7)
 
+// ---------------------------------------------------------------------------
+// Pets, Mounts & the Wishing Well (GAME_DESIGN.md §10–11, BALANCING.md §4.7/§7)
+// ---------------------------------------------------------------------------
+
+export const STABLE_UNLOCK_LEVEL = 10; // §11.2
+export const WELL_UNLOCK_LEVEL = 18; // §10
+export const MENAGERIE_UNLOCK_LEVEL = 35; // §11.1 — arrives with story chapter 5
+
+/**
+ * Treats to go from pet level L to L+1: `ceil(BASE × L^EXP × rarityMult)`.
+ *
+ * Shaped to be generous at the start and a genuine long-tail at the end: the
+ * first ten levels of a common pet cost ~81 treats (a couple of days), all
+ * forty-nine cost ~2,530 (~12 weeks at the ~30/day the faucets below pay), and
+ * a legendary doubles that. Pets are the one system explicitly allowed to
+ * outlast the 6–9 month v1.0 horizon — the aura is already 2/3 grown by L30, so
+ * the tail is completionism, not a power gate (BALANCING §4.7).
+ */
+export const PET_TREAT_BASE = 1.5;
+export const PET_TREAT_EXP = 1.1;
+export const PET_TREAT_RARITY_MULT = {
+  common: 1,
+  rare: 1.2,
+  epic: 1.5,
+  legendary: 2,
+} as const;
+
+/** Treat faucets (§11.1: "missions, patrol ticks, quests, wheel"). */
+export const TREATS_PER_MISSION = 1;
+export const PATROL_TICKS_PER_TREAT = 2; // one treat per hour of patrol
+
+/** The Wishing Well's prices (§10). The 10-toss saves one toss in ten. */
+export const TOSS_COST_GEMS = 5;
+export const TOSS_TEN_COST_GEMS = 45;
+export const TOSS_TEN_COUNT = 10;
+
+/**
+ * Dupe conversion (BALANCING §7): a set or legendary you already own becomes
+ * dust and codex credit; a pet you already own becomes treats. Nothing the
+ * well returns is ever truly wasted — that is the whole ethical-gacha promise.
+ */
+export const DUPE_SET_DUST = 2;
+export const DUPE_LEGENDARY_DUST = 3;
+export const DUPE_PET_TREATS = 40;
+
+/**
+ * The consumable bundle, in the wheel's units so the two small-prize faucets
+ * stay comparable. A bundle is worth clearly less than the 5 gems it cost —
+ * the well is a *sink*, and its expected value lives in the 18% gear rows.
+ */
+export const WELL_BUNDLE_GOLD = 2.5; // × missionGold(L, 10)
+export const WELL_BUNDLE_SCRAPS = 8;
+export const WELL_BUNDLE_TREATS = 12;
+/**
+ * …and the fourth thing §7 lists in the bundle: a potion. It is the only part
+ * of the consolation prize that is POWER rather than materials, which is what
+ * keeps a well-focused hero within reach of an ale-focused one — gold alone
+ * cannot, because the attribute curve (§3.2) eats it faster than the well can
+ * pour it in.
+ */
+export const WELL_BUNDLE_ELIXIR_CHANCE = 0.25;
+
+/**
+ * Item levels the well rolls gear at, relative to the hero.
+ *
+ * The well is a PREMIUM-currency source and §10 sells it as "the luck path to
+ * the same sets the dungeons grind out" — so its gear has to be gear you would
+ * actually equip. Rolled at exactly the hero's level it almost never beats what
+ * a dungeon floor already handed over, which quietly turned the whole 38% gear
+ * slice of the odds table into vendor trash.
+ */
+export const WELL_GEAR_ILVL_BONUS = 5;
+export const WELL_LEGENDARY_ILVL_BONUS = 8;
+
 // Quests, Activity meter & the meta layer (GAME_DESIGN.md §12–14)
 export const QUEST_SLOTS = 3; // dailies on the board
 export const WEEKLY_QUEST_SLOTS = 3;
@@ -358,6 +432,8 @@ export const CAP_XP_BONUS = 0.3;
 export const CAP_CRIT_DMG_BONUS = 0.5;
 export const CAP_BLOCK = 0.35;
 export const CAP_EVADE = 0.5;
+/** Shop prices can never be discounted past this, however many auras stack. */
+export const CAP_SHOP_DISCOUNT = 0.5;
 
 // Par seed curves (BALANCING.md §2.4 — analytic seeds until `pnpm sim --par` regenerates)
 export const PAR_MAIN_COEF = 0.9; // parMainAttr(L) = round(0.9 × L^1.45)

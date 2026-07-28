@@ -286,12 +286,20 @@ An old well behind the tavern. Toss gems in; the well tosses *stuff* back. **No 
     featured set) + its exclusive cosmetic portrait frame. 8-week schedule in CONTENT_CATALOG.md §7.
   - **Pet Banner** (rotates **biweekly**): pet-egg focused pool incl. 2 Well-exclusive pets.
 - **Pity (per banner type, persisted)**: every 10 tosses guarantees Epic+; **hard pity 30** guarantees a Set
-  piece (on Featured: guaranteed *featured* set). Counters visible in UI (ethical gacha).
+  piece (on Featured: guaranteed *featured* set). Counters visible in UI (ethical gacha) — the odds table
+  and both counters render unconditionally on the Well screen, never behind a tooltip or a second tap.
 - **Dupes** auto-convert: Set/Legendary dupes → Arcane Dust + Codex credit; pet dupes → Pet Treats.
 - Full odds table: BALANCING.md §7; pool contents: CONTENT_CATALOG.md §7.
 
 Design intent: gacha is the **luck path** to the same sets the dungeons grind out — two roads, one chase;
 gems stay precious (~30/week steady-state income, BALANCING.md §6).
+
+**What the well is worth, honestly** (measured M7, BALANCING §8.2/§10): pouring every gem into the well
+costs roughly **14% of end-state attribute power** at day 120 against pouring them into Golden Ale, and
+buys the collection instead — more pets, more frames, sets completed. That is the trade the well is *for*,
+and the game should never pretend otherwise. What the contract does forbid is the Ember Drake being a
+mistake: 60 gems of mount lands within 12% of 30 ales, so the Stable's headline purchase is always
+defensible.
 
 ---
 

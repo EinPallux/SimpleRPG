@@ -9,6 +9,7 @@ import {
   WHEEL_DUST,
   WHEEL_GEMS,
   WHEEL_GOLD,
+  WHEEL_JACKPOT_GEMS,
   WHEEL_SCRAPS,
   WHEEL_SPIN_COSTS,
   WHEEL_SPINS_PER_DAY,
@@ -18,6 +19,7 @@ import {
 import { missionGold, missionXp } from './economy';
 import { generateItem, rollDrop, sellPrice } from './items';
 import { bump, recordDrop } from './ledger';
+import { grantPet } from './pets';
 import { getStream, type Rng } from './rng';
 import type { GameSave, ItemInstance } from './types';
 import { applyXp, type XpResult } from './xpGain';
@@ -53,7 +55,12 @@ export interface WheelOutcome {
   dust: number;
   gems: number;
   autoSoldGold: number;
+  /** The Gilded Snail, handed over by a first jackpot (CONTENT §6.3) */
+  petId: string | null;
 }
+
+/** The one pet the wheel keeps — jackpot-only, by design (CONTENT §6.3). */
+const WHEEL_JACKPOT_PET = 'the-gilded-snail';
 
 function pickSlot(rng: Rng, exclude: WheelSlotKind[] = []): number {
   const pool = WHEEL_SLOTS.map((slot, index) => ({ slot, index })).filter(
@@ -90,6 +97,7 @@ export function spinWheel(save: GameSave): WheelOutcome {
   let treats = 0;
   let dust = 0;
   let gems = 0;
+  let petId: string | null = null;
 
   if (kind === 'goldS' || kind === 'goldM' || kind === 'goldL') {
     gold = Math.round(m10 * WHEEL_GOLD[kind] * mult);
@@ -109,14 +117,21 @@ export function spinWheel(save: GameSave): WheelOutcome {
     gems = WHEEL_GEMS * mult;
   } else if (kind === 'jackpot') {
     bump(save, 'wheelJackpots');
-    // Legendary at hero level. The Gilded Snail (pets) and the 25-gem fallback
-    // join with the Menagerie in M7 — until then the wheel always pays gear.
+    // The jackpot always pays a Legendary (BALANCING §4.6). On top of that it
+    // is the ONLY source of The Gilded Snail (CONTENT §6.3) — and once the
+    // snail is in the menagerie, that slot pays gems instead, so a second
+    // jackpot never feels like a worse first one.
     items.push(
       generateItem(
         { ilvl: save.hero.level + 2, rarity: 'legendary', biasClass: save.hero.classId },
         rng,
       ),
     );
+    if (grantPet(save, WHEEL_JACKPOT_PET)) {
+      petId = WHEEL_JACKPOT_PET;
+    } else {
+      gems += WHEEL_JACKPOT_GEMS * mult;
+    }
   }
   // 'salute': nothing but dignity.
 
@@ -153,5 +168,6 @@ export function spinWheel(save: GameSave): WheelOutcome {
     dust,
     gems,
     autoSoldGold,
+    petId,
   };
 }

@@ -25,6 +25,11 @@ export function localMonthKey(ms: number): string {
  * e.g. "2026-W31". Weekly quests and the Featured Banner rotate on this.
  */
 export function isoWeekKey(ms: number): string {
+  const { isoYear, week } = isoWeek(ms);
+  return `${isoYear}-W${pad(week)}`;
+}
+
+function isoWeek(ms: number): { isoYear: number; week: number } {
   const d = new Date(ms);
   // Work on a UTC copy of the local calendar date to avoid DST arithmetic.
   const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -33,7 +38,17 @@ export function isoWeekKey(ms: number): string {
   const isoYear = t.getUTCFullYear();
   const yearStart = Date.UTC(isoYear, 0, 1);
   const week = Math.ceil(((t.getTime() - yearStart) / 86_400_000 + 1) / 7);
-  return `${isoYear}-W${pad(week)}`;
+  return { isoYear, week };
+}
+
+/**
+ * The ISO week NUMBER (1..53) — what the Wishing Well rotation is defined
+ * against (CONTENT §7: `bannerIndex = ISOweek mod 8`). Deliberately not a
+ * continuous counter: the doc specifies the plain week number, so the rotation
+ * takes a small jump at a year boundary and every device takes the same one.
+ */
+export function isoWeekNumber(ms: number): number {
+  return isoWeek(ms).week;
 }
 
 /** Milliseconds from `ms` until the next local midnight (> 0). */

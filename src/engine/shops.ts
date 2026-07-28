@@ -3,8 +3,14 @@
  * one free reroll per shop per day, gems afterwards. Stock persists in the save
  * (no stock-fishing); the daily reset clears it for lazy regeneration.
  */
-import { DROP_WEIGHTS_SHOP, SHOP_REROLL_COST_GEMS, SHOP_STOCK_SIZE } from './constants';
+import {
+  CAP_SHOP_DISCOUNT,
+  DROP_WEIGHTS_SHOP,
+  SHOP_REROLL_COST_GEMS,
+  SHOP_STOCK_SIZE,
+} from './constants';
 import { generateItem, shopPrice } from './items';
+import { auraTotal } from './pets';
 import { getStream } from './rng';
 import type { EquipSlot, GameSave, ItemInstance, Rarity, ShopId } from './types';
 
@@ -47,11 +53,22 @@ export function rerollShopStock(save: GameSave, shopId: ShopId): void {
   save.town.shops[shopId].stock = rollStock(save, shopId);
 }
 
+/**
+ * What a shelf item actually costs this hero: list price less the equipped
+ * pet's `shopDiscount` aura (§11.1). Exported because the shop screen must
+ * print the same number `buyShopItem` charges — a discount you only discover
+ * at the till is a bug, not a surprise.
+ */
+export function heroShopPrice(save: GameSave, item: ItemInstance): number {
+  const discount = Math.min(CAP_SHOP_DISCOUNT, auraTotal(save, 'shopDiscount'));
+  return Math.max(1, Math.round(shopPrice(item) * (1 - discount)));
+}
+
 export function buyShopItem(save: GameSave, shopId: ShopId, index: number): ItemInstance {
   const stock = getShopStock(save, shopId);
   const item = stock[index];
   if (!item) throw new Error('That shelf is empty');
-  const price = shopPrice(item);
+  const price = heroShopPrice(save, item);
   if (save.hero.gold < price) throw new Error('Not enough gold');
   if (save.inventory.backpack.length >= save.inventory.capacity) {
     throw new Error('Backpack is full');

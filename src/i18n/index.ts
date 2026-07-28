@@ -12,6 +12,9 @@ import en from './en.json';
 import achievements from './parts/achievements.json';
 import bestiary from './parts/bestiary.json';
 import calendar from './parts/calendar.json';
+import gacha from './parts/gacha.json';
+import mounts from './parts/mounts.json';
+import pets from './parts/pets.json';
 import quests from './parts/quests.json';
 import story from './parts/story.json';
 import titles from './parts/titles.json';
@@ -21,6 +24,9 @@ const catalog = {
   ...achievements,
   ...bestiary,
   ...calendar,
+  ...gacha,
+  ...mounts,
+  ...pets,
   ...quests,
   ...story,
   ...titles,

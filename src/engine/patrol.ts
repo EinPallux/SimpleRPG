@@ -2,8 +2,9 @@
  * City Watch patrol (GAME_DESIGN.md §6): passive trickle once vigor is spent.
  * 30-minute ticks; ≤8h may sit uncollected; auto-banks at midnight (time.ts).
  */
-import { PATROL_CAP_HOURS, PATROL_TICK_MIN } from './constants';
+import { PATROL_CAP_HOURS, PATROL_TICK_MIN, PATROL_TICKS_PER_TREAT } from './constants';
 import { patrolGoldPerHour, patrolXpPerHour } from './economy';
+import { auraTotal } from './pets';
 import type { GameSave, PatrolPayload, TimedActivity } from './types';
 import { applyXp, type XpResult } from './xpGain';
 
@@ -35,6 +36,18 @@ export interface PatrolCollection {
   ticks: number;
   gold: number;
   xp: XpResult | null;
+  treats: number;
+}
+
+/**
+ * Treats banked by a patrol (§11.1 lists patrol ticks as a treat faucet): one
+ * per PATROL_TICKS_PER_TREAT ticks, boosted by a `treatFind` aura. Integer
+ * division means a short patrol can bank none — treats are a slow trickle by
+ * design, and the wheel and quests are the faster taps.
+ */
+function patrolTreats(save: GameSave, ticks: number): number {
+  const base = Math.floor(ticks / PATROL_TICKS_PER_TREAT);
+  return Math.round(base * (1 + auraTotal(save, 'treatFind')));
 }
 
 /** Non-mutating accrual preview for the UI (mirrors collectPatrol's math). */
@@ -73,18 +86,20 @@ export function collectPatrol(save: GameSave, untilMs: number): PatrolCollection
   );
   const tickMs = PATROL_TICK_MIN * 60_000;
   const ticks = Math.floor(cappedElapsedMs / tickMs);
-  if (ticks === 0) return { ticks: 0, gold: 0, xp: null };
+  if (ticks === 0) return { ticks: 0, gold: 0, xp: null, treats: 0 };
 
   const hours = (ticks * PATROL_TICK_MIN) / 60;
   const gold = Math.round(patrolGoldPerHour(save.hero.level) * hours);
   const xpAmount = Math.round(patrolXpPerHour(save.hero.level) * hours);
+  const treats = patrolTreats(save, ticks);
 
   save.hero.gold += gold;
+  save.hero.treats += treats;
   save.stats.goldEarned = (save.stats.goldEarned ?? 0) + gold;
   save.stats.patrolTicks = (save.stats.patrolTicks ?? 0) + ticks;
   patrol.payload.collectedUpTo = new Date(from + ticks * tickMs).toISOString();
   const xp = xpAmount > 0 ? applyXp(save, xpAmount) : null;
-  return { ticks, gold, xp };
+  return { ticks, gold, xp, treats };
 }
 
 export function stopPatrol(save: GameSave, nowMs: number): PatrolCollection {

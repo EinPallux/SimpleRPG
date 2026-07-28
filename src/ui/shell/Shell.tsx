@@ -19,16 +19,19 @@ import { DungeonsScreen } from '../screens/DungeonsScreen';
 import { ExpeditionScreen } from '../screens/ExpeditionScreen';
 import { ForgeScreen } from '../screens/ForgeScreen';
 import { HallOfFameScreen } from '../screens/HallOfFameScreen';
+import { MenagerieScreen } from '../screens/MenagerieScreen';
 import { PatrolScreen } from '../screens/PatrolScreen';
 import { QuestBoardScreen } from '../screens/QuestBoardScreen';
 import { ShopsScreen } from '../screens/ShopsScreen';
+import { StableScreen } from '../screens/StableScreen';
 import { TavernScreen } from '../screens/TavernScreen';
+import { WellScreen } from '../screens/WellScreen';
 import { WheelScreen } from '../screens/WheelScreen';
 import { HudBar } from './HudBar';
 import { MobileTabBar, NavRail, NavSheet } from './NavRail';
 import { SettingsModal } from './SettingsModal';
 
-/** Screens with real content so far; everything else renders a designed placeholder. */
+/** Every screen in the nav registry now has a real implementation (M7). */
 const SCREENS: Partial<Record<ScreenId, () => React.JSX.Element | null>> = {
   tavern: TavernScreen,
   character: CharacterScreen,
@@ -44,6 +47,9 @@ const SCREENS: Partial<Record<ScreenId, () => React.JSX.Element | null>> = {
   achievements: AchievementsScreen,
   codex: CodexScreen,
   calendar: CalendarScreen,
+  menagerie: MenagerieScreen,
+  stable: StableScreen,
+  well: WellScreen,
 };
 
 /** Catch the local-midnight rollover while the tab stays open (GAME_DESIGN §14). */

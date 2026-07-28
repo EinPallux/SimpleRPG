@@ -6,19 +6,23 @@ multiplayer: the living world is simulated by deterministic bots that look and b
 No servers, no accounts, no real-money anything. Runs entirely in your browser, deploys as static files
 on Vercel, installs as a PWA.
 
-> **Status: 🎮 Milestones M0–M6 built — the game has a memory.** On top of the idle loop, hero economy,
-> simulated ladder and active pillars, there's now a reason to come back tomorrow: three rotating daily
-> quests feeding an Activity meter and its chest, weeklies and month-long marathons, 70 achievements whose
-> every tier is +3 to all attributes forever, 29 earnable titles, a 28-day innkeeper's calendar, an
-> 80-monster Codex whose completed pages pay real gold-find and XP, and *The Ballad of Brambleford* — 40
-> story steps across 8 chapters that gate by level and advance independently. It all runs off one
-> append-only stat ledger, so nothing can desync and offline catch-up is free.
-> Next: M7 — pets, mounts, and the Wishing Well.
+> **Status: 🎮 Milestones M0–M7 built — the game has things to collect.** On top of the idle loop, hero
+> economy, simulated ladder, active pillars and the whole meta layer, there is now a reason to keep a save
+> for months: a **Menagerie** of 16 pets whose auras grow to 3× on Pet Treats and whose every distinct
+> member is +0.5% to all attributes, a **Stable** of 4 mounts ending in a 60-gem Ember Drake that halves
+> every mission, and the **Wishing Well** — three rotating banners, pity at 10 and 30, dupes that convert
+> instead of evaporating, a free toss every day, and the odds table on screen at all times because that is
+> what an ethical gacha looks like. No real money touches any of it, ever.
+>
+> M7 also closed the **last open row of the anti-rush contract**: every §8.2 scenario now has a test.
+> Getting there turned up something better than a tuning bug — the simulator had never once completed an
+> item set, because it vendored the pieces it was collecting.
+> Next: M8 — onboarding, audio, PWA, polish.
 >
 > ```bash
-> pnpm install && pnpm dev                     # play the current build
-> pnpm test && pnpm e2e                        # verify (277 unit tests + clock-emulated e2e)
-> pnpm sim -- --profile optimal --days 270     # watch every contract hold, gem ledger included
+> pnpm install && pnpm dev                       # play the current build
+> pnpm test && pnpm e2e                          # verify (372 unit tests + clock-emulated e2e)
+> pnpm sim -- --profile gacha-max --days 120     # or ale-max / drake-first — the three gem strategies
 > ```
 
 ## The pitch
@@ -32,7 +36,8 @@ climb a 750-name Hall of Fame that never noticed it isn't online.
 - ⚔️ **Active heart** — arena (10/day), 5 dungeons × 10 bosses, choice-driven expeditions, forge, shops, wheel
 - 📈 **Endless growth** — no level cap, gold-bought attributes on an escalating curve (the infinite sink)
 - 🏆 **A living fake MMO** — deterministic bot ladder with usernames, guild tags, streaks and rage-quits
-- 🎰 **Ethical gacha** — one premium currency, earned only in-game, odds on screen, pity on the label
+- 🎰 **Ethical gacha** — one premium currency, earned only in-game, odds on screen, pity on the label,
+  and a well that is a *trade* (collection for power), never a trap — asserted in CI
 - 🐾 **The long tail** — 14 item sets, 16 pets, 4 mounts, 70 achievements, codex, titles, login calendar
 - 🛡️ **Anti-rush by contract** — automated balance simulation enforces "a patch is a season, not an evening"
 

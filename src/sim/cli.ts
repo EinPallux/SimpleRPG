@@ -19,9 +19,11 @@ const seed = arg('seed', 'sim-seed')!;
 const csv = arg('csv');
 const wantPar = process.argv.includes('--par');
 
-if (!['optimal', 'casual', 'idle-only'].includes(profile) || !Number.isInteger(days) || days < 1) {
+const PROFILES = ['optimal', 'casual', 'idle-only', 'ale-max', 'gacha-max', 'drake-first'] as const;
+
+if (!(PROFILES as readonly string[]).includes(profile) || !Number.isInteger(days) || days < 1) {
   console.error(
-    'usage: pnpm sim -- --profile optimal|casual|idle-only --days N [--seed S] [--csv F] [--par]',
+    `usage: pnpm sim -- --profile ${PROFILES.join('|')} --days N [--seed S] [--csv F] [--par]`,
   );
   process.exit(1);
 }
@@ -33,7 +35,27 @@ const ms = (performance.now() - started).toFixed(0);
 console.log(`\nSimpleRPG balance sim — profile=${profile} days=${days} seed=${seed} (${ms} ms)\n`);
 console.log('day | level |   gold accum |  attrs |  honor |  rank | missions | floors');
 console.log('----+-------+--------------+--------+--------+-------+----------+-------');
-const show = new Set([1, 2, 3, 5, 7, 10, 14, 21, 30, 45, 60, 75, 90, 120, 150, 180, 210, 240, days]);
+const show = new Set([
+  1,
+  2,
+  3,
+  5,
+  7,
+  10,
+  14,
+  21,
+  30,
+  45,
+  60,
+  75,
+  90,
+  120,
+  150,
+  180,
+  210,
+  240,
+  days,
+]);
 for (const r of result.records) {
   if (!show.has(r.day)) continue;
   console.log(
@@ -65,6 +87,14 @@ console.log(
 );
 console.log(
   `Meta: ${result.storyStepsDone}/40 story steps · ${result.achievementTiers} achievement tiers · ${result.titlesEarned} titles`,
+);
+const gs = result.gemsSpent;
+console.log(
+  `Gem sinks: ale ${gs.ale} · well ${gs.tosses} · Ember Drake ${gs.drake} (${result.tosses} tosses, ${result.pityHits} pity hits)`,
+);
+console.log(
+  `Collection: ${result.petsOwned} pets (${result.petLevelsFed} levels fed) · mount tier ${result.mountTier} · ` +
+    `${result.framesOwned} frames · power ${Math.round(result.powerScore)}`,
 );
 const clearLine = result.floorClears
   .filter((c) => c.floor === 10 || c.floor === 5)
@@ -103,10 +133,11 @@ if (csv) {
 }
 
 // Contract quick-look (informational here; enforced in scenarios.test.ts)
+// Mirrors scenarios.test.ts — that file is the enforcement, this is the glance.
 const bounds: [number, number][] = [
   [1, 13],
-  [7, 27],
-  [30, 55],
+  [7, 35],
+  [30, 62],
   [90, 90],
   [180, 118],
 ];

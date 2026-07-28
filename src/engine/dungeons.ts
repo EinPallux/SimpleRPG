@@ -12,6 +12,7 @@ import {
   type BossDef,
   type DungeonDef,
 } from '@/content/dungeons';
+import { petsOfSource } from '@/content/pets';
 import {
   DROP_WEIGHTS_CHEST,
   DUNGEON_BOSS_ARMOR_MULT,
@@ -34,6 +35,7 @@ import { missionGold, missionXp } from './economy';
 import { generateItem, sellPrice } from './items';
 import { flag, recordCombat, recordDrop } from './ledger';
 import { parArmor, parCon, parHp, parMainAttr, parOffAttr } from './par';
+import { auraTotal, grantPet } from './pets';
 import { getStream } from './rng';
 import { ownsFullSet, rollSetPiece } from './sets';
 import type { AttributeId, GameSave, ItemInstance, Rarity } from './types';
@@ -160,6 +162,8 @@ export interface DungeonOutcome {
   dungeonCleared: boolean;
   /** on a loss: what the wall shrugged off (UI turns this into words) */
   wallHint: WallHint | null;
+  /** the wing's resident pet, handed over on the first clear (§11.1) */
+  petId: string | null;
 }
 
 /** One free attempt at the next floor; win or lose, the hourglass turns. */
@@ -193,6 +197,7 @@ export function attemptFloor(
   let autoSoldGold = 0;
   let clearedWing = false;
   let wallHint: WallHint | null = null;
+  let petId: string | null = null;
 
   if (won) {
     save.progress.dungeonFloors[dungeonId] = floor;
@@ -217,9 +222,15 @@ export function attemptFloor(
       }
       drop = rollSetPiece(save, setId, loot);
     } else {
-      const rolled = loot.weighted(
-        DROP_WEIGHTS_CHEST.map(([r, w]) => [r as Rarity, w] as const),
-      );
+      const table = DROP_WEIGHTS_CHEST.map(([r, w]) => [r as Rarity, w] as const);
+      let rolled = loot.weighted(table);
+      // The Snallygaster's `dungeonLuck`: a second look at the rarity table,
+      // keeping the better roll. Rolled AFTER the first draw so the aura only
+      // ever adds a draw — a pet can improve your luck, never re-write it.
+      if (loot.chance(auraTotal(save, 'dungeonLuck'))) {
+        const second = loot.weighted(table);
+        if (RARITY_ORDER.indexOf(second) > RARITY_ORDER.indexOf(rolled)) rolled = second;
+      }
       drop = generateItem(
         {
           ilvl: floorLevel(def, floor),
@@ -241,6 +252,17 @@ export function attemptFloor(
     save.stats.goldEarned = (save.stats.goldEarned ?? 0) + gold + autoSoldGold;
     save.stats.dungeonFloors = (save.stats.dungeonFloors ?? 0) + 1;
     flag(save, 'dungeonFloor', `${dungeonId}-${floor}`);
+
+    // First clear of a wing that keeps a pet hands it over (§11.1 — two of the
+    // sixteen live down here). `grantPet` is idempotent, so re-clearing a wing
+    // on a later save never duplicates it.
+    if (clearedWing) {
+      for (const pet of petsOfSource('dungeon')) {
+        if (pet.source.kind === 'dungeon' && pet.source.dungeonId === dungeonId) {
+          if (grantPet(save, pet.id)) petId = pet.id;
+        }
+      }
+    }
     xp = applyXp(save, Math.round(missionXp(save.hero.level, 10) * DUNGEON_FLOOR_XP_MULT));
   } else {
     save.stats.dungeonBounces = (save.stats.dungeonBounces ?? 0) + 1;
@@ -266,5 +288,6 @@ export function attemptFloor(
     autoSoldGold,
     dungeonCleared: clearedWing,
     wallHint,
+    petId,
   };
 }

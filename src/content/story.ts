@@ -115,10 +115,22 @@ export const STORY_STEPS: readonly StoryStepDef[] = [
   }),
 
   // — Chapter 5: A Peculiar Menagerie (L35) — Fenn's three friends.
-  //   Pets ship in M7; these goals are the real ones and simply wait for them.
-  step(5, 1, 35, 'level', 35, 'menagerie', { gold: 1, xp: 1 }),
-  step(5, 2, 35, 'petsOwned', 1, 'menagerie', { gold: 1.5, xp: 1.5, treats: 10 }),
-  step(5, 3, 35, 'petsOwned', 2, 'menagerie', { gold: 1.5, xp: 1.5, treats: 10 }),
+  //   Each of the first three steps hands over one of them, and the NEXT step
+  //   asks you to have it: the chapter is its own unlock chain, so nothing here
+  //   waits on a drop the player cannot influence.
+  step(5, 1, 35, 'level', 35, 'menagerie', { gold: 1, xp: 1, petId: 'moss-boar' }),
+  step(5, 2, 35, 'petsOwned', 1, 'menagerie', {
+    gold: 1.5,
+    xp: 1.5,
+    treats: 10,
+    petId: 'pebble-golem',
+  }),
+  step(5, 3, 35, 'petsOwned', 2, 'menagerie', {
+    gold: 1.5,
+    xp: 1.5,
+    treats: 10,
+    petId: 'dream-moth',
+  }),
   step(5, 4, 35, 'petsOwned', 3, 'menagerie', { gold: 1.5, xp: 1.5, treats: 15 }),
   step(5, 5, 35, 'level', 35, 'menagerie', {
     gold: 2,

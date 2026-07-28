@@ -101,13 +101,30 @@ completion bonuses that feed gold-find/XP, Calendar), a story banner with guided
 picker. Schema v6 + migration. *Balance:* the gem ledger caught a 106.9/wk faucet against §6's ~30/wk line
 and was re-anchored to 44.6/wk blended; the early §8.2 ceilings moved (7d 27→35, 30d 55→62) with a written
 rationale — **the long-horizon ceilings did not move and still pass** (day-90 85 ≤ 90, day-180 110 ≤ 118).
-`casual-30d` and `zone-frontier` came off the todo list; only `gem-strategies` remains, waiting on M7's
-Wishing Well to give gems a competitor. *Deviations:* chapter 5 needs pets (M7) so a full run banks 35 of
-40 steps; the Armory codex page is a completion meter rather than a per-design gallery.
+`casual-30d` and `zone-frontier` came off the todo list; only `gem-strategies` remained, waiting on M7's
+Wishing Well to give gems a competitor (it landed — see below). *Deviations:* the Armory codex page is a completion meter rather than a
+per-design gallery. (Chapter 5's dependency on pets cleared in M7 — a 270-day run now banks 34 of 40
+steps, limited only by how far it levels.)
 
-**M7 · Pets, mounts, gacha** — Menagerie (16 pets, treats, collection bonus), Stable (4 mounts),
-Wishing Well (3 banner types, pity, dupes→dust, free toss, odds UI).
-*Done when:* `gem-strategies` scenario green; pity math property-tested.
+**M7 · Pets, mounts, gacha** ✅ — the collection layer, and the last open row of the anti-rush contract.
+**16 pets** across four families, each with a major and a minor aura that grows to 3× by level 50 on Pet
+Treats, arriving from five different systems (story chapter 5, six zone drop chains, two dungeon
+first-clears, two achievements, the well's two exclusives, and the wheel's jackpot-only Gilded Snail);
+every distinct pet owned is +0.5% to all attributes, capped at +8%. Auras fold into the *existing* derived
+stat pipeline — inside the same caps as gear — so nothing else in the game needed a special case. **4
+mounts** on a lopsided ladder (5k → 75k → 1.2M gold, then the Ember Drake at 60 gems), each carrying a
+cosmetic title; mount speed and the pet `missionSpeed` aura stack multiplicatively, never additively.
+**The Wishing Well**: three banners on a deterministic 8-week rotation (14 after L85), pity at 10 and 30
+persisted per banner, dupes that convert rather than evaporate, a free daily toss, and an odds table plus
+pity counters that are on screen unconditionally. 12 cosmetic frames. No schema change — v6 already carried
+every field. *Balance:* the simulator grew three gem-strategy profiles and immediately found something more
+interesting than a tuning bug — `setsCompleted` was **0 in every run ever measured**, because the sim
+vendored the set pieces it was collecting, hiding the whole full-set bonus layer from the balance model.
+Fixing that (plus wearing the set once owned) was worth more than any constant. The `gem-strategies` row
+was then **re-stated from measurement**: drake-first and ale-max land 2.2% apart, and all-in gacha trades
+~14% of attribute power for the collection — a playstyle, not a trap (BALANCING §10).
+*Done when:* ✅ `gem-strategies` green — **every §8.2 contract row now has a scenario**; pity asserted per
+banner over hundreds of tosses.
 
 **M8 · Onboarding & polish** — tutorial sequence + skip path, coach marks, help overlays, audio (SFX map,
 volume settings), PWA, settings, error screen, a11y pass (axe + keyboard map), perf budget met.
