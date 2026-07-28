@@ -215,7 +215,7 @@ export function TavernScreen() {
       ) : (
         <Panel variant="primary" title={t('screen.tavern.title')}>
           <p className="-mt-2 mb-3 text-xs text-ink-muted italic">{t('screen.tavern.welcome')}</p>
-          <div className="grid gap-3 md:grid-cols-3">
+          <div id="tavern-offers" className="grid gap-3 md:grid-cols-3">
             {[0, 1, 2].map((i) => (
               <OfferCard
                 key={`${i}-${save.activities.tavernOffers?.[i]?.flavor ?? 'x'}`}

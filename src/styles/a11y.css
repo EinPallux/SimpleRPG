@@ -1,0 +1,61 @@
+/**
+ * Accessibility rules that belong to no single component (UI_DESIGN.md §8).
+ *
+ * Deliberately small, because most of §8 is already answered elsewhere and a
+ * second answer here would only let the two drift apart: the gold focus ring is
+ * in `index.css`, the motion tokens and their OS-level reduction are in
+ * `tokens.css`, and `.sr-only` is Tailwind's own utility. What follows is the
+ * part no token can reach.
+ */
+
+/**
+ * Motion that never asked the tokens for permission.
+ *
+ * `--motion-fast` / `--motion-base` cover every animation that reads them, but
+ * a handful are written straight into the markup: the claim button's
+ * `animate-pulse`, the Wheel's 2.2 s pointer sweep, the coach mark's 200 ms
+ * re-anchor. Someone who has asked their system for less motion meant all of
+ * it, not the subset that happened to use a variable — so the reduction is
+ * applied to everything rather than negotiated case by case.
+ *
+ * 1 ms rather than `none`: an animation that still starts and still ends keeps
+ * `animationend` listeners honest, where removing it would strand anything
+ * waiting on one.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/**
+ * The same calm, asked for in Settings instead of in the OS.
+ *
+ * `prefs.reducedMotion` (persist/prefs.ts) is a device preference the player
+ * can set without touching their system, and CSS cannot read localStorage — so
+ * the Shell stamps `data-reduced-motion` on the document element from
+ * `motionReduced(prefs)` and these rules do the rest.
+ *
+ * Only the "less" direction is honoured. A player who explicitly asks for calm
+ * gets it whatever the OS thinks; the opposite request — full motion on a
+ * system that asked for less — stays with the OS, which is the safer way to be
+ * wrong about somebody's vestibular system.
+ */
+:root[data-reduced-motion='true'] {
+  --motion-fast: 0ms;
+  --motion-base: 0ms;
+}
+
+:root[data-reduced-motion='true'] *,
+:root[data-reduced-motion='true'] *::before,
+:root[data-reduced-motion='true'] *::after {
+  animation-duration: 1ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 1ms !important;
+  scroll-behavior: auto !important;
+}

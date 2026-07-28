@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import './tokens.css';
+@import './a11y.css';
 
 /* Map tokens into Tailwind v4 theme so utilities like bg-panel work. */
 @theme {
@@ -9,7 +10,10 @@
   --color-panel-inset: #0b111b;
   --color-ink: #e8e3d5;
   --color-ink-muted: #9aa5b5;
-  --color-ink-faint: #5e6a7a;
+  /* Kept in lockstep with --ink-faint in tokens.css; raised in M8 to clear the
+     4.5:1 AA floor on every surface (see the note there). Tailwind utilities
+     resolve THIS variable, so the two must not drift. */
+  --color-ink-faint: #838f9f;
   --color-gold: #d9a94b;
   --color-gold-bright: #f0c75e;
   --color-teal: #3fa7a0;
@@ -50,8 +54,7 @@ h3,
 
 /* Panels: interior fill sits inside the 9-slice frame (background-clip trick). */
 .panel-fill {
-  background:
-    linear-gradient(180deg, var(--panel-raised) 0%, var(--panel) 100%);
+  background: linear-gradient(180deg, var(--panel-raised) 0%, var(--panel) 100%);
   background-clip: padding-box;
 }
 

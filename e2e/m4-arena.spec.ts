@@ -8,6 +8,8 @@ import { expect, test } from '@playwright/test';
 import { fightArena, getArenaOffers } from '../src/engine/arena';
 import { botLadder, playerRank, worldDayIndex } from '../src/engine/botworld';
 import { createNewSave, deriveEmblem } from '../src/engine/newSave';
+import { TOUR_SCREENS } from '../src/content/onboarding';
+import { skipOnboarding } from '../src/engine/onboarding';
 import type { GameSave } from '../src/engine/types';
 import { encodeSave } from '../src/persist/codec';
 
@@ -26,6 +28,13 @@ function craftSave(): GameSave {
   );
   save.hero.level = 15; // Hall of Fame unlocks at 15 (arena at 5)
   save.hero.attrsBought = { str: 90, dex: 30, int: 10, con: 70, lck: 30 };
+  // These fixtures are established heroes, not first-timers, so they are
+  // past the scripted first run (GAME_DESIGN §17) — otherwise the cold-open
+  // coach mark sits over the screen every spec is trying to drive.
+  skipOnboarding(save);
+  // …and they have already read every screen's first-visit tour, so the tip
+  // card is not sitting over the controls each spec is here to drive.
+  save.progress.toursSeen = [...TOUR_SCREENS];
   return save;
 }
 
@@ -102,8 +111,13 @@ test('arena day: offers → peek → fight playback → cooldown → Hall of Fam
   const row = page.getByRole('button', { name: new RegExp(`Rank 1: `) });
   await expect(row).toBeVisible();
   await row.click();
-  await expect(page.getByRole('dialog', { name: topBot.name }).getByText('Attributes')).toBeVisible();
-  await page.getByRole('dialog', { name: topBot.name }).getByRole('button', { name: 'Close' }).click();
+  await expect(
+    page.getByRole('dialog', { name: topBot.name }).getByText('Attributes'),
+  ).toBeVisible();
+  await page
+    .getByRole('dialog', { name: topBot.name })
+    .getByRole('button', { name: 'Close' })
+    .click();
 
   // Reload: the arena day survives (fights spent, honor banked)
   await page.clock.fastForward('00:05');

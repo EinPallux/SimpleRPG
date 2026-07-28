@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { DUNGEONS } from '@/content/dungeons';
 import { getQuest } from '@/content/quests';
 import { claimableAchievements } from '@/engine/achievements';
@@ -219,8 +220,23 @@ export function MobileTabBar({ onOpenSheet }: { onOpenSheet: (groupIndex: number
 export function NavSheet({ groupIndex, onClose }: { groupIndex: number; onClose: () => void }) {
   const { level, screen, activate } = useNavActions();
   const group = NAV_GROUPS[groupIndex]!;
+
+  // UI_DESIGN §8: "Esc closes overlays". This is a full-viewport scrim, so it
+  // is a real overlay and needs the contract — previously its only dismissal
+  // was a backdrop click, which a keyboard user cannot perform.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={t(group.labelKey)}
       className="fixed inset-0 z-50 flex items-end bg-black/70 lg:hidden"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();

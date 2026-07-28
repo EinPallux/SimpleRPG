@@ -9,6 +9,13 @@
       content="SimpleRPG — a fully single-player fantasy browser RPG. Missions, arena, dungeons, and a Hall of Fame that never noticed it isn't online."
     />
     <meta name="theme-color" content="#0e1420" />
+    <!-- Installed-app chrome. iOS ignores the web manifest's display mode, so the
+         apple-* pair is the only way a pinned SimpleRPG loses its browser bars;
+         mobile-web-app-capable is the standard spelling of the same wish. -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="SimpleRPG" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="stylesheet" href="/assets/nine-slice.css" />
     <title>SimpleRPG</title>

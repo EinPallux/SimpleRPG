@@ -245,7 +245,10 @@ export function CharacterScreen() {
       </div>
 
       {tab === 'backpack' ? (
-        <BackpackTab save={save} />
+        // Wrapper carries the onboarding anchor; Panel takes no id of its own.
+        <div id="character-backpack">
+          <BackpackTab save={save} />
+        </div>
       ) : (
         <div className="grid gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,4fr)]">
           <Panel variant="primary" title={t('screen.character.equipment')}>
@@ -305,7 +308,7 @@ export function CharacterScreen() {
           </Panel>
 
           <Panel variant="primary" title={t('screen.character.attributes')}>
-            <div>
+            <div id="character-attrs">
               {ATTRIBUTE_IDS.map((attr) => (
                 <AttrRow key={attr} save={save} attr={attr} />
               ))}

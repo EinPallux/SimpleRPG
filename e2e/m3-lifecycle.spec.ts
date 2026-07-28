@@ -8,6 +8,8 @@ import { expect, test } from '@playwright/test';
 import { canEquip } from '../src/engine/inventoryOps';
 import { shopPrice } from '../src/engine/items';
 import { createNewSave, deriveEmblem } from '../src/engine/newSave';
+import { TOUR_SCREENS } from '../src/content/onboarding';
+import { skipOnboarding } from '../src/engine/onboarding';
 import { getShopStock } from '../src/engine/shops';
 import type { GameSave } from '../src/engine/types';
 import { encodeSave } from '../src/persist/codec';
@@ -25,6 +27,13 @@ function craftSave(): GameSave {
   save.hero.level = 15; // Forge unlocks at 15 (shops at 10, Arcanum at 12)
   save.hero.gold = 500_000;
   save.hero.scraps = 30;
+  // These fixtures are established heroes, not first-timers, so they are
+  // past the scripted first run (GAME_DESIGN §17) — otherwise the cold-open
+  // coach mark sits over the screen every spec is trying to drive.
+  skipOnboarding(save);
+  // …and they have already read every screen's first-visit tour, so the tip
+  // card is not sitting over the controls each spec is here to drive.
+  save.progress.toursSeen = [...TOUR_SCREENS];
   return save;
 }
 

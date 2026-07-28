@@ -7,6 +7,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import { bump } from '../src/engine/ledger';
 import { createNewSave, deriveEmblem } from '../src/engine/newSave';
+import { TOUR_SCREENS } from '../src/content/onboarding';
+import { skipOnboarding } from '../src/engine/onboarding';
 import { ensureQuestBoard } from '../src/engine/quests';
 import type { GameSave } from '../src/engine/types';
 import { encodeSave } from '../src/persist/codec';
@@ -36,6 +38,13 @@ function craftSave(): GameSave {
   save.daily.statsAt = { ...save.stats };
   save.weekly.statsAt = { ...save.stats };
   save.monthly.statsAt = { ...save.stats };
+  // These fixtures are established heroes, not first-timers, so they are
+  // past the scripted first run (GAME_DESIGN §17) — otherwise the cold-open
+  // coach mark sits over the screen every spec is trying to drive.
+  skipOnboarding(save);
+  // …and they have already read every screen's first-visit tour, so the tip
+  // card is not sitting over the controls each spec is here to drive.
+  save.progress.toursSeen = [...TOUR_SCREENS];
   return save;
 }
 
@@ -94,7 +103,9 @@ test('the meta layer: quest board → chest → achievement → calendar → bal
   await claimAll.click();
   await expect(page.getByText(/achievements claimed — \+\d+ to all attributes/)).toBeVisible();
   // The summary line updates: the bonus is real and permanent.
-  await expect(page.getByText(/Achievements grant you \+[1-9]\d* to every attribute\./)).toBeVisible();
+  await expect(
+    page.getByText(/Achievements grant you \+[1-9]\d* to every attribute\./),
+  ).toBeVisible();
 
   // — Calendar: today's stamp, once —
   await rail.getByTitle('Calendar').click();
@@ -131,5 +142,7 @@ test('the meta layer: quest board → chest → achievement → calendar → bal
   await rail.getByTitle('Calendar').click();
   await expect(page.getByText('1 / 28 stamped')).toBeVisible();
   await rail.getByTitle('Achievements').click();
-  await expect(page.getByText(/Achievements grant you \+[1-9]\d* to every attribute\./)).toBeVisible();
+  await expect(
+    page.getByText(/Achievements grant you \+[1-9]\d* to every attribute\./),
+  ).toBeVisible();
 });

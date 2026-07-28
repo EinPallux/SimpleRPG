@@ -16,8 +16,8 @@
 | Persistence | **IndexedDB via Dexie** | Saves > 1 MB possible (localStorage too risky). Debounced autosave + rotation. |
 | Validation | **Zod** | Save-file schema versioning/migration + content validation at build time. |
 | Styling | **Tailwind CSS 4** + CSS custom properties + 9-slice `border-image` utilities | Token-driven theme (UI_DESIGN.md §2). No runtime CSS-in-JS. |
-| Animation | **framer-motion** (UI) + CSS keyframes (ambient) | Combat playback, reward reveals, screen transitions; `prefers-reduced-motion` respected. |
-| Audio | **howler.js** | Sprite-based SFX, music channel, user-gesture unlock, per-channel volume persisted. |
+| Animation | CSS keyframes + motion tokens | Combat playback, reward reveals, screen transitions. *framer-motion was planned and proved unnecessary — the token/keyframe pair covers every §7 moment.* `prefers-reduced-motion` respected, and overridable in Settings. |
+| Audio | **Web Audio API, synthesised** (M8) | *Was howler.js + audiosprite.* No CC0 audio ever landed in `game_assets/`, and ASSETS.md §4 already sanctions "ship v1.0 SFX-only" — so the twelve §7 cues are synthesised in `src/ui/audio.ts` instead: zero bytes, zero licences, offline on first paint, original by construction. The seam is `playSfx(cue)`; a sprite backend replaces one function. No music at v1.0. |
 | Dates/time | Native `Date` + tiny helpers | One clock module; **no moment/dayjs** dependency needed. |
 | PWA | vite-plugin-pwa | Installable, offline-capable (fits the "check in 5× a day" habit). |
 | Tests | **Vitest** (+ Testing Library) · **Playwright** | Engine/economy unit tests, component tests, E2E smoke, **balance simulation suite**. |

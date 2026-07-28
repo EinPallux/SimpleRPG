@@ -13,6 +13,8 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { featuredSetForHero, petPhaseForWeek } from '../src/content/gacha';
 import { wellExclusives } from '../src/content/pets';
 import { createNewSave, deriveEmblem } from '../src/engine/newSave';
+import { TOUR_SCREENS } from '../src/content/onboarding';
+import { skipOnboarding } from '../src/engine/onboarding';
 import { grantPet, treatsToNextLevel } from '../src/engine/pets';
 import { isoWeekNumber } from '../src/engine/time';
 import type { GameSave } from '../src/engine/types';
@@ -36,6 +38,13 @@ function craftSave(name: string, level: number): GameSave {
   );
   save.hero.level = level;
   save.hero.attrsBought = { str: 400, dex: 150, int: 40, con: 300, lck: 150 };
+  // These fixtures are established heroes, not first-timers, so they are
+  // past the scripted first run (GAME_DESIGN §17) — otherwise the cold-open
+  // coach mark sits over the screen every spec is trying to drive.
+  skipOnboarding(save);
+  // …and they have already read every screen's first-visit tour, so the tip
+  // card is not sitting over the controls each spec is here to drive.
+  save.progress.toursSeen = [...TOUR_SCREENS];
   return save;
 }
 

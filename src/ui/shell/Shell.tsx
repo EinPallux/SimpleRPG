@@ -27,6 +27,12 @@ import { StableScreen } from '../screens/StableScreen';
 import { TavernScreen } from '../screens/TavernScreen';
 import { WellScreen } from '../screens/WellScreen';
 import { WheelScreen } from '../screens/WheelScreen';
+import { InstallPrompt } from '../components/InstallPrompt';
+import { OnboardingLayer } from '../components/OnboardingLayer';
+import { TourPopover } from '../components/TourPopover';
+import { UpdateToast } from '../components/UpdateToast';
+import { useKeyboardMap } from '../hooks/useKeyboardMap';
+import { useSfx } from '../hooks/useSfx';
 import { HudBar } from './HudBar';
 import { MobileTabBar, NavRail, NavSheet } from './NavRail';
 import { SettingsModal } from './SettingsModal';
@@ -82,6 +88,9 @@ export function Shell() {
   const [sheet, setSheet] = useState<number | null>(null);
   const Screen = SCREENS[screen];
   useMidnightRollover();
+  // M8: sound follows outcomes, and the keyboard map is global.
+  useSfx();
+  useKeyboardMap();
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-7xl items-start">
@@ -102,6 +111,13 @@ export function Shell() {
       <ExpedPlayback />
       <MetaRewardModal />
       <SettingsModal />
+      {/* Guidance layers last, so they paint over the screen they point at.
+          Order matters: the scripted sequence outranks a contextual tour, and
+          `tourDue` already refuses to fire while onboarding is unfinished. */}
+      <OnboardingLayer />
+      <TourPopover />
+      <InstallPrompt />
+      <UpdateToast />
     </div>
   );
 }

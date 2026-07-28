@@ -9,8 +9,8 @@
  *
  * Anchoring is by element id and re-measured on resize/scroll, so a mark
  * follows its target through a responsive reflow instead of pointing at where
- * the button used to be. An anchor that is not on screen degrades to a centred
- * card rather than a mark floating over nothing.
+ * the button used to be. An anchor that is not on screen drops the ring and
+ * docks the card out of the way, rather than pointing at nothing.
  */
 import { useEffect, useLayoutEffect, useState, type ReactNode } from 'react';
 
@@ -42,6 +42,12 @@ export interface CoachMarkProps {
   onSkip: () => void;
   /** e.g. "Step 2 of 6" */
   progress?: string;
+  /**
+   * 'centre' is for the narrative beats that ARE the moment (the cold open,
+   * the town reveal) — they own the screen for one click. Everything else
+   * docks, so the card is never between the player and the game.
+   */
+  placement?: 'centre' | 'dock';
   children?: ReactNode;
 }
 
@@ -54,6 +60,7 @@ export function CoachMark({
   skipLabel,
   onSkip,
   progress,
+  placement = 'dock',
 }: CoachMarkProps) {
   const [rect, setRect] = useState<Rect | null>(() => measure(anchorId));
 
@@ -87,9 +94,38 @@ export function CoachMark({
       }
     : null;
 
-  // Card goes under the anchor when there is room, otherwise above it.
-  const below = ring ? ring.top + ring.height + 12 : 0;
-  const roomBelow = typeof window !== 'undefined' ? window.innerHeight - below > 190 : true;
+  /**
+   * The card is pinned to whichever half of the viewport the anchor is NOT in.
+   *
+   * The obvious placement — "just under the target" — is wrong here: most steps
+   * ring something the player has to CLICK, and an adjacent card next to a tall
+   * element (the three-wide offer grid, the attribute rows) lands on top of it.
+   * A coach mark that covers the button it is pointing at is worse than no
+   * coach mark, so the card always retreats to the opposite side instead.
+   */
+  const viewportH = typeof window !== 'undefined' ? window.innerHeight : 800;
+  /**
+   * With a ring: sit in the half the anchor is not in.
+   *
+   * WITHOUT a ring (the target is on another screen, or has not mounted): dock
+   * to the TOP. The bottom of a screen is where the primary actions live — the
+   * tavern's Second Wind and patrol buttons, the mobile tab bar — and a card
+   * parked there is exactly the "blocks input" failure this component's own
+   * docblock rules out. The top is titles and meters, which nobody clicks.
+   */
+  const dockBottom = ring !== null && ring.top + ring.height / 2 < viewportH / 2;
+
+  /**
+   * Centring is opt-in, and only the caller knows when it is right.
+   *
+   * Two things used to force it by accident: a step whose anchor is momentarily
+   * off screen (`first-mission` rings the offer grid, which is replaced by the
+   * active-mission panel the instant the player accepts), and a step that is
+   * pointing at a DIFFERENT screen. Both would park the card dead centre, over
+   * whatever the player was about to click — the Collect button and the Second
+   * Wind button respectively. Neither is a moment; both dock.
+   */
+  const centred = placement === 'centre';
 
   return (
     // pointer-events-none on the layer: everything under the mark stays live.
@@ -112,15 +148,11 @@ export function CoachMark({
         aria-label={title}
         className="frame-special panel-fill pointer-events-auto absolute w-[min(22rem,calc(100vw-2rem))] p-4"
         style={
-          ring
-            ? {
-                top: roomBelow ? below : Math.max(12, ring.top - 190),
-                left: Math.min(
-                  Math.max(12, ring.left),
-                  Math.max(12, (typeof window !== 'undefined' ? window.innerWidth : 360) - 360),
-                ),
-              }
-            : { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }
+          centred
+            ? { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }
+            : dockBottom
+              ? { bottom: 16, left: '50%', transform: 'translateX(-50%)' }
+              : { top: 16, left: '50%', transform: 'translateX(-50%)' }
         }
       >
         {progress && (
