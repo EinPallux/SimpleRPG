@@ -8,8 +8,46 @@ import type { GameSave } from '@/engine/types';
 const attributeId = z.enum(['str', 'dex', 'int', 'con', 'lck']);
 const isoDate = z.string().refine((s) => !Number.isNaN(Date.parse(s)), 'invalid ISO date');
 
-const timedActivity = z
-  .object({ kind: z.string(), startedAt: isoDate, durationSec: z.number().nonnegative() })
+const rngStateTuple = z.tuple([
+  z.number().int(),
+  z.number().int(),
+  z.number().int(),
+  z.number().int(),
+]);
+
+const missionActivity = z
+  .object({
+    kind: z.literal('mission'),
+    startedAt: isoDate,
+    durationSec: z.number().nonnegative(),
+    payload: z
+      .object({
+        zoneIndex: z.number().int().min(1),
+        durationMin: z.number().int().positive(),
+        lucky: z.boolean(),
+        xp: z.number().int().min(0),
+        gold: z.number().int().min(0),
+      })
+      .strict(),
+  })
+  .strict();
+
+const patrolActivity = z
+  .object({
+    kind: z.literal('patrol'),
+    startedAt: isoDate,
+    durationSec: z.number().nonnegative(),
+    payload: z.object({ collectedUpTo: isoDate }).strict(),
+  })
+  .strict();
+
+const genericActivity = z
+  .object({
+    kind: z.string(),
+    startedAt: isoDate,
+    durationSec: z.number().nonnegative(),
+    payload: z.unknown(),
+  })
   .strict();
 
 const itemLine = z
@@ -25,6 +63,7 @@ const itemInstance = z
     defId: z.string(),
     ilvl: z.number().int().positive(),
     rarity: z.enum(['common', 'uncommon', 'rare', 'epic', 'set', 'legendary']),
+    classId: z.enum(['warrior', 'scout', 'mage', 'assassin']).nullable(),
     lines: z.array(itemLine),
     upgrade: z.number().int().min(0).max(20),
     seed: z.number().int(),
@@ -51,11 +90,11 @@ const questBlock = {
 
 export const gameSaveSchema = z
   .object({
-    version: z.literal(1),
+    version: z.literal(2),
     createdAt: isoDate,
     lastSeenAt: isoDate,
     worldSeed: z.string().min(8),
-    rngState: z.record(z.unknown()),
+    rngState: z.record(rngStateTuple),
     hero: z
       .object({
         name: z.string().min(2).max(16),
@@ -93,9 +132,9 @@ export const gameSaveSchema = z
       .strict(),
     activities: z
       .object({
-        mission: timedActivity.nullable(),
-        expedition: timedActivity.nullable(),
-        patrol: timedActivity.nullable(),
+        mission: missionActivity.nullable(),
+        expedition: genericActivity.nullable(),
+        patrol: patrolActivity.nullable(),
         dungeonCooldowns: z.record(isoDate),
         arena: z
           .object({ fightsToday: z.number().int().min(0), cooldownUntil: isoDate.nullable() })

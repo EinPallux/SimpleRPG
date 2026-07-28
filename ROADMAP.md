@@ -21,10 +21,16 @@ rail + HUD (static), save/load (Dexie, slots, export/import), clock module.
 *Shipped:* 39 unit tests + e2e smoke green; typecheck/lint/build green; 126 KB gz initial JS.
 Vercel config (`vercel.json`) is ready — connect the repo in the Vercel dashboard to get previews.
 
-**M1 · Engine core + simulator** — constants.ts (all BALANCING values), rng streams, stats/xp/attr-cost,
-items/loot generation, **combat engine + fixture tests**, time engine (resets, offline catch-up, tamper
-guard), balance simulator CLI + first contract scenarios (`optimal-24h`, `optimal-7d`).
+**M1 · Engine core + simulator** ✅ *(2026-07-28)* — constants.ts (all BALANCING values), rng streams,
+stats/xp/attr-cost, items/loot generation, **combat engine + fixture tests**, time engine (resets,
+offline catch-up, tamper guard), balance simulator CLI + first contract scenarios (`optimal-24h`,
+`optimal-7d`).
 *Done when:* `pnpm sim --profile optimal --days 7` runs; §8.2 early bounds enforced in CI.
+*Shipped:* seeded rng streams (save-persisted), full combat with class signatures + §3.3 statistical
+fixture, item/loot generator, mission/patrol/vigor reducers, save schema v2 + fixture-tested migration,
+sim CLI (30 days in ~10 ms) with optimal/casual/idle profiles; CI enforces optimal-24h ≤13 · 7d ≤27 ·
+30d ≤55 (day-30 optimal currently lands at L45 — headroom reserved for M4–M6 XP sources). MPL curve
+re-anchored (BALANCING §10).
 
 **M2 · The idle backbone** — Tavern missions (offers, timers, claim, reroll, lucky/story), vigor + Second
 Wind + Golden Ale, zones 1–10 content, Patrol, daily reset live, RewardReveal, first 3 zone backgrounds in.

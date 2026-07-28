@@ -6,13 +6,15 @@ multiplayer: the living world is simulated by deterministic bots that look and b
 No servers, no accounts, no real-money anything. Runs entirely in your browser, deploys as static files
 on Vercel, installs as a PWA.
 
-> **Status: 🏗️ Milestone M0 (Foundation) built.** Themed app shell, save system (3 slots,
-> export/import, backups), tinted Kenney frame system, asset pipeline, CI and tests are in place.
-> Playable systems land next (ROADMAP.md → M1 engine + simulator, M2 tavern loop).
+> **Status: 🏗️ Milestones M0–M1 built.** Foundation (themed shell, save system, frame pipeline) plus the
+> full engine core: seeded RNG streams, the auto-battler with all four class signatures, item/loot
+> generation, the offline-catch-up time engine, mission/patrol reducers — and the **balance simulator**
+> that CI runs to enforce the anti-rush contract. Next: M2 wires the tavern loop into the UI.
 >
 > ```bash
-> pnpm install && pnpm dev   # play the current build
-> pnpm test && pnpm e2e      # verify (39 unit tests + Playwright smoke)
+> pnpm install && pnpm dev                     # play the current build
+> pnpm test && pnpm e2e                        # verify (90 unit tests + Playwright smoke)
+> pnpm sim -- --profile optimal --days 30      # watch the anti-rush contract hold
 > ```
 
 ## The pitch

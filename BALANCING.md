@@ -43,15 +43,16 @@ xpToNext(L) = ceil(100 × L^2.4)
 ### 2.2 Missions-per-level target (drives XP rewards)
 Design variable: how many 10-vigor missions a level *should* take at level L:
 ```
-MPL(L) = 12 × (1 + L/40)^1.5
+MPL(L) = 1.2 × (1 + L/12)^2
 ```
-| L | 5 | 15 | 30 | 50 | 75 | 100 | 150 |
-|---|---|---|---|---|---|---|---|
-| MPL | 14.4 | 19.4 | 27.9 | 40.5 | 57.4 | 78.6 | 124 |
+| L | 1 | 5 | 15 | 30 | 50 | 75 | 100 | 150 |
+|---|---|---|---|---|---|---|---|---|
+| MPL | 1.4 | 2.4 | 6.1 | 14.7 | 32.0 | 63.1 | 104.5 | 218.7 |
 
-With ~12–18 mission-equivalents per full day (§8), this yields roughly:
-levels/day ≈ 1.0+ early → ~0.45 at L50 → ~0.2 at L100 → ~0.12 at L150 (before arena/quest/dungeon XP,
-which the simulator accounts for — the *bounds* in §8 are what's guaranteed, not these estimates).
+With ~15–25 mission-equivalents per full optimal day (§8: 150–250 vigor + patrol), missions-only pacing
+lands at day-1 ≈ L8–10 · day-7 ≈ L23 · day-30 ≈ L44 · day-180 ≈ L90 — deliberately ~20% under the §8.2
+ceilings so arena/quest/dungeon XP (M4–M6) can join without breaking bounds. The *bounds* are the
+guarantee, not these estimates.
 
 ### 2.3 Mission rewards (per mission, frontier zone)
 ```
@@ -71,7 +72,7 @@ spinCost(i)         = [free, 0.4, 0.8, 1.6, 3.2] × missionGold(L, 10)   // spin
 ```
 attrCost(n) = min( 10_000_000, ceil( (n^2.5) / 8 ) )   // nth point in ONE attribute
 ```
-| n | 10 | 50 | 100 | 200 | 400 | 800 | 1449+ |
+| n | 10 | 50 | 100 | 200 | 400 | 800 | 1450+ |
 |---|---|---|---|---|---|---|---|
 | cost | 40 | 2,210 | 12,500 | 70,711 | 400k | 2.26M | 10M (cap) |
 
@@ -106,15 +107,15 @@ Mage `dmgMult 1.9`, Assassin strikes twice at `0.65` (second strike uses offhand
 Round cap 100 → attacker loses (arena) / player loses (PvE).
 
 ### 3.3 Worked example (unit-test fixture)
-L20 Warrior (STR 80, CON 60 → HP 6,300, LCK 30, armor 350, weapon 40–56) vs
-L20 Grunt (main 70, matching-attr 40, HP 4,150, armor 200):
-- Warrior strike: effMain = 80 − 40/2 = 60 → ×7.0; grunt DR = 200/(20×40) = **25%**;
-  round-1 avg = 48 × 7.0 × 0.75 ≈ **252**; crit chance 30×2.5/20 = 3.75% → 504.
-- Grunt strike: effMain = 70 − 80/2 = 30 → ×4.0; warrior DR = 350/800 = **43.75%**;
-  round-1 avg = 40 × 4.0 × 0.5625 ≈ **90** (before 25% block roll).
-- Expected: warrior wins in ~13 rounds (rage-accelerated) taking ~1.1k of 6.3k HP — a comfortable on-par
-  fight vs a 0.85-multiplier Grunt. This fixture (exact seeded rolls) ships as a regression test —
-  see TECHNICAL_ARCHITECTURE.md §9.
+L20 Warrior (STR 80 main, DEX 40, CON 60 → HP 6,300, LCK 30, armor 350, weapon 40–56) vs
+L20 dex-based Grunt (DEX 70 main, STR 40, CON 50 → HP 4,150, armor 200, weapon 34–46):
+- Warrior strike: effMain = 80 − STR:40/2 = 60 → ×7.0; grunt DR = 200/(20×40) = **25%**;
+  round-1 non-crit avg = 48 × 7.0 × 0.75 ≈ **252**; crit chance 30×2.5/20 = 3.75% → 504.
+- Grunt strike: effMain = 70 − DEX:40/2 = 50 → ×6.0; warrior DR = 350/800 = **43.75%**;
+  round-1 avg = 40 × 6.0 × 0.5625 ≈ **135** before the warrior's 25% block roll (≈101 effective).
+- Expected: warrior wins in ~10–13 rounds (rage-accelerated) taking ~1.2k of 6.3k HP — a comfortable
+  on-par fight vs a 0.85-multiplier Grunt. This fixture ships as a statistical regression test
+  (`src/engine/combat.test.ts`) — see TECHNICAL_ARCHITECTURE.md §9.
 
 ---
 
@@ -290,7 +291,8 @@ stays viable at ~6 min for streak preservation. Both must remain true through tu
 - Runs the **real engine reducers** headless with policy bots: `optimal` (perfect play), `casual`
   (randomized 40–70% engagement), `idle-only`, `gacha-max`, `ale-max`, `drake-first`.
 - Outputs: level/gold/attr-par/honor/rank per day; zone & dungeon milestones; gem ledger; CSV + terminal
-  sparklines. `--par` regenerates `src/engine/generated/par.ts` (attribute par table, §2.4).
+  table. `--par` prints measured-vs-analytic attribute par; the M9 tuning pass uses it to regenerate the
+  engine par curves (§2.4).
 - Vitest wraps the scenarios in §8.2 (30-day runs in CI < 10 s target; 180-day runs nightly workflow).
 - The simulator is built in **M1** (ROADMAP) — before most features — because every later milestone tunes
   against it. It doubles as the bot-ladder progression model (same curves, TECHNICAL_ARCHITECTURE.md §7).
@@ -302,5 +304,6 @@ stays viable at ~6 min for streak preservation. Both must remain true through tu
 | Date | Change | Why | Sim impact |
 |---|---|---|---|
 | 2026-07-28 | v0 seed values established | initial design | baseline |
+| 2026-07-28 | MPL re-anchored: `12×(1+L/40)^1.5` → `1.2×(1+L/12)^2` (M1) | old curve cost ~12 missions for level 2 → day-1 ended ≈ L2, nowhere near the §8.3 day-1 ≈ L10 intent; new curve starts at ~1.4 missions/level and grows steeper | optimal-24h/7d/30d scenarios green with ~20% headroom reserved for arena/quest XP landing in M4–M6 |
 
 *(Every future tuning PR appends a row here.)*

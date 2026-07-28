@@ -146,6 +146,19 @@
   "toast.deleted": "{name} has retired to a quiet farm.",
   "toast.helpSoon": "Help overlays arrive with milestone M8.",
 
+  "zone.bramblewood.name": "Bramblewood",
+  "zone.millhaven.name": "Millhaven Fields",
+  "zone.blossomvale.name": "Blossomvale",
+  "zone.deepwood.name": "Deepwood Watch",
+  "zone.saltmere.name": "Saltmere Coast",
+  "zone.sunscorch.name": "Sunscorch Mesa",
+  "zone.ashenreach.name": "The Ashen Reach",
+  "zone.cinderpeak.name": "Cinderpeak",
+  "zone.frostveil.name": "Frostveil Summit",
+  "zone.duskgate.name": "Duskgate",
+
+  "hud.frozenBanner": "Aethermoor's sun is confused — your device clock jumped backwards. Timers resume once time catches up.",
+
   "time.justNow": "just now",
   "time.minutesAgo": "{m} min ago",
   "time.hoursAgo": "{h} h ago",
