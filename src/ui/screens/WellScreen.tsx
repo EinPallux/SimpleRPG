@@ -25,7 +25,7 @@ import {
   wellLineKey,
   type TossOutcomeKind,
 } from '@/content/gacha';
-import { wellExclusives } from '@/content/pets';
+import { petNameKey, wellExclusives } from '@/content/pets';
 import { getSet } from '@/content/sets';
 import { TOSS_TEN_COUNT, WELL_UNLOCK_LEVEL } from '@/engine/constants';
 import { canToss, freeTossAvailable, pityRemaining, tossCost, wellUnlocked } from '@/engine/gacha';
@@ -167,7 +167,8 @@ function BannerFocus({
       <div className="frame-secondary--muted panel-fill-inset mt-3 p-3">
         <p className="inline-flex items-center gap-1.5 font-display text-lg font-bold text-gold-bright">
           <Icon id="menagerie" size={16} className="text-gold" />
-          {t('well.petFocus', { pet: t(focus.nameKey as I18nKey) })}
+          {/* petNameKey, not `focus.nameKey` — a PetDef stores the BASE key. */}
+          {t('well.petFocus', { pet: t(petNameKey(focus.id) as I18nKey) })}
         </p>
       </div>
     );
