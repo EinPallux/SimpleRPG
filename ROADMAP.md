@@ -32,9 +32,16 @@ sim CLI (30 days in ~10 ms) with optimal/casual/idle profiles; CI enforces optim
 30d ≤55 (day-30 optimal currently lands at L45 — headroom reserved for M4–M6 XP sources). MPL curve
 re-anchored (BALANCING §10).
 
-**M2 · The idle backbone** — Tavern missions (offers, timers, claim, reroll, lucky/story), vigor + Second
-Wind + Golden Ale, zones 1–10 content, Patrol, daily reset live, RewardReveal, first 3 zone backgrounds in.
+**M2 · The idle backbone** ✅ *(2026-07-28)* — Tavern missions (offers, timers, claim, reroll, lucky/story),
+vigor + Second Wind + Golden Ale, zones 1–10 content, Patrol, daily reset live, RewardReveal, first 3 zone
+backgrounds in.
 *Done when:* a fresh hero can play day-1 loop end-to-end on preview; `optimal-24h ≤ 13` green.
+*Shipped:* persistent tavern board (save schema v3, no offer-fishing; free daily reroll then 1 💎), lucky
+offers ×2, live timers + claim + RewardReveal (xp/level-up/gold/item cards with procedural names), Second
+Wind & Golden Ale, Patrol screen with 30-min shifts + accrual cap + tick log, in-session midnight rollover,
+nav attention badges, 30 mission flavor texts (zones 1–3 + generic) and 10 patrol lines, full-backpack
+drops auto-sell. E2E day-1 loop runs under Playwright clock emulation. *Deviation:* story-offer ribbons
+ship with the quest system in M6 (they need story state to advance).
 
 **M3 · Hero & economy** — Character screen (paper-doll, StatRows + attribute buying), Backpack, item
 tooltips/compare, 3 shops + stock refresh, potions, Forge (upgrade/dismantle), sell flow.

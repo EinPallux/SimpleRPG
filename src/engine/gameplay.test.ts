@@ -3,11 +3,15 @@ import { describe, expect, it } from 'vitest';
 import { parseGameSave } from '@/persist/schema';
 import { createNewSave, deriveEmblem } from './newSave';
 import {
+  acceptTavernOffer,
   canStartMission,
   claimMission,
   generateMissionOffers,
+  getTavernOffers,
   isMissionComplete,
+  rerollTavernOffers,
   startMission,
+  tavernRerollCost,
 } from './missions';
 import { canStartPatrol, collectPatrol, startPatrol } from './patrol';
 import { applyTimePassage } from './timePassage';
@@ -82,6 +86,46 @@ describe('missions', () => {
     expect(save.hero.gold).toBe(offer.gold);
     expect(save.activities.mission).toBeNull();
     expect(save.stats.missionsCompleted).toBe(1);
+  });
+
+  it('the tavern board persists until accepted — no offer-fishing', () => {
+    const save = fresh();
+    const board = getTavernOffers(save);
+    expect(getTavernOffers(save)).toBe(save.activities.tavernOffers);
+    expect(getTavernOffers(save)).toEqual(board); // stable across reads
+    save.progress.zonePinned = 1; // pin toggling must NOT reroll the board
+    expect(getTavernOffers(save)).toEqual(board);
+
+    acceptTavernOffer(save, 0, T0);
+    expect(save.activities.tavernOffers).toBeNull(); // board clears on accept
+    expect(save.activities.mission?.payload.durationMin).toBe(board[0]!.durationMin);
+  });
+
+  it('rerolling is free once per day, then costs a gem', () => {
+    const save = fresh();
+    const first = getTavernOffers(save);
+    expect(tavernRerollCost(save)).toBe(0);
+    const second = rerollTavernOffers(save);
+    expect(second).not.toEqual(first);
+    expect(tavernRerollCost(save)).toBe(1);
+    expect(() => rerollTavernOffers(save)).toThrow(); // no gems yet
+    save.hero.gems = 3;
+    rerollTavernOffers(save);
+    expect(save.hero.gems).toBe(2);
+  });
+
+  it('claiming with a full backpack auto-sells the drop for gold', () => {
+    const save = fresh();
+    save.inventory.capacity = 0; // force the overflow path
+    let total = 0;
+    for (let i = 0; i < 30 && total === 0; i++) {
+      const offer = { ...generateMissionOffers(save)[0]!, durationMin: 5 };
+      startMission(save, offer, T0 + i * 10 * MIN);
+      const rewards = claimMission(save, T0 + i * 10 * MIN + 5 * MIN);
+      total += rewards.autoSoldGold;
+      if (rewards.item) expect(rewards.autoSoldGold).toBeGreaterThan(0);
+    }
+    expect(save.inventory.backpack).toHaveLength(0);
   });
 
   it('mounts shorten the clock but never the vigor cost', () => {

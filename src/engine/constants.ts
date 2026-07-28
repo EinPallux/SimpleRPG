@@ -4,7 +4,8 @@
  * simulator scenarios to stay green (from M1 on) and a row in BALANCING.md §10.
  */
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
+export const TAVERN_REROLL_COST_GEMS = 1;
 
 // Vigor — the daily adventure energy (GAME_DESIGN.md §4)
 export const VIGOR_DAILY_BASE = 100;

@@ -11,10 +11,12 @@ import { ATTRIBUTE_IDS, type AttributeId, type GameSave } from '@/engine/types';
 import { attrCost, buyAttributePoint } from '@/engine/economy';
 import { sellPrice } from '@/engine/items';
 import {
+  acceptTavernOffer,
   claimMission,
-  generateMissionOffers,
+  getTavernOffers,
   missionEndsAt,
-  startMission,
+  rerollTavernOffers,
+  tavernRerollCost,
   type MissionOffer,
 } from '@/engine/missions';
 import { createNewSave, deriveEmblem } from '@/engine/newSave';
@@ -60,10 +62,15 @@ const POLICIES: Record<Profile, PolicyConfig> = {
   'idle-only': { vigorBudget: 20, secondWind: false, patrolCollections: 0, playStartHour: 20 },
 };
 
-function bestAffordableOffer(offers: MissionOffer[], vigor: number): MissionOffer | null {
-  const affordable = offers.filter((o) => o.durationMin <= vigor);
-  if (affordable.length === 0) return null;
-  return affordable.reduce((best, o) => (o.durationMin > best.durationMin ? o : best));
+function bestAffordableIndex(offers: MissionOffer[], vigor: number): number {
+  let best = -1;
+  for (let i = 0; i < offers.length; i++) {
+    const o = offers[i]!;
+    if (o.durationMin <= vigor && (best === -1 || o.durationMin > offers[best]!.durationMin)) {
+      best = i;
+    }
+  }
+  return best;
 }
 
 function sellBackpack(save: GameSave): number {
@@ -108,19 +115,22 @@ export function simulateDays(profile: Profile, days: number, seed = 'sim-seed'):
 
     if (policy.secondWind && !save.daily.secondWindUsed) claimSecondWind(save);
 
-    // Mission grind until the day's vigor budget (or the tank) runs dry.
+    // Mission grind through the persisted tavern board (the real player path).
     let spent = 0;
     const missionsBefore = save.stats.missionsCompleted ?? 0;
     while (save.daily.vigor >= 5 && spent < policy.vigorBudget) {
-      const offer = bestAffordableOffer(
-        generateMissionOffers(save),
-        Math.min(save.daily.vigor, policy.vigorBudget - spent),
-      );
-      if (!offer) break;
-      startMission(save, offer, now);
+      const budget = Math.min(save.daily.vigor, policy.vigorBudget - spent);
+      let idx = bestAffordableIndex(getTavernOffers(save), budget);
+      if (idx === -1 && tavernRerollCost(save) === 0) {
+        // Free daily reroll when the board offers nothing affordable.
+        idx = bestAffordableIndex(rerollTavernOffers(save), budget);
+      }
+      if (idx === -1) break;
+      const duration = getTavernOffers(save)[idx]!.durationMin;
+      acceptTavernOffer(save, idx, now);
       now = missionEndsAt(save.activities.mission!);
       claimMission(save, now);
-      spent += offer.durationMin;
+      spent += duration;
     }
 
     sellBackpack(save);

@@ -4,9 +4,14 @@
  * mutate the passed save draft and are deterministic given the rng streams.
  */
 import { frontierZoneIndex, getZone } from '@/content/zones';
-import { MISSION_CHEST_CHANCE, MISSION_DURATIONS, MOUNT_SPEED } from './constants';
+import {
+  MISSION_CHEST_CHANCE,
+  MISSION_DURATIONS,
+  MOUNT_SPEED,
+  TAVERN_REROLL_COST_GEMS,
+} from './constants';
 import { missionGold, missionXp, zoneMultiplier } from './economy';
-import { effectiveItemChance, rollDrop, type DropSource } from './items';
+import { effectiveItemChance, rollDrop, sellPrice, type DropSource } from './items';
 import { getStream } from './rng';
 import { totalAttribute } from './stats';
 import type { GameSave, ItemInstance, MissionPayload, TimedActivity } from './types';
@@ -18,12 +23,14 @@ export interface MissionOffer {
   lucky: boolean;
   xp: number;
   gold: number;
+  /** raw flavor roll — mapped onto text pools at render time */
+  flavor: number;
 }
 
 const LUCKY_CHANCE = 0.05;
 const LUCKY_MULT = 2;
 
-/** Three offers from the pinned/frontier zone (GAME_DESIGN §5). */
+/** Roll three offers from the pinned/frontier zone (GAME_DESIGN §5). */
 export function generateMissionOffers(save: GameSave): MissionOffer[] {
   const rng = getStream(save.rngState, save.worldSeed, 'missions');
   const frontier = frontierZoneIndex(save.hero.level);
@@ -41,8 +48,47 @@ export function generateMissionOffers(save: GameSave): MissionOffer[] {
       lucky,
       xp: Math.ceil(missionXp(save.hero.level, durationMin) * mult * boost),
       gold: Math.ceil(missionGold(save.hero.level, durationMin) * mult * boost),
+      flavor: rng.int(0, 9999),
     };
   });
+}
+
+/**
+ * The standing board: offers persist in the save until accepted or rerolled —
+ * reloading (or toggling the zone pin) never re-rolls them.
+ */
+export function getTavernOffers(save: GameSave): MissionOffer[] {
+  if (!save.activities.tavernOffers) {
+    save.activities.tavernOffers = generateMissionOffers(save);
+  }
+  return save.activities.tavernOffers;
+}
+
+export function tavernRerollCost(save: GameSave): number {
+  return save.daily.tavernRerollUsed ? TAVERN_REROLL_COST_GEMS : 0;
+}
+
+export function canRerollTavern(save: GameSave): boolean {
+  return save.hero.gems >= tavernRerollCost(save);
+}
+
+/** First reroll of the day is free; afterwards it costs gems (GAME_DESIGN §5). */
+export function rerollTavernOffers(save: GameSave): MissionOffer[] {
+  const cost = tavernRerollCost(save);
+  if (save.hero.gems < cost) throw new Error('Not enough gems to reroll the board');
+  if (cost > 0) save.hero.gems -= cost;
+  else save.daily.tavernRerollUsed = true;
+  save.activities.tavernOffers = generateMissionOffers(save);
+  return save.activities.tavernOffers;
+}
+
+/** Accept one of the standing offers; the board clears until the next visit. */
+export function acceptTavernOffer(save: GameSave, index: number, nowMs: number): void {
+  const offers = getTavernOffers(save);
+  const offer = offers[index];
+  if (!offer) throw new Error(`No tavern offer at index ${index}`);
+  startMission(save, offer, nowMs);
+  save.activities.tavernOffers = null;
 }
 
 export function missionDurationSec(save: GameSave, durationMin: number): number {
@@ -69,6 +115,7 @@ export function startMission(save: GameSave, offer: MissionOffer, nowMs: number)
     lucky: offer.lucky,
     xp: offer.xp,
     gold: offer.gold,
+    flavor: offer.flavor,
   };
   save.activities.mission = {
     kind: 'mission',
@@ -92,6 +139,8 @@ export interface MissionRewards {
   gold: number;
   item: ItemInstance | null;
   chest: ItemInstance | null;
+  /** drops auto-sold because the backpack was full (gold already included) */
+  autoSoldGold: number;
   lucky: boolean;
   zoneIndex: number;
 }
@@ -114,11 +163,17 @@ export function claimMission(save: GameSave, nowMs: number): MissionRewards {
   save.hero.gold += payload.gold;
   save.stats.missionsCompleted = (save.stats.missionsCompleted ?? 0) + 1;
   save.stats.goldEarned = (save.stats.goldEarned ?? 0) + payload.gold;
+  let autoSoldGold = 0;
   for (const drop of [item, chest]) {
-    if (drop && save.inventory.backpack.length < save.inventory.capacity) {
+    if (!drop) continue;
+    if (save.inventory.backpack.length < save.inventory.capacity) {
       save.inventory.backpack.push(drop);
+    } else {
+      // Full backpack: the innkeeper flogs it for you rather than losing it.
+      autoSoldGold += sellPrice(drop);
     }
   }
+  save.hero.gold += autoSoldGold;
   const xp = applyXp(save, payload.xp);
   save.activities.mission = null;
 
@@ -127,6 +182,7 @@ export function claimMission(save: GameSave, nowMs: number): MissionRewards {
     gold: payload.gold,
     item,
     chest,
+    autoSoldGold,
     lucky: payload.lucky,
     zoneIndex: payload.zoneIndex,
   };

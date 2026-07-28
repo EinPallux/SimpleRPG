@@ -15,20 +15,23 @@ const rngStateTuple = z.tuple([
   z.number().int(),
 ]);
 
+const missionOffer = z
+  .object({
+    zoneIndex: z.number().int().min(1),
+    durationMin: z.number().int().positive(),
+    lucky: z.boolean(),
+    xp: z.number().int().min(0),
+    gold: z.number().int().min(0),
+    flavor: z.number().int().min(0),
+  })
+  .strict();
+
 const missionActivity = z
   .object({
     kind: z.literal('mission'),
     startedAt: isoDate,
     durationSec: z.number().nonnegative(),
-    payload: z
-      .object({
-        zoneIndex: z.number().int().min(1),
-        durationMin: z.number().int().positive(),
-        lucky: z.boolean(),
-        xp: z.number().int().min(0),
-        gold: z.number().int().min(0),
-      })
-      .strict(),
+    payload: missionOffer,
   })
   .strict();
 
@@ -90,7 +93,7 @@ const questBlock = {
 
 export const gameSaveSchema = z
   .object({
-    version: z.literal(2),
+    version: z.literal(3),
     createdAt: isoDate,
     lastSeenAt: isoDate,
     worldSeed: z.string().min(8),
@@ -135,6 +138,7 @@ export const gameSaveSchema = z
         mission: missionActivity.nullable(),
         expedition: genericActivity.nullable(),
         patrol: patrolActivity.nullable(),
+        tavernOffers: z.array(missionOffer).length(3).nullable(),
         dungeonCooldowns: z.record(isoDate),
         arena: z
           .object({ fightsToday: z.number().int().min(0), cooldownUntil: isoDate.nullable() })
