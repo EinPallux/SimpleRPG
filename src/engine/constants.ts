@@ -68,6 +68,56 @@ export const NAME_MAX_LENGTH = 16;
 export const BOT_COUNT = 750;
 export const SAVE_SLOTS = 3;
 
+// Bot world (GAME_DESIGN.md §8.3, BALANCING.md §4.5)
+export const WORLD_AGE_DAYS = 21; // the "server" is 3 weeks old at character creation
+export const BOT_ARCHETYPE_DIST = [
+  ['nolifer', 4],
+  ['dedicated', 21],
+  ['regular', 45],
+  ['casual', 22],
+  ['dormant', 8],
+] as const;
+/** daily mission-equivalents (10-vigor units) each archetype averages */
+export const BOT_DAILY_EQUIV = {
+  nolifer: 19.5, // ≈ a full-optimal player before gem income — the long rival
+  dedicated: 15,
+  regular: 10.5,
+  casual: 5,
+  dormant: 1.2,
+} as const;
+export const BOT_WEEKEND_MULT = 1.3;
+export const BOT_QUIT_CHANCE_PER_MONTH = 0.02; // rage-quit → replaced by a fresh joiner
+/** honor(level) = BOT_HONOR_COEF × levelEquiv^BOT_HONOR_EXP × affinity(0.7–1.3) */
+export const BOT_HONOR_COEF = 90; // tuned so optimal play crosses rank 1 ≈ day 175 (§8.2 ladder-rank1)
+export const BOT_HONOR_EXP = 1.15;
+
+// Arena honor — place-swap model (BALANCING.md §4.5): beating someone vaults
+// you just above THEIR honor; the ladder is paced by who you can actually beat.
+export const HONOR_WIN_MIN = 5; // wins "down" still nudge you up a little
+export const HONOR_LEAPFROG_BONUS = 5; // honor lands at theirHonor + this…
+export const HONOR_LEAP_CAP_FLAT = 15; // …but a single win can only leap so far:
+export const HONOR_LEAP_CAP_PCT = 0.001; // max(15, 0.1% of your honor) — walls need sustained wins
+export const HONOR_LOSS_FACTOR = 0.05;
+export const HONOR_LOSS_BASE = 6;
+export const HONOR_LOSS_MIN = 3;
+export const HONOR_FLOOR = 25; // honor can never fall below this
+export const ARENA_COOLDOWN_SKIP_GEMS = 1;
+export const ARENA_WIN_GOLD_MULT = 0.6; // × missionGold(L,10)
+export const ARENA_LOSS_GOLD_MULT = 0.09;
+export const ARENA_WIN_XP_MULT = 0.25; // × missionXp(L,10)
+export const ARENA_CHEST_CHANCE = 0.2;
+/** first-time rank milestones → gems (CONTENT_CATALOG.md §8) */
+export const ARENA_MILESTONES: readonly (readonly [number, number])[] = [
+  [500, 5],
+  [250, 8],
+  [100, 12],
+  [50, 15],
+  [25, 20],
+  [10, 25],
+  [3, 30],
+  [1, 50],
+];
+
 // Progression curves (BALANCING.md §2)
 export const XP_BASE = 100; // xpToNext = ceil(XP_BASE × L^XP_EXP)
 export const XP_EXP = 2.4;

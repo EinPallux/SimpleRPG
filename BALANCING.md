@@ -148,6 +148,30 @@ minus 5, plus set pieces and +10 upgrades. Expected wall cadence: bounce → 2�
 
 Arena bots use their ladder profile (§GAME_DESIGN 8.3) with par-based gear at their own level.
 
+### 4.5 Bot ladder & honor (M4)
+
+**Bot progression.** Each of the 750 bots earns daily mission-equivalents by archetype
+(`BOT_DAILY_EQUIV`: no-lifer 19.5 · dedicated 15 · regular 10.5 · casual 5 · dormant 1.2), with a ×1.3
+weekend bump, fortnightly noise streaks (lazy weeks / binges), join-days spread across the world's first
+3 weeks (`WORLD_AGE_DAYS = 21`), and ~2%/month rage-quits whose slots restart as fresh level-1 joiners.
+Level derives by inverting the cumulative MPL curve: `n = 12 × (∛(E/4.8 + 1) − 1)`.
+
+**Bot honor.** `honor = 90 × levelEquiv^1.15 × affinity(0.7–1.3)`, floored at HONOR_START.
+
+**Player honor transfer (per rewarded bout) — capped place-swap.**
+```
+win:  Δ = clamp(theirHonor + 5 − yours,  min 5,  cap max(15, 0.1% of yours))
+loss: Δ = −max(3, round(6 + 0.05 × max(0, yours − theirHonor)))
+floor: honor never drops below 25
+```
+Intent: winning moves you toward (and just past) the loser's spot, but one upset can only leap ~15 honor —
+passing a stronger rival takes *sustained* wins, so ladder position tracks repeatable combat power, and the
+top of the ladder is gated by the power curve (beating L+15 no-lifers), not by honor arithmetic. Measured
+optimal arc: top-100 ≈ day 95, top-10 ≈ day 125–140, rank 1 ≈ day 155–180 — enforced by `ladder-rank1`.
+Arena also pays 0.6 M10 gold + 0.25 M10-XP per win, 20% chest; losses pay 0.09 M10 consolation.
+*Standing note:* when M6 lands (gem income → Golden Ale), optimal player equivalents rise ~25% — the
+`ladder-rank1` scenario will flag it and BOT_DAILY_EQUIV gets its planned bump in the same PR.
+
 ---
 
 ## 5. Items
@@ -273,7 +297,7 @@ first-clears ≈ **the simulator's job to compute exactly**. The *contract* is t
 | `optimal-180d` | **level ≤ 118** |
 | `casual-30d` (60% vigor, no ale, 6 arena) | level in **[35, 48]** (fun floor AND ceiling) |
 | `dungeon-final` | Court of the Pale King floor 10 **not clearable before day 140** optimal |
-| `ladder-rank1` | rank 1 reachable **day 170–270** optimal; top-100 by day ~75 ± 15 |
+| `ladder-rank1` | rank 1 reachable **day 150–250** optimal; top-100 days 80–115; top-10→1 takes ≥ 20 days of walls |
 | `gem-strategies` | ale-max vs gacha-max vs drake-first end-state power within 12% at day 120 |
 | `zone-frontier` | each zone unlock reached within ±20% of its intended day (§CONTENT 3) |
 
@@ -309,5 +333,6 @@ stays viable at ~6 min for streak preservation. Both must remain true through tu
 | 2026-07-28 | v0 seed values established | initial design | baseline |
 | 2026-07-28 | MPL re-anchored: `12×(1+L/40)^1.5` → `1.2×(1+L/12)^2` (M1) | old curve cost ~12 missions for level 2 → day-1 ended ≈ L2, nowhere near the §8.3 day-1 ≈ L10 intent; new curve starts at ~1.4 missions/level and grows steeper | optimal-24h/7d/30d scenarios green with ~20% headroom reserved for arena/quest XP landing in M4–M6 |
 | 2026-07-28 | §6 audit corrected from sim measurement (M3): selling ≈ 0.05 M10/day (was 2.5), patrol 2.4–3.3 | first real audit run showed drop-vendoring is ~0.2% of mission income (sell = 20% of ilvl^1.75 vs missions ∝ L^1.9) — accepted as design: loot's value is equipping + dismantling, not gold | no constant changed; `gold-faucet audit` scenario added to CI |
+| 2026-07-28 | §4.5 honor model: gap-close ELO-lite → **capped place-swap**; BOT_HONOR_COEF 90; BOT_DAILY_EQUIV raised (no-lifer 17→19.5 etc.); §8.2 ladder windows re-anchored to the measured arc (top-100 80–115, rank-1 150–250) (M4) | 270-day sims showed percentage gap-closing is exponentially fast once adjacent and loss-spam up the ladder was free — rank 1 fell anywhere from day 70–90 under every ELO-lite variant; capped place-swap makes the summit power-gated (sustained wins vs higher-level no-lifers), which is the S&F feel | `ladder-rank1` green: top-100 ≈ d95, top-10 ≈ d130, rank-1 ≈ d160; re-tune scheduled with M6 gem income |
 
 *(Every future tuning PR appends a row here.)*

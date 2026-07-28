@@ -17,6 +17,8 @@
   --color-success: #57b65f;
   --color-vigor: #e0a23f;
   --color-xp: #57b65f;
+  --color-hp: #c0483f;
+  --color-honor: #b08fd9;
   --color-gem: #7fd1c8;
   --font-display: 'Cinzel Variable', Georgia, serif;
   --font-body: 'Nunito Sans Variable', system-ui, sans-serif;
@@ -87,6 +89,32 @@ h3,
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* Combat playback floaters (CombatPlayback.tsx). Under reduced motion the
+   floaters hide entirely — the HP bars and live text carry the information. */
+.float-dmg {
+  animation: float-dmg 0.9s ease-out forwards;
+}
+@keyframes float-dmg {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 10px) scale(0.7);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -4px) scale(1.12);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -36px) scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .float-dmg {
+    animation: none;
+    opacity: 0;
   }
 }
 

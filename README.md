@@ -6,16 +6,17 @@ multiplayer: the living world is simulated by deterministic bots that look and b
 No servers, no accounts, no real-money anything. Runs entirely in your browser, deploys as static files
 on Vercel, installs as a PWA.
 
-> **Status: 🎮 Milestones M0–M3 built — the hero economy is live.** Missions, patrol and the daily loop
-> (M2) now feed a real economy: buy attributes on the endless escalating curve, equip class-cut gear with
-> compare, shop the three merchants' daily stock, drink elixirs, and work Old Coalbeard's upgrade and
-> dismantle benches. The balance sim audits the gold faucets and the attribute sink in CI.
-> Next: M4 — the arena, the bot ladder, and the Hall of Fame.
+> **Status: 🎮 Milestones M0–M4 built — the fake MMO is alive.** On top of the idle loop and hero economy,
+> the realm now has 750 deterministic "players": fight three ranked arena offers a day (win-chance words,
+> honor, chests, rank-milestone gems), watch bouts in the combat theater (HP bars, floating crits, 2×/skip),
+> and climb a searchable 751-row Hall of Fame where every name is inspectable — gear, attributes, a
+> two-week honor sparkline. The CI ladder contract keeps rank 1 a season-long climb (days 150–250 optimal).
+> Next: M5 — dungeons, expeditions, and the Wheel of Destiny.
 >
 > ```bash
 > pnpm install && pnpm dev                     # play the current build
-> pnpm test && pnpm e2e                        # verify (111 unit tests + clock-emulated e2e)
-> pnpm sim -- --profile optimal --days 30      # watch the anti-rush contract + economy audit hold
+> pnpm test && pnpm e2e                        # verify (130 unit tests + clock-emulated e2e)
+> pnpm sim -- --profile optimal --days 270     # watch the anti-rush + ladder contracts hold
 > ```
 
 ## The pitch

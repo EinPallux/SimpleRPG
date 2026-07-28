@@ -189,7 +189,8 @@ Used by: Arena, Dungeons, Expedition fights, story bosses, (post-1.0: guild cont
 - Choose **1 of 3 opponents** drawn from the ladder near your rank: one slightly below you, one at par, one
   above (better honor/gold on the riskier pick). Opponents are **bots that look exactly like players**:
   username, guild tag, class, level, emblem portrait, inspectable gear and attributes.
-- Win: **Honor** (ELO-lite transfer), gold, 20% chance of an Arena Chest (gear at your item level). 
+- Win: **Honor** (capped place-swap transfer, BALANCING.md §4.5), gold, 20% chance of an Arena Chest
+  (gear at your item level). 
   Lose: small honor loss, consolation gold, *funny defeat line*.
 - After the 10 rewarded fights: unlimited **Sparring** (no rewards, no honor loss) — practice and fun remain
   unbounded, the economy stays capped.
@@ -212,9 +213,10 @@ Used by: Arena, Dungeons, Expedition fights, story bosses, (post-1.0: guild cont
 - Each bot's level/honor on any calendar day is **derived deterministically** (seed + day index) from its
   archetype curve with weekly rhythm (weekend bumps), noise streaks, and life events — nothing is stored,
   everything recomputable (TECHNICAL_ARCHITECTURE.md §7).
-- The world starts "3 weeks old" (bots level 1–35) so day-1 players land near the bottom but see a
-  reachable mid-field. Catch-up targets (enforced by simulation): overtake casuals in weeks, regulars in
-  ~2–3 months, top-10 in ~5–7 months, **rank 1 ≈ 6–9 months** of optimal play.
+- The world starts "3 weeks old" (bots level 1 to the high 40s) so day-1 players land near the bottom but
+  see a reachable mid-field. Catch-up targets (numbers canonical in BALANCING.md §8.2, enforced by the
+  `ladder-rank1` simulation): overtake casuals in weeks, regulars in ~2–3 months, top-100 ≈ days 80–115,
+  top-10 ≈ month 4–5, **rank 1 within days 150–250** of optimal play.
 - Bots' displayed gear/attributes are derived per (botId, level band) — inspecting twice shows the same kit.
 
 ---

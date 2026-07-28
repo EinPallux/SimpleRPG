@@ -7,8 +7,11 @@ import { Panel } from '../components/Panel';
 import { RewardReveal } from '../components/RewardReveal';
 import { useGameClock } from '../hooks/useGameClock';
 import { findNavEntry } from '../nav';
+import { ArenaPlayback } from '../components/ArenaPlayback';
+import { ArenaScreen } from '../screens/ArenaScreen';
 import { CharacterScreen } from '../screens/CharacterScreen';
 import { ForgeScreen } from '../screens/ForgeScreen';
+import { HallOfFameScreen } from '../screens/HallOfFameScreen';
 import { PatrolScreen } from '../screens/PatrolScreen';
 import { ShopsScreen } from '../screens/ShopsScreen';
 import { TavernScreen } from '../screens/TavernScreen';
@@ -23,6 +26,8 @@ const SCREENS: Partial<Record<ScreenId, () => React.JSX.Element | null>> = {
   patrol: PatrolScreen,
   shops: ShopsScreen,
   forge: ForgeScreen,
+  arena: ArenaScreen,
+  hallOfFame: HallOfFameScreen,
 };
 
 /** Catch the local-midnight rollover while the tab stays open (GAME_DESIGN §14). */
@@ -70,6 +75,7 @@ export function Shell() {
       <MobileTabBar onOpenSheet={setSheet} />
       {sheet !== null && <NavSheet groupIndex={sheet} onClose={() => setSheet(null)} />}
       {reveal && <RewardReveal rewards={reveal} onClose={closeReveal} />}
+      <ArenaPlayback />
       <SettingsModal />
     </div>
   );
