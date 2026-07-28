@@ -83,6 +83,13 @@ export function createNewSave(input: NewHeroInput, nowMs: number): GameSave {
     weekly: { weekKey: isoWeekKey(nowMs), questIds: [], questProgress: {} },
     monthly: { monthKey: localMonthKey(nowMs), questIds: [], questProgress: {} },
     calendar: { monthKey: localMonthKey(nowMs), claimedDays: [], lastClaimDayKey: null },
+    town: {
+      shops: {
+        weaponsmith: { stock: null, rerollUsed: false },
+        armorer: { stock: null, rerollUsed: false },
+        arcanum: { stock: null, rerollUsed: false },
+      },
+    },
     progress: {
       storyStep: 0,
       zonesUnlocked: 1,

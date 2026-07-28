@@ -20,7 +20,23 @@ import {
 import { canStartPatrol, collectPatrol, startPatrol, stopPatrol } from '@/engine/patrol';
 import { applyTimePassage } from '@/engine/timePassage';
 import { buyAle, canBuyAle, canClaimSecondWind, claimSecondWind } from '@/engine/vigor';
-import type { ClassId, EmblemSpec, GameSave, SlotSummary } from '@/engine/types';
+import { attrCost, buyAttributePoint } from '@/engine/economy';
+import { dismantleItem, dismantlesLeft, upgradeItem, type ItemLocation } from '@/engine/forge';
+import { canEquip, equipItem, sellItem, unequipItem } from '@/engine/inventoryOps';
+import { buyElixir, canBuyElixir } from '@/engine/potions';
+import { getElixir } from '@/content/elixirs';
+import { buyShopItem, getShopStock, rerollShopStock, shopRerollCost } from '@/engine/shops';
+import { itemName } from '@/ui/itemName';
+import { fmt } from '@/ui/format';
+import type {
+  AttributeId,
+  ClassId,
+  EmblemSpec,
+  EquipSlot,
+  GameSave,
+  ShopId,
+  SlotSummary,
+} from '@/engine/types';
 import { CodecError, decodeSave, encodeSave } from '@/persist/codec';
 import {
   deleteSlot as dbDeleteSlot,
@@ -91,6 +107,18 @@ interface GameStore {
   patrolStart(): void;
   patrolCollect(): void;
   patrolStop(): void;
+
+  // Hero economy (M3)
+  buyAttr(attr: AttributeId, times?: number): void;
+  equip(backpackIndex: number): void;
+  unequip(slot: EquipSlot): void;
+  sell(backpackIndex: number): void;
+  shopEnsureStock(shopId: ShopId): void;
+  shopBuy(shopId: ShopId, index: number): void;
+  shopReroll(shopId: ShopId): void;
+  elixir(elixirId: string): void;
+  forgeUpgrade(loc: ItemLocation): void;
+  forgeDismantle(backpackIndex: number): void;
   refreshSlots(): Promise<void>;
   createHero(
     slot: number,
@@ -222,6 +250,133 @@ export const useGame = create<GameStore>()(
         set((s) => {
           if (s.save?.activities.patrol) stopPatrol(s.save, systemClock.now());
         });
+        scheduleAutosave();
+      },
+
+      buyAttr(attr, times = 1) {
+        let boughtTo: number | null = null;
+        set((s) => {
+          if (!s.save) return;
+          for (let i = 0; i < times; i++) {
+            if (s.save.hero.gold < attrCost(s.save.hero.attrsBought[attr] + 1)) break;
+            buyAttributePoint(s.save, attr);
+            boughtTo = s.save.hero.attrsBought[attr];
+          }
+        });
+        if (boughtTo !== null) {
+          get().toast(t('toast.attrBought', { attr: t(`attr.${attr}.name`), value: boughtTo }));
+        }
+        scheduleAutosave();
+      },
+
+      equip(backpackIndex) {
+        set((s) => {
+          const item = s.save?.inventory.backpack[backpackIndex];
+          if (!s.save || !item || !canEquip(s.save, item)) return;
+          equipItem(s.save, backpackIndex);
+        });
+        scheduleAutosave();
+      },
+
+      unequip(slot) {
+        set((s) => {
+          if (!s.save?.inventory.equipped[slot]) return;
+          if (s.save.inventory.backpack.length >= s.save.inventory.capacity) return;
+          unequipItem(s.save, slot);
+        });
+        scheduleAutosave();
+      },
+
+      sell(backpackIndex) {
+        let text: string | null = null;
+        set((s) => {
+          const item = s.save?.inventory.backpack[backpackIndex];
+          if (!s.save || !item) return;
+          const name = itemName(item);
+          const gold = sellItem(s.save, backpackIndex);
+          text = t('toast.sold', { name, gold: fmt(gold) });
+        });
+        if (text) get().toast(text);
+        scheduleAutosave();
+      },
+
+      shopEnsureStock(shopId) {
+        set((s) => {
+          if (s.save && !s.save.town.shops[shopId].stock) getShopStock(s.save, shopId);
+        });
+        scheduleAutosave();
+      },
+
+      shopBuy(shopId, index) {
+        let text: string | null = null;
+        set((s) => {
+          if (!s.save) return;
+          const item = getShopStock(s.save, shopId)[index];
+          if (!item) return;
+          if (s.save.inventory.backpack.length >= s.save.inventory.capacity) {
+            text = t('toast.backpackFull');
+            return;
+          }
+          try {
+            buyShopItem(s.save, shopId, index);
+            text = t('toast.bought', { name: itemName(item) });
+          } catch {
+            /* insufficient gold — the button disables, this is belt-and-braces */
+          }
+        });
+        if (text) get().toast(text);
+        scheduleAutosave();
+      },
+
+      shopReroll(shopId) {
+        set((s) => {
+          if (!s.save || s.save.hero.gems < shopRerollCost(s.save, shopId)) return;
+          rerollShopStock(s.save, shopId);
+        });
+        scheduleAutosave();
+      },
+
+      elixir(elixirId) {
+        let text: string | null = null;
+        set((s) => {
+          if (!s.save || !canBuyElixir(s.save, elixirId).ok) return;
+          const potion = buyElixir(s.save, elixirId, systemClock.now());
+          const def = getElixir(potion.elixirId);
+          text = t('toast.elixir', { name: t(def.nameKey as Parameters<typeof t>[0]) });
+        });
+        if (text) get().toast(text);
+        scheduleAutosave();
+      },
+
+      forgeUpgrade(loc) {
+        let text: string | null = null;
+        set((s) => {
+          if (!s.save) return;
+          try {
+            const item = upgradeItem(s.save, loc);
+            text = t('toast.upgraded', { name: itemName(item) });
+          } catch {
+            /* cost gates — buttons disable */
+          }
+        });
+        if (text) get().toast(text);
+        scheduleAutosave();
+      },
+
+      forgeDismantle(backpackIndex) {
+        let text: string | null = null;
+        set((s) => {
+          const item = s.save?.inventory.backpack[backpackIndex];
+          if (!s.save || !item || dismantlesLeft(s.save) === 0) return;
+          const name = itemName(item);
+          const yields = dismantleItem(s.save, backpackIndex);
+          text = t('toast.dismantled', {
+            name,
+            scraps: yields.scraps,
+            dust: yields.dust > 0 ? t('toast.dismantledDust', { n: yields.dust }) : '',
+          });
+        });
+        if (text) get().toast(text);
         scheduleAutosave();
       },
 

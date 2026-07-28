@@ -101,20 +101,22 @@ const V2_FIXTURE = {
 describe('save migrations', () => {
   it('migrates a v1 (M0) save forward to the current version', () => {
     const save = migrateSave(structuredClone(V1_FIXTURE));
-    expect(save.version).toBe(3);
+    expect(save.version).toBe(4);
     expect(save.hero.name).toBe('Fixture');
     expect(save.inventory.backpack[0]?.classId).toBeNull();
     expect(save.activities.tavernOffers).toBeNull();
+    expect(save.town.shops.weaponsmith).toEqual({ stock: null, rerollUsed: false });
     // Missing rng streams are legal — they lazy-init from the world seed.
     expect(save.rngState).toEqual({});
   });
 
   it('migrates a v2 (M1) save with an in-flight mission (payload gains flavor)', () => {
     const save = migrateSave(structuredClone(V2_FIXTURE));
-    expect(save.version).toBe(3);
+    expect(save.version).toBe(4);
     expect(save.activities.mission?.payload.flavor).toBe(0);
     expect(save.activities.mission?.payload.xp).toBe(55);
     expect(save.activities.tavernOffers).toBeNull();
+    expect(save.town.shops.arcanum.stock).toBeNull();
   });
 
   it('refuses saves with no migration path', () => {

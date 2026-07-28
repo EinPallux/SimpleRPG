@@ -6,16 +6,16 @@ multiplayer: the living world is simulated by deterministic bots that look and b
 No servers, no accounts, no real-money anything. Runs entirely in your browser, deploys as static files
 on Vercel, installs as a PWA.
 
-> **Status: 🎮 Milestones M0–M2 built — the idle backbone is playable.** Take timed missions from the
-> tavern board (lucky offers, flavor texts, reroll), watch real timers, claim rewards with level-ups and
-> item drops, spend Second Wind and Golden Ale, and walk the City Watch until midnight. Underneath: the
-> full engine core, seeded RNG streams, offline catch-up, and the CI-enforced anti-rush contract.
-> Next: M3 — attribute buying, gear equipping, shops and the Forge.
+> **Status: 🎮 Milestones M0–M3 built — the hero economy is live.** Missions, patrol and the daily loop
+> (M2) now feed a real economy: buy attributes on the endless escalating curve, equip class-cut gear with
+> compare, shop the three merchants' daily stock, drink elixirs, and work Old Coalbeard's upgrade and
+> dismantle benches. The balance sim audits the gold faucets and the attribute sink in CI.
+> Next: M4 — the arena, the bot ladder, and the Hall of Fame.
 >
 > ```bash
 > pnpm install && pnpm dev                     # play the current build
-> pnpm test && pnpm e2e                        # verify (98 unit tests + clock-emulated day-1 loop)
-> pnpm sim -- --profile optimal --days 30      # watch the anti-rush contract hold
+> pnpm test && pnpm e2e                        # verify (111 unit tests + clock-emulated e2e)
+> pnpm sim -- --profile optimal --days 30      # watch the anti-rush contract + economy audit hold
 > ```
 
 ## The pitch

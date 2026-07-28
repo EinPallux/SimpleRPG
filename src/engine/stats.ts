@@ -1,6 +1,7 @@
 /** Derived hero stats (BALANCING.md §3.1, §5.2). */
 import { getClass } from '@/content/classes';
 import { CAP_CRIT_DMG_BONUS, CAP_GOLD_FIND, CAP_XP_BONUS } from './constants';
+import { potionPercent } from './potions';
 import type { AttributeId, GameSave, ItemInstance } from './types';
 import { baseAttribute } from './newSave';
 
@@ -8,7 +9,11 @@ function equippedItems(save: GameSave): ItemInstance[] {
   return Object.values(save.inventory.equipped).filter((i): i is ItemInstance => Boolean(i));
 }
 
-/** Attribute total: class start + bought + gear lines (+achievements from M6). */
+/**
+ * Attribute total: (class start + bought + gear lines) × active elixir %.
+ * Expired potions are pruned by catch-up (≤30 s staleness by design;
+ * TECHNICAL_ARCHITECTURE §6). Achievements bonuses join in M6.
+ */
 export function totalAttribute(save: GameSave, attr: AttributeId): number {
   let total = baseAttribute(save, attr);
   for (const item of equippedItems(save)) {
@@ -16,7 +21,7 @@ export function totalAttribute(save: GameSave, attr: AttributeId): number {
       if (line.attr === attr || line.attr === 'all') total += line.value;
     }
   }
-  return total;
+  return Math.round(total * (1 + potionPercent(save, attr)));
 }
 
 /** Percent bonuses from gear, engine-capped (BALANCING §5.2). Values are fractions. */

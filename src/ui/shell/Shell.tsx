@@ -8,7 +8,9 @@ import { RewardReveal } from '../components/RewardReveal';
 import { useGameClock } from '../hooks/useGameClock';
 import { findNavEntry } from '../nav';
 import { CharacterScreen } from '../screens/CharacterScreen';
+import { ForgeScreen } from '../screens/ForgeScreen';
 import { PatrolScreen } from '../screens/PatrolScreen';
+import { ShopsScreen } from '../screens/ShopsScreen';
 import { TavernScreen } from '../screens/TavernScreen';
 import { HudBar } from './HudBar';
 import { MobileTabBar, NavRail, NavSheet } from './NavRail';
@@ -19,6 +21,8 @@ const SCREENS: Partial<Record<ScreenId, () => React.JSX.Element | null>> = {
   tavern: TavernScreen,
   character: CharacterScreen,
   patrol: PatrolScreen,
+  shops: ShopsScreen,
+  forge: ForgeScreen,
 };
 
 /** Catch the local-midnight rollover while the tab stays open (GAME_DESIGN §14). */

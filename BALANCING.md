@@ -207,12 +207,15 @@ Values expressed in "M10" = one 10-vigor frontier mission's gold, to stay level-
 | Faucet (daily, optimal) | Gold (M10) | Notes |
 |---|---|---|
 | Missions ~250 vigor | 25.0 | the backbone |
-| Patrol ~8h | 2.4 | 0.3/h |
+| Patrol 8–11h | 2.4–3.3 | 0.3/h; sim-measured ≈ 20–25% of mission income without ale |
 | Arena 10 wins | 6.0 | + chests |
 | Quests/activity | 3.5 | avg |
 | Wheel (net) | −1.5 | costs > direct gold EV (it pays in items/gems/treats) |
-| Selling drops | 2.5 | avg |
-| **Total ≈ 38 M10/day** | | |
+| Selling drops | ~0.05 | pocket change (sim-measured ≈ 0.2% of missions) — loot's value is equipping & scraps, not vendoring |
+| **Total ≈ 36 M10/day** | | |
+
+*The faucet/sink split is asserted by the sim (`gold-faucet audit` scenario): attributes must absorb
+≥ 60% of earned gold; patrol/missions and selling/missions ratios must stay in their bands.*
 
 | Sink | Capacity | Intent |
 |---|---|---|
@@ -305,5 +308,6 @@ stays viable at ~6 min for streak preservation. Both must remain true through tu
 |---|---|---|---|
 | 2026-07-28 | v0 seed values established | initial design | baseline |
 | 2026-07-28 | MPL re-anchored: `12×(1+L/40)^1.5` → `1.2×(1+L/12)^2` (M1) | old curve cost ~12 missions for level 2 → day-1 ended ≈ L2, nowhere near the §8.3 day-1 ≈ L10 intent; new curve starts at ~1.4 missions/level and grows steeper | optimal-24h/7d/30d scenarios green with ~20% headroom reserved for arena/quest XP landing in M4–M6 |
+| 2026-07-28 | §6 audit corrected from sim measurement (M3): selling ≈ 0.05 M10/day (was 2.5), patrol 2.4–3.3 | first real audit run showed drop-vendoring is ~0.2% of mission income (sell = 20% of ilvl^1.75 vs missions ∝ L^1.9) — accepted as design: loot's value is equipping + dismantling, not gold | no constant changed; `gold-faucet audit` scenario added to CI |
 
 *(Every future tuning PR appends a row here.)*

@@ -7,9 +7,10 @@
  * loot→sell. Arena (M4), dungeons/expeditions (M5) and quests/gems (M6) extend
  * the policies in their milestones — bounds already reserve headroom for them.
  */
-import { ATTRIBUTE_IDS, type AttributeId, type GameSave } from '@/engine/types';
+import { ATTRIBUTE_IDS, type AttributeId, type GameSave, type ItemInstance } from '@/engine/types';
 import { attrCost, buyAttributePoint } from '@/engine/economy';
-import { sellPrice } from '@/engine/items';
+import { canEquip, equipItem } from '@/engine/inventoryOps';
+import { itemArmor, sellPrice, slotOf, weaponDamage } from '@/engine/items';
 import {
   acceptTavernOffer,
   claimMission,
@@ -43,6 +44,10 @@ export interface SimResult {
   finalLevel: number;
   finalGold: number;
   finalAttrs: Record<AttributeId, number>;
+  /** Gold-faucet/sink audit (BALANCING.md §6 — asserted in scenarios) */
+  goldFrom: { missions: number; patrol: number; selling: number };
+  goldSpentOnAttrs: number;
+  equippedCount: number;
   records: DayRecord[];
 }
 
@@ -81,8 +86,36 @@ function sellBackpack(save: GameSave): number {
   return gold;
 }
 
+/** Crude power score: weapon damage, armor, or line total (jewelry). */
+function itemScore(item: ItemInstance): number {
+  const slot = slotOf(item);
+  if (slot === 'weapon' || slot === 'offhand') {
+    const d = weaponDamage(item);
+    return (d.min + d.max) / 2 + itemArmor(item);
+  }
+  const armor = itemArmor(item);
+  if (armor > 0) return armor;
+  return item.lines.reduce((sum, l) => sum + l.value, 0) * 3;
+}
+
+/** Equip strictly-better drops before selling the rest (the real player habit). */
+function equipUpgrades(save: GameSave): void {
+  for (let pass = 0; pass < 2; pass++) {
+    for (let i = 0; i < save.inventory.backpack.length; i++) {
+      const item = save.inventory.backpack[i]!;
+      if (!canEquip(save, item)) continue;
+      const current = save.inventory.equipped[slotOf(item)];
+      if (!current || itemScore(item) > itemScore(current)) {
+        equipItem(save, i);
+        i = -1; // indices shifted; restart the scan
+      }
+    }
+  }
+}
+
 /** Spread gold across attributes, always buying the cheapest next point. */
-function buyAttributes(save: GameSave): void {
+function buyAttributes(save: GameSave): number {
+  let spent = 0;
   for (;;) {
     let cheapest: AttributeId | null = null;
     let cheapestCost = Infinity;
@@ -93,8 +126,8 @@ function buyAttributes(save: GameSave): void {
         cheapestCost = cost;
       }
     }
-    if (!cheapest || save.hero.gold < cheapestCost) return;
-    buyAttributePoint(save, cheapest);
+    if (!cheapest || save.hero.gold < cheapestCost) return spent;
+    spent += buyAttributePoint(save, cheapest);
   }
 }
 
@@ -105,13 +138,15 @@ export function simulateDays(profile: Profile, days: number, seed = 'sim-seed'):
     START + policy.playStartHour * HOUR,
   );
   const records: DayRecord[] = [];
+  const goldFrom = { missions: 0, patrol: 0, selling: 0 };
+  let goldSpentOnAttrs = 0;
 
   for (let day = 1; day <= days; day++) {
     const dayStart = START + (day - 1) * 24 * HOUR;
     let now = dayStart + policy.playStartHour * HOUR;
 
     // Arriving for today's session: bank patrol/resets for everything crossed.
-    applyTimePassage(save, now);
+    goldFrom.patrol += applyTimePassage(save, now).patrolGoldBanked;
 
     if (policy.secondWind && !save.daily.secondWindUsed) claimSecondWind(save);
 
@@ -129,19 +164,20 @@ export function simulateDays(profile: Profile, days: number, seed = 'sim-seed'):
       const duration = getTavernOffers(save)[idx]!.durationMin;
       acceptTavernOffer(save, idx, now);
       now = missionEndsAt(save.activities.mission!);
-      claimMission(save, now);
+      goldFrom.missions += claimMission(save, now).gold;
       spent += duration;
     }
 
-    sellBackpack(save);
-    buyAttributes(save);
+    equipUpgrades(save);
+    goldFrom.selling += sellBackpack(save);
+    goldSpentOnAttrs += buyAttributes(save);
 
     // Evening: the exhausted hero walks the walls until midnight.
     if (canStartPatrol(save)) {
       startPatrol(save, now);
       for (let c = 0; c < policy.patrolCollections; c++) {
         now = Math.min(now + 8 * HOUR, dayStart + 24 * HOUR - 60_000);
-        collectPatrol(save, now);
+        goldFrom.patrol += collectPatrol(save, now).gold;
       }
       // Remaining ticks bank automatically at the midnight crossing.
     }
@@ -164,6 +200,9 @@ export function simulateDays(profile: Profile, days: number, seed = 'sim-seed'):
     finalLevel: save.hero.level,
     finalGold: save.hero.gold,
     finalAttrs: { ...save.hero.attrsBought },
+    goldFrom,
+    goldSpentOnAttrs,
+    equippedCount: Object.values(save.inventory.equipped).filter(Boolean).length,
     records,
   };
 }

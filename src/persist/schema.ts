@@ -91,9 +91,16 @@ const questBlock = {
   questProgress: z.record(z.number()),
 };
 
+const shopState = z
+  .object({
+    stock: z.array(itemInstance.nullable()).nullable(),
+    rerollUsed: z.boolean(),
+  })
+  .strict();
+
 export const gameSaveSchema = z
   .object({
-    version: z.literal(3),
+    version: z.literal(4),
     createdAt: isoDate,
     lastSeenAt: isoDate,
     worldSeed: z.string().min(8),
@@ -190,6 +197,17 @@ export const gameSaveSchema = z
             .strict(),
         ),
         milestonesClaimed: z.array(z.string()),
+      })
+      .strict(),
+    town: z
+      .object({
+        shops: z
+          .object({
+            weaponsmith: shopState,
+            armorer: shopState,
+            arcanum: shopState,
+          })
+          .strict(),
       })
       .strict(),
     stats: z.record(z.number()),
