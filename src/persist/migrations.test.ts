@@ -119,7 +119,7 @@ const V4_FIXTURE = {
 describe('save migrations', () => {
   it('migrates a v1 (M0) save forward to the current version', () => {
     const save = migrateSave(structuredClone(V1_FIXTURE));
-    expect(save.version).toBe(5);
+    expect(save.version).toBe(6);
     expect(save.hero.name).toBe('Fixture');
     expect(save.inventory.backpack[0]?.classId).toBeNull();
     expect(save.activities.tavernOffers).toBeNull();
@@ -131,7 +131,7 @@ describe('save migrations', () => {
 
   it('migrates a v2 (M1) save with an in-flight mission (payload gains flavor)', () => {
     const save = migrateSave(structuredClone(V2_FIXTURE));
-    expect(save.version).toBe(5);
+    expect(save.version).toBe(6);
     expect(save.activities.mission?.payload.flavor).toBe(0);
     expect(save.activities.mission?.payload.xp).toBe(55);
     expect(save.activities.tavernOffers).toBeNull();
@@ -140,7 +140,7 @@ describe('save migrations', () => {
 
   it('migrates a v4 (M3/M4) save: expeditions reset, day counter added', () => {
     const save = migrateSave(structuredClone(V4_FIXTURE));
-    expect(save.version).toBe(5);
+    expect(save.version).toBe(6);
     expect(save.activities.expedition).toBeNull();
     expect(save.daily.expeditions).toBe(0);
     // pre-M5 items simply carry no setId

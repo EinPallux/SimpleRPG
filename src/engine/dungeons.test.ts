@@ -53,8 +53,8 @@ describe('dungeons', () => {
     const outcome = attemptFloor(save, 'rat-cellars', T0);
     expect(outcome.won).toBe(true); // 500 str at L13 flattens a L14 rat
     expect(save.progress.dungeonFloors['rat-cellars']).toBe(1);
-    expect(outcome.gems).toBe(3);
-    expect(save.hero.gems).toBe(3);
+    expect(outcome.gems).toBe(1);
+    expect(save.hero.gems).toBe(1);
     expect(outcome.gold).toBeGreaterThan(0);
     expect(outcome.xp?.gained).toBeGreaterThan(0);
     expect(['rare', 'epic', 'legendary']).toContain(outcome.drop?.rarity);
@@ -71,7 +71,7 @@ describe('dungeons', () => {
     expect(outcome.setDrop).toBe(true);
     expect(outcome.drop?.rarity).toBe('set');
     expect(outcome.drop?.setId).toBe('bulwark-boar'); // warrior's L20 set
-    expect(outcome.gems).toBe(5);
+    expect(outcome.gems).toBe(3);
   });
 
   it('fixed-pool wings pity into the class set once their set is complete', () => {
@@ -111,7 +111,7 @@ describe('dungeons', () => {
     const outcome = attemptFloor(save, 'rat-cellars', T0);
     expect(outcome.won).toBe(true);
     expect(outcome.dungeonCleared).toBe(true);
-    expect(outcome.gems).toBe(15); // 5 set-floor + 10 completion
+    expect(outcome.gems).toBe(8); // 3 set-floor + 5 completion
     expect(outcome.drop?.setId).toBe('bulwark-boar');
   });
 });

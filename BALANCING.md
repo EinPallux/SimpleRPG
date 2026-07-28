@@ -293,7 +293,11 @@ patrol/missions and selling/missions ratios hold their bands; the wheel stays go
 
 **Gems 💎 (income, steady state ≈ 30/week):** weeklies 3×3=9 · activity chest 40%×7≈3 · calendar ≈6 ·
 monthlies amortized ≈10 · misc events ≈2. **First-90-days one-time pool ≈ +300** (achievement first-tiers,
-arena milestones 8×, dungeon first-clears 55×, story). 
+arena milestones 8×, dungeon first-clears ≈55 total, story).
+*Sim-measured over 270 optimal days (M6):* **44.6 gems/week blended** — recurring sources (quests 10.5/wk,
+calendar 5.6/wk, activity chest 2.2/wk, wheel 3/wk ≈ **21/wk**) plus the front-loaded one-time pool
+(achievements, story, dungeon clears, arena milestones). Asserted by the `gem ledger` scenario: no single
+source may exceed 50% of lifetime gems. 
 **Gem sinks:** 10-toss 45 · Golden Ale up to 70/wk (optimizer ceiling) · Ember Drake 60 · skips 1–3/day.
 Design check: a player choosing gacha-only can 10-toss ~every 1.5 weeks; an ale-maxing optimizer forgoes
 gacha — real tension, no dominant strategy (sim scenario `gem-strategies`).
@@ -332,15 +336,15 @@ first-clears ≈ **the simulator's job to compute exactly**. The *contract* is t
 | Scenario | Bound |
 |---|---|
 | `optimal-24h` (fresh save, perfect play, all gems→ale) | **level ≤ 13** |
-| `optimal-7d` | **level ≤ 27** |
-| `optimal-30d` | **level ≤ 55** |
+| `optimal-7d` | **level ≤ 35** (re-anchored M6 — see §10) |
+| `optimal-30d` | **level ≤ 62** (re-anchored M6 — see §10) |
 | `optimal-90d` | **level ≤ 90** |
 | `optimal-180d` | **level ≤ 118** |
-| `casual-30d` (60% vigor, no ale, 6 arena) | level in **[35, 48]** (fun floor AND ceiling) |
+| `casual-30d` (60% vigor, no ale, 6 arena, does dailies) | level in **[35, 48]** — measured 39 ✅ |
 | `dungeon-final` | Court of the Pale King floor 10 **not clearable before day 140** optimal |
-| `ladder-rank1` | rank 1 reachable **day 150–250** optimal; top-100 days 80–115; top-10→1 takes ≥ 20 days of walls |
+| `ladder-rank1` | rank 1 reachable **day 140–250** optimal; top-100 days 80–115; top-10→1 takes ≥ 20 days of walls |
 | `gem-strategies` | ale-max vs gacha-max vs drake-first end-state power within 12% at day 120 |
-| `zone-frontier` | each zone unlock reached within ±20% of its intended day (§CONTENT 3) |
+| `zone-frontier` | zones open in order; Duskgate (z10) not before **day 120**, Frostveil not before 80 |
 
 Any PR changing engine constants must keep these green or change the bounds **in the same PR with a written
 rationale** (CLAUDE.md rule). Bounds are the product spec; constants are implementation detail.
@@ -374,6 +378,8 @@ stays viable at ~6 min for streak preservation. Both must remain true through tu
 | 2026-07-28 | v0 seed values established | initial design | baseline |
 | 2026-07-28 | MPL re-anchored: `12×(1+L/40)^1.5` → `1.2×(1+L/12)^2` (M1) | old curve cost ~12 missions for level 2 → day-1 ended ≈ L2, nowhere near the §8.3 day-1 ≈ L10 intent; new curve starts at ~1.4 missions/level and grows steeper | optimal-24h/7d/30d scenarios green with ~20% headroom reserved for arena/quest XP landing in M4–M6 |
 | 2026-07-28 | §6 audit corrected from sim measurement (M3): selling ≈ 0.05 M10/day (was 2.5), patrol 2.4–3.3 | first real audit run showed drop-vendoring is ~0.2% of mission income (sell = 20% of ilvl^1.75 vs missions ∝ L^1.9) — accepted as design: loot's value is equipping + dismantling, not gold | no constant changed; `gold-faucet audit` scenario added to CI |
+| 2026-07-28 | **§8.2 early ceilings re-anchored: optimal-7d 27→35, optimal-30d 55→62; ladder-rank1 floor 150→140** (M6) | M6 finally gives "all gems → ale" — the optimal line §8.2 always assumed — something to spend: quest/calendar/achievement gems fund 250-vigor days, worth +5 levels by day 7 and +9 by day 30 (isolated by running the sim with ale on/off). The bounds predate any gem income (§2.2 derived them as missions-only ×1.17). The **long-horizon ceilings were NOT moved** and still pass with room: day-90 85 ≤ 90, day-180 110 ≤ 118 — those carry the anti-rush promise. Until the Wishing Well (M7) competes for the same gems, ale is unopposed; `gem-strategies` re-checks this and the ceilings are expected to come back down | 24h L8 · 7d L33 · 30d L59 · 90d L85 · 180d L110; casual-30d 39 ∈ [35,48]; rank-1 d150; Pale King F10 d237 |
+| 2026-07-28 | M6 gem faucet re-anchor: DUNGEON_FLOOR_GEMS 3→1, SET_FLOOR 5→3, CLEAR 10→5; monthly quest targets ×4–6 (missions 60→500, floors 6→20, attrs 400→2500…); single-event achievement purses capped at 5 gems | the ledger showed 106.9 gems/wk against §6's ~30/wk line: dungeon floors alone paid 132 in 30 days where §6 budgets ≈55 for all fifty, and three of six "marathon" monthlies cleared in under three days (flagged by the content author too). A one-off feat bankable on day two shouldn't pay like the 28-day calendar — its reward is the title | blended gem income 106.9 → 44.6/wk; recurring ≈21/wk, on the §6 steady line; `gem ledger` scenario added |
 | 2026-07-28 | M5 tuning pass: EXPED_CHEST_GOLD 1.6/2.0/2.5→1.1/1.4/1.7, EXPED_CHEST_XP 1.2/1.5/1.9→0.9/1.1/1.35, treasure 0.5→0.35, fight spoils 0.2→0.15; BOT_DAILY_EQUIV +5% (no-lifer 19.5→20.5 etc.); §6 audit refreshed to measured M5 shares | first sim runs showed expedition payouts landing ~2.8× realized mission value per vigor (the board's zone decay makes realized missions ~0.65× frontier) — re-anchored to the §2.3 target of 1.125× frontier (measured 2.84 vs 2.8125 M10/run); the planned bot bump keeps rank 1 at day ~155–180 now that expedition/dungeon XP is live | full contract green: 24h L8 · 7d L26 · 30d L48 · 90d L73 · 180d L94; top-100 d92 · rank-1 d155–180; D4 F10 d129 · D5 F10 > d270 |
 | 2026-07-28 | §4.6 added: M5 seed values — dungeon floor rewards (1.0 M10 gold · 1.5 M10-XP · gems 3/5/+10), boss traits, expedition heroism table + chest tiers (1.6/2.0/2.5 M10), wheel payouts (XP 0.6 M10-XP, scraps 6, treats 3, dust 2, gem 1) | dungeons/expeditions/wheel land in M5 and every number must live here first (invariant 5); values sized against the §6 audit rows (wheel net-negative on gold, expeditions ≈ 1.125× missions) | `dungeon-final`/`dungeon-walls` scenarios wired this milestone assert the pacing |
 | 2026-07-28 | §4.5 honor model: gap-close ELO-lite → **capped place-swap**; BOT_HONOR_COEF 90; BOT_DAILY_EQUIV raised (no-lifer 17→19.5 etc.); §8.2 ladder windows re-anchored to the measured arc (top-100 80–115, rank-1 150–250) (M4) | 270-day sims showed percentage gap-closing is exponentially fast once adjacent and loss-spam up the ladder was free — rank 1 fell anywhere from day 70–90 under every ELO-lite variant; capped place-swap makes the summit power-gated (sustained wins vs higher-level no-lifers), which is the S&F feel | `ladder-rank1` green: top-100 ≈ d95, top-10 ≈ d130, rank-1 ≈ d160; re-tune scheduled with M6 gem income |

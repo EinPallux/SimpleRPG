@@ -58,7 +58,9 @@ Expedition locales (special art, §GAME_DESIGN 16): **Castaway Cove** `bg_1` · 
 | Frostveil Summit | Frost Wight (Grunt) · Icicle Lancer (Swift) · Blizzard Hare (Swift, yes really) · Rime Chanter (Caster) · Frozen Sentinel (Brute) · Avalanche Spirit (Brute) · Aurora Wisp (Caster) · **Warden of the White Stair (Elite)** |
 | Duskgate | Pale Courtier (Swift) · Gloom Herald (Caster) · Dusk Knight (Brute) · Star-Eaten Scholar (Caster) · Veil Assassin (Swift) · Twilight Mass (Brute) · Lantern-Snuffer (Grunt) · **Herald of the Pale King (Elite)** |
 
-Each monster: `id`, zone, archetype, icon ref (ASSETS.md §4), 1-line codex lore **[build-fill]**.
+Each monster: `id`, zone, archetype, 1-line codex lore (all 80 written in M6, `i18n/parts/bestiary.json`).
+Monsters are met in play: expedition fight cards draw a named monster of the card's archetype from the
+hero's frontier zone, and every claimed mission records a sighting (GAME_DESIGN §13).
 
 ## 5. Dungeons — 50 floor bosses + set assignments
 
@@ -164,7 +166,9 @@ Cosmetic frames pool: 12 portrait frames **[build-fill: names]**.
 | 7 | The Glass Ladder (70) | Spire key → D4 f1 → reach arena top-100 → reforge lesson → D4 f5 |
 | 8 | The Pale Invitation (95) | court key → D5 f1 → Duskgate missions → D5 f5 → **audience with the Pale King** (f10, v1.0 finale) |
 
-Step prose + rewards table **[build-fill]**; every chapter completion: gems + unique title or cosmetic.
+Step prose + rewards written in M6 (`content/story.ts`, `i18n/parts/story.json`); every chapter finale
+pays gems (5/8/10/12/15/18/20/25 by chapter) + its unique title. **Chapters gate by level and advance
+independently** — see GAME_DESIGN §12.3. Chapter 5 needs pets, so it waits for M7.
 
 ## 10. Achievements (70) — category · counts (tiers bronze/silver/gold at thresholds)
 
@@ -221,10 +225,10 @@ with it." · "The toll-troll now accepts exposure as payment. He would prefer go
 |---|---|---|
 | Mission offers | 6/zone + 12 generic = 72 | `mission.z{z}.{i}` |
 | Patrol tick events | 20 | `patrol.tick.{i}` |
-| Expedition events (choose-1-of-2 outcomes) | 24 | `exped.event.{i}` |
+| Expedition events (choose-1-of-2 outcomes) | 24 ✅ M5 | `exped.event.{i}` |
 | Arena defeat/victory quips | 15 + 15 | `arena.win/lose.{i}` |
-| Boss intro threats | 50 (one each) | `boss.{id}.intro` |
-| Codex monster lore | 80 | `codex.{id}` |
+| Boss intro threats | 50 ✅ M5 | `boss.{id}.intro` |
+| Codex monster lore | 80 ✅ M6 | `monster.{id}.lore` |
 | Loading/reset tips | 25 | `tips.{i}` |
 
 ## 14. Elixirs (The Arcanum)

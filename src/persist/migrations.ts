@@ -10,6 +10,13 @@ import { parseGameSave } from './schema';
 
 type RawSave = Record<string, unknown>;
 
+/** Drop a key entirely — `{ k: undefined }` still trips zod's strict mode. */
+function omit(obj: Record<string, unknown>, key: string): Record<string, unknown> {
+  const copy = { ...obj };
+  delete copy[key];
+  return copy;
+}
+
 const MIGRATIONS: Record<number, (raw: RawSave) => RawSave> = {
   /**
    * v1 (M0) → v2 (M1): activities carry typed payloads, items carry a class
@@ -77,6 +84,53 @@ const MIGRATIONS: Record<number, (raw: RawSave) => RawSave> = {
       version: 5,
       activities: { ...activities, expedition: null },
       daily: { ...daily, expeditions: 0 },
+    };
+  },
+  /**
+   * v5 (M5) → v6 (M6): the meta layer. Quest slates gain claim tracking and a
+   * stat-ledger snapshot (progress is a delta, so a fresh snapshot simply means
+   * "this period starts now"); the story becomes per-chapter step counters
+   * (chapters gate by level and advance independently); titles, frames and
+   * codex lore-read tracking arrive. Quest slates are cleared so the next reset
+   * rolls them from the M6 pools.
+   */
+  6: (raw) => {
+    const daily = raw.daily as Record<string, unknown>;
+    const weekly = raw.weekly as Record<string, unknown>;
+    const monthly = raw.monthly as Record<string, unknown>;
+    const progress = raw.progress as Record<string, unknown>;
+    const stats = (raw.stats ?? {}) as Record<string, number>;
+    const codex = (progress.codex ?? {}) as Record<string, unknown>;
+    // A fresh slate snapshots the ledger as it stands: nothing already earned
+    // counts toward today's quests, which is what a player would expect.
+    const freshBlock = {
+      questIds: [],
+      questProgress: {},
+      questsClaimed: [],
+      statsAt: { ...stats },
+    };
+    return {
+      ...raw,
+      version: 6,
+      daily: {
+        ...daily,
+        ...freshBlock,
+        questSwapUsed: false,
+        activityChestClaimed: false,
+      },
+      weekly: { weekKey: weekly.weekKey, ...freshBlock },
+      monthly: { monthKey: monthly.monthKey, ...freshBlock },
+      progress: {
+        ...omit(progress, 'storyStep'), // v5's linear pointer never shipped a UI
+        story: {},
+        titles: [],
+        frames: [],
+        codex: {
+          monstersSeen: codex.monstersSeen ?? {},
+          itemsSeen: codex.itemsSeen ?? {},
+          loreSeen: {},
+        },
+      },
     };
   },
 };

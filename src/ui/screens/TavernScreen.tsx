@@ -14,6 +14,7 @@ import { BackgroundArt } from '../components/BackgroundArt';
 import { FButton } from '../components/FButton';
 import { Icon } from '../components/Icon';
 import { Panel } from '../components/Panel';
+import { StoryBanner } from '../components/StoryBanner';
 import { ProgressBar } from '../components/ProgressBar';
 import { TimerBar } from '../components/TimerBar';
 import { fmt } from '../format';
@@ -208,6 +209,7 @@ export function TavernScreen() {
 
   return (
     <div className="flex flex-col gap-4">
+      <StoryBanner />
       {hasMission ? (
         <ActiveMission />
       ) : (

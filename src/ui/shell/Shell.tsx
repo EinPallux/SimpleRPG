@@ -9,13 +9,18 @@ import { useGameClock } from '../hooks/useGameClock';
 import { findNavEntry } from '../nav';
 import { ArenaPlayback } from '../components/ArenaPlayback';
 import { DungeonPlayback, ExpedPlayback } from '../components/PvePlayback';
+import { MetaRewardModal } from '../components/MetaRewardModal';
+import { AchievementsScreen } from '../screens/AchievementsScreen';
 import { ArenaScreen } from '../screens/ArenaScreen';
+import { CalendarScreen } from '../screens/CalendarScreen';
 import { CharacterScreen } from '../screens/CharacterScreen';
+import { CodexScreen } from '../screens/CodexScreen';
 import { DungeonsScreen } from '../screens/DungeonsScreen';
 import { ExpeditionScreen } from '../screens/ExpeditionScreen';
 import { ForgeScreen } from '../screens/ForgeScreen';
 import { HallOfFameScreen } from '../screens/HallOfFameScreen';
 import { PatrolScreen } from '../screens/PatrolScreen';
+import { QuestBoardScreen } from '../screens/QuestBoardScreen';
 import { ShopsScreen } from '../screens/ShopsScreen';
 import { TavernScreen } from '../screens/TavernScreen';
 import { WheelScreen } from '../screens/WheelScreen';
@@ -35,6 +40,10 @@ const SCREENS: Partial<Record<ScreenId, () => React.JSX.Element | null>> = {
   dungeons: DungeonsScreen,
   expeditions: ExpeditionScreen,
   wheel: WheelScreen,
+  quests: QuestBoardScreen,
+  achievements: AchievementsScreen,
+  codex: CodexScreen,
+  calendar: CalendarScreen,
 };
 
 /** Catch the local-midnight rollover while the tab stays open (GAME_DESIGN §14). */
@@ -85,6 +94,7 @@ export function Shell() {
       <ArenaPlayback />
       <DungeonPlayback />
       <ExpedPlayback />
+      <MetaRewardModal />
       <SettingsModal />
     </div>
   );

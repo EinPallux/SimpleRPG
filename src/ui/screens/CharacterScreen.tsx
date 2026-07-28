@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { getClass } from '@/content/classes';
 import { getElixir } from '@/content/elixirs';
+import { getTitle } from '@/content/titles';
 import { CRIT_PER_LUCK, DR_CAP, DR_DIVISOR, POTION_SLOTS } from '@/engine/constants';
 import { attrCost } from '@/engine/economy';
 import { heroToCombatant } from '@/engine/combatants';
@@ -195,6 +196,30 @@ function BackpackTab({ save }: { save: GameSave }) {
   );
 }
 
+/** Equip one earned title (GAME_DESIGN §13 — pure prestige). */
+function TitlePicker({ save }: { save: GameSave }) {
+  const equip = useGame((s) => s.equipTitle);
+  const owned = save.progress.titles;
+  if (owned.length === 0) return null;
+  return (
+    <label className="flex items-center gap-2 text-[11px] font-bold text-ink-faint">
+      <span className="sr-only">{t('title.picker')}</span>
+      <select
+        value={save.hero.titleId ?? ''}
+        onChange={(e) => equip(e.target.value === '' ? null : e.target.value)}
+        className="rounded-sm border border-black/40 bg-panel-inset px-2 py-1 text-[11px] font-bold text-ink"
+      >
+        <option value="">{t('title.none')}</option>
+        {owned.map((id) => (
+          <option key={id} value={id}>
+            {t(getTitle(id).nameKey as I18nKey)}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 export function CharacterScreen() {
   const save = useGame((s) => s.save);
   const [tab, setTab] = useState<'equipment' | 'backpack'>('equipment');
@@ -233,7 +258,14 @@ export function CharacterScreen() {
               <div className="flex flex-col items-center gap-2 pt-2">
                 <EmblemAvatar emblem={save.hero.portrait} classId={save.hero.classId} size={110} />
                 <div className="text-center">
-                  <div className="font-display text-xl font-bold text-ink">{save.hero.name}</div>
+                  <div className="font-display text-xl font-bold text-ink">
+                    {save.hero.name}
+                    {save.hero.titleId && (
+                      <span className="ml-1.5 font-body text-sm font-bold text-gold">
+                        {t(getTitle(save.hero.titleId).nameKey as I18nKey)}
+                      </span>
+                    )}
+                  </div>
                   <div className="text-sm font-bold" style={{ color: `var(${cls.colorVar})` }}>
                     <Icon
                       id={cls.icon as never}
@@ -244,6 +276,7 @@ export function CharacterScreen() {
                     {t('common.levelShort', { level: save.hero.level })}
                   </div>
                 </div>
+                <TitlePicker save={save} />
                 <ProgressBar
                   variant="xp"
                   value={save.hero.xp}

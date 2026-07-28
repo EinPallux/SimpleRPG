@@ -8,8 +8,21 @@
  * the policies in their milestones — bounds already reserve headroom for them.
  */
 import { ATTRIBUTE_IDS, type AttributeId, type GameSave, type ItemInstance } from '@/engine/types';
+import type { Cadence } from '@/content/meta';
 import { DUNGEONS } from '@/content/dungeons';
 import { LOCALES } from '@/content/expeditions';
+import { frontierZoneIndex } from '@/content/zones';
+import { claimAllAchievements } from '@/engine/achievements';
+import { canClaimCalendar, claimCalendarDay } from '@/engine/calendar';
+import { QUESTS_UNLOCK_LEVEL } from '@/engine/constants';
+import {
+  canClaimActivityChest,
+  canClaimQuest,
+  claimActivityChest,
+  claimQuest,
+  ensureQuestBoard,
+} from '@/engine/quests';
+import { claimableChapters, claimStep } from '@/engine/story';
 import { fightArena, fightsLeft } from '@/engine/arena';
 import { playerRank } from '@/engine/botworld';
 import { attemptFloor, canAttemptFloor } from '@/engine/dungeons';
@@ -35,7 +48,9 @@ import {
 import { createNewSave, deriveEmblem } from '@/engine/newSave';
 import { canStartPatrol, collectPatrol, startPatrol } from '@/engine/patrol';
 import { applyTimePassage } from '@/engine/timePassage';
-import { claimSecondWind } from '@/engine/vigor';
+import { buyAle, canBuyAle, claimSecondWind } from '@/engine/vigor';
+
+const CADENCES: readonly Cadence[] = ['daily', 'weekly', 'monthly'];
 
 export type Profile = 'optimal' | 'casual' | 'idle-only';
 
@@ -75,6 +90,17 @@ export interface SimResult {
     expeditions: number;
     dungeons: number;
     wheel: number;
+    quests: number;
+  };
+  gemsFrom: {
+    quests: number;
+    activityChest: number;
+    calendar: number;
+    story: number;
+    achievements: number;
+    dungeons: number;
+    arenaMilestones: number;
+    wheel: number;
   };
   goldSpentOnAttrs: number;
   goldSpentOnWheel: number;
@@ -82,6 +108,12 @@ export interface SimResult {
   finalRank: number;
   /** every dungeon floor beaten, with the day it fell (dungeon-walls scenario) */
   floorClears: FloorClear[];
+  /** zone index → the day its frontier first opened (zone-frontier scenario) */
+  zoneFirstDay: Record<number, number>;
+  /** total achievement tiers banked and titles earned by the end */
+  achievementTiers: number;
+  titlesEarned: number;
+  storyStepsDone: number;
   records: DayRecord[];
 }
 
@@ -98,6 +130,10 @@ interface PolicyConfig {
   dungeonSessions: number; // daily visits to the walls (attempts are free, hourly)
   wheelSpins: number; // spins attempted (first free, then rising gold)
   boldEvents: boolean; // expedition events: bold vs safe picks
+  /** work the meta layer: quests, activity chest, calendar, story, achievements */
+  meta: boolean;
+  /** spend gems on Golden Ale — the §8.2 "all gems → ale" optimal line */
+  aleFromGems: boolean;
 }
 
 const POLICIES: Record<Profile, PolicyConfig> = {
@@ -111,6 +147,8 @@ const POLICIES: Record<Profile, PolicyConfig> = {
     dungeonSessions: 3,
     wheelSpins: 5,
     boldEvents: true,
+    meta: true,
+    aleFromGems: true,
   },
   casual: {
     vigorBudget: 60,
@@ -122,6 +160,8 @@ const POLICIES: Record<Profile, PolicyConfig> = {
     dungeonSessions: 1,
     wheelSpins: 2,
     boldEvents: false,
+    meta: true, // casuals do their dailies; that is the whole point of dailies
+    aleFromGems: false,
   },
   'idle-only': {
     vigorBudget: 20,
@@ -133,6 +173,8 @@ const POLICIES: Record<Profile, PolicyConfig> = {
     dungeonSessions: 0,
     wheelSpins: 0,
     boldEvents: false,
+    meta: false,
+    aleFromGems: false,
   },
 };
 
@@ -228,10 +270,25 @@ export function simulateDays(profile: Profile, days: number, seed = 'sim-seed'):
     expeditions: 0,
     dungeons: 0,
     wheel: 0,
+    quests: 0,
+  };
+  // The gem ledger (BALANCING §6): where the premium currency actually comes
+  // from, so the "≈30/week steady state" line can be checked, not assumed.
+  const gemsFrom = {
+    quests: 0,
+    activityChest: 0,
+    calendar: 0,
+    story: 0,
+    achievements: 0,
+    dungeons: 0,
+    arenaMilestones: 0,
+    wheel: 0,
   };
   let goldSpentOnAttrs = 0;
   let goldSpentOnWheel = 0;
+  let storyChapter1Day: number | undefined;
   const floorClears: FloorClear[] = [];
+  const zoneFirstDay: Record<number, number> = {};
 
   for (let day = 1; day <= days; day++) {
     const dayStart = START + (day - 1) * 24 * HOUR;
@@ -241,6 +298,20 @@ export function simulateDays(profile: Profile, days: number, seed = 'sim-seed'):
     goldFrom.patrol += applyTimePassage(save, now).patrolGoldBanked;
 
     if (policy.secondWind && !save.daily.secondWindUsed) claimSecondWind(save);
+
+    // The meta layer opens the day: stamp the calendar, take the boards, and
+    // turn yesterday's gems into today's vigor (§8.2 "all gems → ale").
+    if (policy.meta) {
+      if (canClaimCalendar(save, now)) {
+        gemsFrom.calendar += claimCalendarDay(save, now).reward.gems;
+      }
+      if (save.hero.level >= QUESTS_UNLOCK_LEVEL) {
+        for (const cadence of CADENCES) ensureQuestBoard(save, cadence);
+      }
+    }
+    if (policy.aleFromGems) {
+      while (canBuyAle(save)) buyAle(save);
+    }
 
     // Expeditions first (L8+): 12.5% better per vigor than missions, so the
     // optimizer spends this budget before the tavern board. Picks chase
@@ -287,6 +358,7 @@ export function simulateDays(profile: Profile, days: number, seed = 'sim-seed'):
       for (let f = 0; f < policy.arenaFights && fightsLeft(save) > 0; f++) {
         const outcome = fightArena(save, offerIdx, now);
         goldFrom.arena += outcome.gold;
+        gemsFrom.arenaMilestones += outcome.milestoneGems;
         now += 10.5 * 60_000;
       }
     }
@@ -298,6 +370,7 @@ export function simulateDays(profile: Profile, days: number, seed = 'sim-seed'):
         if (!canAttemptFloor(save, dungeon.id, sessionTime).ok) continue;
         const out = attemptFloor(save, dungeon.id, sessionTime);
         goldFrom.dungeons += out.gold + out.autoSoldGold;
+        gemsFrom.dungeons += out.gems;
         if (out.won) floorClears.push({ dungeonId: dungeon.id, floor: out.floor, day });
       }
     }
@@ -307,7 +380,34 @@ export function simulateDays(profile: Profile, days: number, seed = 'sim-seed'):
       for (let w = 0; w < policy.wheelSpins && canSpinWheel(save); w++) {
         const out = spinWheel(save);
         goldFrom.wheel += out.gold + out.autoSoldGold;
+        gemsFrom.wheel += out.gems;
         goldSpentOnWheel += out.cost;
+      }
+    }
+
+    // Evening bookkeeping: cash in everything the day's play completed.
+    if (policy.meta) {
+      for (const cadence of CADENCES) {
+        for (const quest of ensureQuestBoard(save, cadence)) {
+          if (!canClaimQuest(save, quest)) continue;
+          const claim = claimQuest(save, quest.id, now);
+          goldFrom.quests += claim.reward.gold + claim.reward.autoSoldGold;
+          gemsFrom.quests += claim.reward.gems;
+        }
+      }
+      if (canClaimActivityChest(save)) {
+        const chest = claimActivityChest(save, now);
+        goldFrom.quests += chest.gold;
+        gemsFrom.activityChest += chest.gems;
+      }
+      for (const chapter of claimableChapters(save)) {
+        const claim = claimStep(save, chapter, now);
+        goldFrom.quests += claim.reward.gold + claim.reward.autoSoldGold;
+        gemsFrom.story += claim.reward.gems;
+        if (claim.step.chapter === 1 && claim.step.step === 5) storyChapter1Day ??= day;
+      }
+      for (const claim of claimAllAchievements(save, now)) {
+        gemsFrom.achievements += claim.reward?.gems ?? 0;
       }
     }
 
@@ -324,6 +424,10 @@ export function simulateDays(profile: Profile, days: number, seed = 'sim-seed'):
       }
       // Remaining ticks bank automatically at the midnight crossing.
     }
+
+    // When did each zone's frontier first open? (`zone-frontier` scenario)
+    const frontier = frontierZoneIndex(save.hero.level);
+    for (let z = 1; z <= frontier; z++) zoneFirstDay[z] ??= day;
 
     records.push({
       day,
@@ -347,11 +451,16 @@ export function simulateDays(profile: Profile, days: number, seed = 'sim-seed'):
     finalGold: save.hero.gold,
     finalAttrs: { ...save.hero.attrsBought },
     goldFrom,
+    gemsFrom,
     goldSpentOnAttrs,
     goldSpentOnWheel,
     equippedCount: Object.values(save.inventory.equipped).filter(Boolean).length,
     finalRank: records[records.length - 1]?.rank ?? 751,
     floorClears,
+    zoneFirstDay,
+    achievementTiers: Object.values(save.progress.achievements).reduce((a, b) => a + b, 0),
+    titlesEarned: save.progress.titles.length,
+    storyStepsDone: Object.values(save.progress.story).reduce((a, b) => a + b, 0),
     records,
   };
 }

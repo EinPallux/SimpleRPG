@@ -1,6 +1,7 @@
 /** Derived hero stats (BALANCING.md §3.1, §5.2, set tiers §4.6). */
 import { getClass } from '@/content/classes';
 import { CAP_CRIT_DMG_BONUS, CAP_GOLD_FIND, CAP_XP_BONUS } from './constants';
+import { codexBonuses } from './codex';
 import { potionPercent } from './potions';
 import { setAggregate } from './sets';
 import type { AttributeId, GameSave, ItemInstance } from './types';
@@ -26,12 +27,16 @@ export function totalAttribute(save: GameSave, attr: AttributeId): number {
   return Math.round(total * (1 + potionPercent(save, attr)) * (1 + setPct));
 }
 
-/** Percent bonuses from gear lines + set tiers, engine-capped (§5.2). Fractions. */
+/**
+ * Percent bonuses from gear lines, set tiers and completed Codex pages,
+ * engine-capped (BALANCING §5.2/§6). Values are fractions.
+ */
 export function gearPercents(save: GameSave): { critDmg: number; goldFind: number; xp: number } {
   const sets = setAggregate(save);
+  const codex = codexBonuses(save);
   let critDmg = sets.critDmgPct / 100;
-  let goldFind = sets.goldPct;
-  let xp = sets.xpPct;
+  let goldFind = sets.goldPct + codex.goldFind;
+  let xp = sets.xpPct + codex.xp;
   for (const item of equippedItems(save)) {
     for (const line of item.lines) {
       if (line.attr === 'critDmg') critDmg += line.value / 100;

@@ -3,6 +3,7 @@
  * UI arrives in M2; the balance simulator drives these directly. All functions
  * mutate the passed save draft and are deterministic given the rng streams.
  */
+import { monstersOfZone } from '@/content/bestiary';
 import { frontierZoneIndex, getZone } from '@/content/zones';
 import {
   MISSION_CHEST_CHANCE,
@@ -12,6 +13,7 @@ import {
 } from './constants';
 import { missionGold, missionXp, zoneMultiplier } from './economy';
 import { effectiveItemChance, rollDrop, sellPrice, type DropSource } from './items';
+import { bump, recordDrop, recordMonster } from './ledger';
 import { getStream } from './rng';
 import { activeEffect } from './sets';
 import { totalAttribute } from './stats';
@@ -110,6 +112,7 @@ export function canStartMission(save: GameSave, offer: MissionOffer): boolean {
 export function startMission(save: GameSave, offer: MissionOffer, nowMs: number): void {
   if (!canStartMission(save, offer)) throw new Error('Cannot start mission (vigor/activity)');
   save.daily.vigor -= offer.durationMin;
+  bump(save, 'vigorSpent', offer.durationMin);
   const payload: MissionPayload = {
     zoneIndex: offer.zoneIndex,
     durationMin: offer.durationMin,
@@ -166,9 +169,16 @@ export function claimMission(save: GameSave, nowMs: number): MissionRewards {
   save.hero.gold += payload.gold;
   save.stats.missionsCompleted = (save.stats.missionsCompleted ?? 0) + 1;
   save.stats.goldEarned = (save.stats.goldEarned ?? 0) + payload.gold;
+  // A mission is a day out in a zone: you meet something, and the Bestiary
+  // remembers it (GAME_DESIGN §13 — the codex fills from where you actually go).
+  const sighted = monstersOfZone(payload.zoneIndex);
+  if (sighted.length > 0) {
+    recordMonster(save, loot.pick(sighted).id);
+  }
   let autoSoldGold = 0;
   for (const drop of [item, chest]) {
     if (!drop) continue;
+    recordDrop(save, drop);
     if (save.inventory.backpack.length < save.inventory.capacity) {
       save.inventory.backpack.push(drop);
     } else {

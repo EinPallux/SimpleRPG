@@ -44,7 +44,8 @@ console.log(
   `\nFinal: level ${result.finalLevel}, gold ${Math.round(result.finalGold)}, attrs ${JSON.stringify(result.finalAttrs)}`,
 );
 const f = result.goldFrom;
-const earned = f.missions + f.patrol + f.selling + f.arena + f.expeditions + f.dungeons + f.wheel;
+const earned =
+  f.missions + f.patrol + f.selling + f.arena + f.expeditions + f.dungeons + f.wheel + f.quests;
 const pct = (n: number) => `${Math.round((n / earned) * 100)}%`;
 console.log(
   `Faucets: missions ${Math.round(f.missions)} (${pct(f.missions)}) · arena ${Math.round(f.arena)} (${pct(f.arena)}) · ` +
@@ -54,6 +55,16 @@ console.log(
 );
 console.log(
   `Wheel ledger: won ${Math.round(f.wheel)} vs spent ${Math.round(result.goldSpentOnWheel)} (net ${Math.round(f.wheel - result.goldSpentOnWheel)})`,
+);
+const g = result.gemsFrom;
+const gems = Object.values(g).reduce((a, b) => a + b, 0);
+console.log(
+  `Gem ledger (${gems} total, ${(gems / (days / 7)).toFixed(1)}/week): quests ${g.quests} · chest ${g.activityChest} · ` +
+    `calendar ${g.calendar} · story ${g.story} · achievements ${g.achievements} · dungeons ${g.dungeons} · ` +
+    `arena ${g.arenaMilestones} · wheel ${g.wheel}`,
+);
+console.log(
+  `Meta: ${result.storyStepsDone}/40 story steps · ${result.achievementTiers} achievement tiers · ${result.titlesEarned} titles`,
 );
 const clearLine = result.floorClears
   .filter((c) => c.floor === 10 || c.floor === 5)

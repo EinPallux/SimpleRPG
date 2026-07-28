@@ -6,8 +6,27 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { canFight, fightArena, skipCooldown, type ArenaOutcome } from '@/engine/arena';
-import { ARENA_COOLDOWN_SKIP_GEMS } from '@/engine/constants';
+import { ARENA_COOLDOWN_SKIP_GEMS, QUESTS_UNLOCK_LEVEL } from '@/engine/constants';
 import { bossNameKey, getDungeon } from '@/content/dungeons';
+import { getQuest } from '@/content/quests';
+import {
+  canClaimAchievement,
+  claimAchievement,
+  claimAllAchievements,
+} from '@/engine/achievements';
+import { canClaimCalendar, claimCalendarDay } from '@/engine/calendar';
+import { readLore } from '@/engine/codex';
+import {
+  canClaimActivityChest,
+  canClaimQuest,
+  canSwapDaily,
+  claimActivityChest,
+  claimQuest,
+  ensureQuestBoard,
+  swapDaily,
+} from '@/engine/quests';
+import type { GrantedReward } from '@/engine/rewards';
+import { canClaimStep, claimStep } from '@/engine/story';
 import {
   attemptFloor,
   canAttemptFloor,
@@ -113,6 +132,8 @@ interface GameStore {
   expedOutcome: ExpeditionStepOutcome | null;
   /** landed wheel spin awaiting the reveal */
   wheelOutcome: WheelOutcome | null;
+  /** a meta-layer payout (quest, story step, chest, calendar) awaiting its reveal */
+  metaReward: { titleKey: I18nKey; reward: GrantedReward } | null;
 
   bootstrap(): Promise<void>;
   /** Run offline catch-up / clock-guard check against the wall clock. */
@@ -137,6 +158,19 @@ interface GameStore {
   arenaFight(offerIndex: number): void;
   arenaSkipCooldown(): void;
   closeArenaOutcome(): void;
+
+  // Meta layer (M6)
+  questsEnsureBoards(): void;
+  questClaim(questId: string): void;
+  questSwap(questId: string): void;
+  activityChestClaim(): void;
+  storyClaim(chapter: number): void;
+  achievementClaim(id: string): void;
+  achievementClaimAll(): void;
+  calendarClaim(): void;
+  equipTitle(titleId: string | null): void;
+  codexReadLore(monsterId: string): void;
+  closeMetaReward(): void;
 
   // Dungeons, expeditions, wheel (M5)
   dungeonFight(dungeonId: string): void;
@@ -206,6 +240,7 @@ export const useGame = create<GameStore>()(
       dungeonOutcome: null,
       expedOutcome: null,
       wheelOutcome: null,
+      metaReward: null,
 
       catchUp() {
         set((s) => {
@@ -416,6 +451,116 @@ export const useGame = create<GameStore>()(
       closeWheelOutcome() {
         set((s) => {
           s.wheelOutcome = null;
+        });
+      },
+
+      questsEnsureBoards() {
+        // Effect-driven: fills any empty board on first visit of the period.
+        set((s) => {
+          if (!s.save || s.save.hero.level < QUESTS_UNLOCK_LEVEL) return;
+          ensureQuestBoard(s.save, 'daily');
+          ensureQuestBoard(s.save, 'weekly');
+          ensureQuestBoard(s.save, 'monthly');
+        });
+        scheduleAutosave();
+      },
+
+      questClaim(questId) {
+        set((s) => {
+          if (!s.save) return;
+          const quest = getQuest(questId);
+          if (!canClaimQuest(s.save, quest)) return;
+          const claim = claimQuest(s.save, questId, systemClock.now());
+          s.metaReward = { titleKey: 'quests.claimed', reward: claim.reward };
+        });
+        scheduleAutosave();
+      },
+
+      questSwap(questId) {
+        set((s) => {
+          if (!s.save || !canSwapDaily(s.save, questId)) return;
+          swapDaily(s.save, questId);
+        });
+        scheduleAutosave();
+      },
+
+      activityChestClaim() {
+        set((s) => {
+          if (!s.save || !canClaimActivityChest(s.save)) return;
+          const reward = claimActivityChest(s.save, systemClock.now());
+          s.metaReward = { titleKey: 'quests.chestOpened', reward };
+        });
+        scheduleAutosave();
+      },
+
+      storyClaim(chapter) {
+        set((s) => {
+          if (!s.save || !canClaimStep(s.save, chapter)) return;
+          const claim = claimStep(s.save, chapter, systemClock.now());
+          s.metaReward = {
+            titleKey: claim.chapterComplete ? 'story.chapterDone' : 'story.stepDone',
+            reward: claim.reward,
+          };
+        });
+        scheduleAutosave();
+      },
+
+      achievementClaim(id) {
+        let text: string | null = null;
+        set((s) => {
+          if (!s.save || !canClaimAchievement(s.save, id)) return;
+          const claim = claimAchievement(s.save, id, systemClock.now());
+          text = t('toast.achievement', {
+            name: t(`achv.${claim.def.id}.name` as I18nKey),
+            attrs: claim.attrGained,
+          });
+        });
+        if (text) get().toast(text);
+        scheduleAutosave();
+      },
+
+      achievementClaimAll() {
+        let count = 0;
+        let attrs = 0;
+        set((s) => {
+          if (!s.save) return;
+          for (const claim of claimAllAchievements(s.save, systemClock.now())) {
+            count += 1;
+            attrs += claim.attrGained;
+          }
+        });
+        if (count > 0) get().toast(t('toast.achievementAll', { n: count, attrs }));
+        scheduleAutosave();
+      },
+
+      calendarClaim() {
+        set((s) => {
+          if (!s.save || !canClaimCalendar(s.save, systemClock.now())) return;
+          const claim = claimCalendarDay(s.save, systemClock.now());
+          s.metaReward = { titleKey: 'calendar.claimed', reward: claim.reward };
+        });
+        scheduleAutosave();
+      },
+
+      equipTitle(titleId) {
+        set((s) => {
+          if (!s.save) return;
+          if (titleId !== null && !s.save.progress.titles.includes(titleId)) return;
+          s.save.hero.titleId = titleId;
+        });
+        scheduleAutosave();
+      },
+
+      codexReadLore(monsterId) {
+        set((s) => {
+          if (s.save) readLore(s.save, monsterId);
+        });
+        scheduleAutosave();
+      },
+
+      closeMetaReward() {
+        set((s) => {
+          s.metaReward = null;
         });
       },
 

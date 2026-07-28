@@ -17,6 +17,7 @@ import {
 } from './constants';
 import { missionGold, missionXp } from './economy';
 import { generateItem, rollDrop, sellPrice } from './items';
+import { bump, recordDrop } from './ledger';
 import { getStream, type Rng } from './rng';
 import type { GameSave, ItemInstance } from './types';
 import { applyXp, type XpResult } from './xpGain';
@@ -68,6 +69,7 @@ export function spinWheel(save: GameSave): WheelOutcome {
   if (save.hero.gold < cost) throw new Error('Not enough gold');
   save.hero.gold -= cost;
   save.daily.wheelSpins += 1;
+  save.stats.goldSpent = (save.stats.goldSpent ?? 0) + cost;
 
   const rng = getStream(save.rngState, save.worldSeed, 'wheel');
   let slotIndex = pickSlot(rng);
@@ -106,6 +108,7 @@ export function spinWheel(save: GameSave): WheelOutcome {
   } else if (kind === 'gem') {
     gems = WHEEL_GEMS * mult;
   } else if (kind === 'jackpot') {
+    bump(save, 'wheelJackpots');
     // Legendary at hero level. The Gilded Snail (pets) and the 25-gem fallback
     // join with the Menagerie in M7 — until then the wheel always pays gear.
     items.push(
@@ -119,6 +122,7 @@ export function spinWheel(save: GameSave): WheelOutcome {
 
   let autoSoldGold = 0;
   for (const item of items) {
+    recordDrop(save, item);
     if (save.inventory.backpack.length < save.inventory.capacity) {
       save.inventory.backpack.push(item);
     } else {

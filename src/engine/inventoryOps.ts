@@ -38,5 +38,9 @@ export function sellItem(save: GameSave, backpackIndex: number): number {
   save.inventory.backpack.splice(backpackIndex, 1);
   save.hero.gold += gold;
   save.stats.itemsSold = (save.stats.itemsSold ?? 0) + 1;
+  // Parting with a legendary is a feat of its own kind (title: the Regretful).
+  if (item.rarity === 'legendary') {
+    save.stats.legendariesSold = (save.stats.legendariesSold ?? 0) + 1;
+  }
   return gold;
 }

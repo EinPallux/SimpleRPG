@@ -341,6 +341,25 @@ gems stay precious (~30/week steady-state income, BALANCING.md §6).
   scraps + 40% chance of 1 Gem). Resets daily. This is the "did my dailies" heartbeat.
 - Quests reroll at their cadence; one daily may be swapped free per day (avoid feel-bads).
 
+### 12.3 How the meta layer measures anything (the stat ledger)
+
+Implementation contract for §12–13, decided in M6: **`save.stats` is an append-only ledger** of everything
+the hero has ever done, and every meta system is a pure *read* of it.
+
+- **Quests** measure a **period delta**: `metric(now) − statsAt[metric]`, where `statsAt` is a snapshot of
+  the ledger taken when the period reset. Nothing writes quest progress, so offline catch-up is free and a
+  mid-quest reload cannot desync. Quest metrics must therefore be monotonic counters.
+- **Achievements and story steps** measure **lifetime** values from the same ledger.
+- Metrics that aren't raw counters (level, sets completed, codex %) resolve through one switch in
+  `engine/metrics.ts`; content refers to them by id, so adding a metric never touches content.
+- Consequence worth knowing: a quest whose metric is *exhaustible* (dungeon floors — there are only 50)
+  goes dead once mined out, and two metrics are class-gated (`blocks` is Warrior-only, `evades` is
+  Scout/Assassin) — the free daily swap is the release valve for both.
+
+**Chapters gate by level and advance independently** (changed from a single linear pointer in M6): steps
+inside a chapter are linear, but a level-45 hero can work chapter 6 while chapter 5 waits on a system that
+hasn't unlocked yet. Without this, one gated beat would stall the entire questline.
+
 ---
 
 ## 13. Achievements, Titles & Codex (the long tail)
@@ -353,6 +372,8 @@ gems stay precious (~30/week steady-state income, BALANCING.md §6).
 - **Codex** (unlock L25): collection log with permanent bonuses (all page-completion bonuses global-capped —
   BALANCING.md §6): 
   - **Bestiary** — every monster: kill counter, lore blurb at 10 kills; per-zone completion → +1% gold find.
+    Pages fill from where you actually go: expedition fight cards draw a **named monster** of the matching
+    archetype from your frontier zone, and every claimed mission records a sighting (M6 decision).
   - **Armory** — every item design discovered; per-tier completion → +XP%.
   - **Menagerie / Stable / Vault** — pets, mounts, cosmetic frames.
   - Overall completion % on the cover — the 100% chase for finishers.

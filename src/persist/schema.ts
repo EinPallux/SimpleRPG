@@ -46,7 +46,11 @@ const patrolActivity = z
 
 const expeditionCard = z.union([
   z
-    .object({ kind: z.literal('fight'), foe: z.enum(['grunt', 'swift', 'caster', 'brute']) })
+    .object({
+      kind: z.literal('fight'),
+      foe: z.enum(['grunt', 'swift', 'caster', 'brute']),
+      monsterId: z.string().optional(),
+    })
     .strict(),
   z.object({ kind: z.literal('miniboss') }).strict(),
   z.object({ kind: z.literal('treasure') }).strict(),
@@ -99,6 +103,8 @@ const equipSlot = z.enum([
 const questBlock = {
   questIds: z.array(z.string()),
   questProgress: z.record(z.number()),
+  questsClaimed: z.array(z.string()),
+  statsAt: z.record(z.number()),
 };
 
 const shopState = z
@@ -110,7 +116,7 @@ const shopState = z
 
 export const gameSaveSchema = z
   .object({
-    version: z.literal(5),
+    version: z.literal(6),
     createdAt: isoDate,
     lastSeenAt: isoDate,
     worldSeed: z.string().min(8),
@@ -174,6 +180,8 @@ export const gameSaveSchema = z
         tavernRerollUsed: z.boolean(),
         freeTossUsed: z.boolean(),
         activity: z.number().min(0),
+        questSwapUsed: z.boolean(),
+        activityChestClaimed: z.boolean(),
         ...questBlock,
       })
       .strict(),
@@ -188,7 +196,7 @@ export const gameSaveSchema = z
       .strict(),
     progress: z
       .object({
-        storyStep: z.number().int().min(0),
+        story: z.record(z.number().int().min(0).max(5)),
         zonesUnlocked: z.number().int().min(1),
         zonePinned: z.number().int().nullable(),
         dungeonFloors: z.record(z.number().int().min(0)),
@@ -196,9 +204,12 @@ export const gameSaveSchema = z
           .object({
             monstersSeen: z.record(z.number().int().min(0)),
             itemsSeen: z.record(z.literal(true)),
+            loreSeen: z.record(z.literal(true)),
           })
           .strict(),
         achievements: z.record(z.number().int().min(0)),
+        titles: z.array(z.string()),
+        frames: z.array(z.string()),
         pets: z.record(z.object({ owned: z.boolean(), level: z.number().int().min(0) }).strict()),
         equippedPet: z.string().nullable(),
         mountTier: z.number().int().min(0).max(4),

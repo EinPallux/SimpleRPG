@@ -40,12 +40,31 @@ export interface PatrolPayload {
   collectedUpTo: string;
 }
 
-/** One face-down card in an expedition encounter (GAME_DESIGN §16). */
+/**
+ * One face-down card in an expedition encounter (GAME_DESIGN §16).
+ * Fight cards name a real monster from the hero's frontier zone (CONTENT §4),
+ * which is what fills the Bestiary — `monsterId` is optional only so that
+ * expeditions already in flight across the M6 upgrade keep working.
+ */
 export type ExpeditionCard =
-  | { kind: 'fight'; foe: 'grunt' | 'swift' | 'caster' | 'brute' }
+  | { kind: 'fight'; foe: 'grunt' | 'swift' | 'caster' | 'brute'; monsterId?: string }
   | { kind: 'miniboss' }
   | { kind: 'treasure' }
   | { kind: 'event'; eventIndex: number };
+
+/**
+ * One cadence's quest slate (GAME_DESIGN §12.2). Progress is never written by
+ * the systems that generate it: it is always `stats[metric] − statsAt[metric]`,
+ * so a quest can't desync from the ledger and offline catch-up is free.
+ */
+export interface QuestBlock {
+  questIds: string[];
+  /** cached progress for display; recomputed from the ledger on every read */
+  questProgress: Record<string, number>;
+  questsClaimed: string[];
+  /** the stat ledger as it stood when this period began */
+  statsAt: Record<string, number>;
+}
 
 /** An expedition in progress: 5 encounters, pick 1 of 3 revealed cards each. */
 export interface ExpeditionState {
@@ -150,19 +169,31 @@ export interface GameSave {
     tavernRerollUsed: boolean;
     freeTossUsed: boolean;
     activity: number;
-    questIds: string[];
-    questProgress: Record<string, number>;
-  };
-  weekly: { weekKey: string; questIds: string[]; questProgress: Record<string, number> };
-  monthly: { monthKey: string; questIds: string[]; questProgress: Record<string, number> };
+    /** the one free daily swap (GAME_DESIGN §12.2 — no feel-bads) */
+    questSwapUsed: boolean;
+    /** the Activity Chest at 100 points */
+    activityChestClaimed: boolean;
+  } & QuestBlock;
+  weekly: { weekKey: string } & QuestBlock;
+  monthly: { monthKey: string } & QuestBlock;
   calendar: { monthKey: string; claimedDays: number[]; lastClaimDayKey: string | null };
   progress: {
-    storyStep: number;
+    /** chapter number → steps completed (0..5). Chapters gate by level and
+     *  advance independently (GAME_DESIGN §12.1). */
+    story: Record<string, number>;
     zonesUnlocked: number;
     zonePinned: number | null;
     dungeonFloors: Record<string, number>;
-    codex: { monstersSeen: Record<string, number>; itemsSeen: Record<string, true> };
+    codex: {
+      monstersSeen: Record<string, number>;
+      itemsSeen: Record<string, true>;
+      /** lore entries actually opened (the Scholar's secret achievement) */
+      loreSeen: Record<string, true>;
+    };
+    /** achievement id → tiers claimed (0..tiers.length) */
     achievements: Record<string, number>;
+    titles: string[];
+    frames: string[];
     pets: Record<string, { owned: boolean; level: number }>;
     equippedPet: string | null;
     mountTier: number;
