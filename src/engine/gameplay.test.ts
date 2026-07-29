@@ -210,3 +210,90 @@ describe('time passage (offline catch-up + resets + tamper guard)', () => {
     expect(() => parseGameSave(JSON.parse(JSON.stringify(save)))).not.toThrow();
   });
 });
+
+/**
+ * The long-absence cases (M9 QA sweep). The scenario that matters is not a
+ * cheater — it is somebody who put the game down in July and opens it again in
+ * March, and whose first impression is whatever this function does.
+ */
+describe('clock jumps and long absences', () => {
+  const YEAR = 365 * 24 * HOUR;
+
+  it('a year away lands on the right day, week and month without stalling', () => {
+    const save = fresh();
+    const back = T0 + YEAR;
+    const result = applyTimePassage(save, back);
+    expect(result.frozen).toBe(false);
+    expect(result.daysCrossed).toBe(365);
+    expect(result.weeksCrossed).toBe(52);
+    expect(result.monthsCrossed).toBe(12);
+    expect(save.daily.dayKey).toBe('2027-07-28');
+    expect(save.monthly.monthKey).toBe('2027-07');
+    expect(save.lastSeenAt).toBe(new Date(back).toISOString());
+    expect(() => parseGameSave(JSON.parse(JSON.stringify(save)))).not.toThrow();
+  });
+
+  it('per-day allowances do NOT stack — a year away buys exactly one day', () => {
+    // This is the property that makes forward jumps pointless to farm: every
+    // reset ASSIGNS the day's allowance rather than adding to it, so 365
+    // crossed midnights and one crossed midnight leave the same hero.
+    const long = fresh();
+    long.daily.vigor = 0;
+    long.daily.wheelSpins = 5;
+    long.daily.freeTossUsed = true;
+    long.daily.aleUsed = 3;
+    applyTimePassage(long, T0 + YEAR);
+
+    const short = fresh();
+    short.daily.vigor = 0;
+    short.daily.wheelSpins = 5;
+    short.daily.freeTossUsed = true;
+    short.daily.aleUsed = 3;
+    applyTimePassage(short, T0 + 25 * HOUR);
+
+    expect(long.daily.vigor).toBe(short.daily.vigor);
+    expect(long.daily.wheelSpins).toBe(0);
+    expect(long.daily.freeTossUsed).toBe(false);
+    expect(long.daily.aleUsed).toBe(0);
+    expect(long.hero.gems).toBe(short.hero.gems);
+  });
+
+  it('patrol banks its 8-hour cap once, not a year of gold', () => {
+    const save = fresh();
+    save.daily.vigor = 0;
+    startPatrol(save, T0);
+    const year = applyTimePassage(save, T0 + YEAR);
+
+    const capped = fresh();
+    capped.daily.vigor = 0;
+    startPatrol(capped, T0);
+    // First midnight is 15h after T0 (09:00 → 00:00), past the 8h cap already.
+    const oneNight = applyTimePassage(capped, T0 + 25 * HOUR);
+
+    expect(year.patrolGoldBanked).toBe(oneNight.patrolGoldBanked);
+    expect(save.activities.patrol).toBeNull(); // a patrol never spans days
+  });
+
+  it('the calendar advances one month, however long you were gone', () => {
+    const save = fresh();
+    save.calendar.claimedDays = [1, 2, 3];
+    applyTimePassage(save, T0 + YEAR);
+    expect(save.calendar.monthKey).toBe('2027-07');
+    expect(save.calendar.claimedDays).toEqual([]);
+  });
+
+  it('a backwards jump freezes and then thaws once wall time catches up', () => {
+    const save = fresh();
+    applyTimePassage(save, T0 + 25 * HOUR); // now lastSeen = T0 + 25h
+    const seen = save.lastSeenAt;
+
+    // Device clock yanked back a week: nothing accrues, nothing is taken away.
+    expect(applyTimePassage(save, T0).frozen).toBe(true);
+    expect(save.lastSeenAt).toBe(seen); // high-water mark survives
+
+    // Wall time passes the mark again → normal service, no penalty owed.
+    const thawed = applyTimePassage(save, T0 + 49 * HOUR);
+    expect(thawed.frozen).toBe(false);
+    expect(thawed.daysCrossed).toBe(1);
+  });
+});

@@ -129,9 +129,17 @@ interface GameSave {
   claimable day max, vigor resets each midnight but only the final day is spendable — matching design).
 - **Resets**: daily = local midnight; weekly = Monday 00:00; monthly = 1st 00:00 (GAME_DESIGN §14 lists
   affected systems — implemented as one `applyDailyReset(save)` family of pure functions).
-- **Clock-tamper guard**: if `now < lastSeenAt − 10 min` → enter `timeFrozen` mode (timers paused, banner
-  shown: "Aethermoor's sun is confused") until wall clock passes `lastSeenAt` again; DST/timezone travel
-  tolerated via ±26 h grace on *forward* jumps (no penalty ever — guards only prevent farming, never punish).
+- **Clock-tamper guard** (backwards only): if `now < lastSeenAt − 10 min` → enter `timeFrozen` mode
+  (timers paused, banner shown: "Aethermoor's sun is confused") until the wall clock passes `lastSeenAt`
+  again. Nothing is ever taken away — the freeze exists so a wrong device clock cannot *punish* a player,
+  which is the only clock failure that can hurt someone.
+  **Forward jumps are processed normally and are not defended against.** There is deliberately no forward
+  grace: this is an offline single-player game with no accounts, no monetization and no real ladder, so a
+  player who moves their own clock is only skipping their own content. The property that makes it pointless
+  anyway is that every reset *assigns* the day's allowance rather than adding to it — vigor, wheel spins,
+  the free toss, ale and shop stock are identical after one crossed midnight and after 365 (asserted in
+  `gameplay.test.ts` "clock jumps and long absences"). Patrol banks its 8 h cap once, not a year of gold.
+  The genuine case this path serves is the player who put the game down in July and opens it in March.
 - Active tab: 1 Hz `useGameClock` tick drives timer UIs; no per-frame state churn.
 
 ## 7. Bot world (deterministic, storage-free)
