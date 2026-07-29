@@ -1,7 +1,14 @@
 import { mountBlurbKey, mountNameKey } from '@/content/mounts';
 import { getTitle } from '@/content/titles';
 import { STABLE_UNLOCK_LEVEL } from '@/engine/constants';
-import { currentMount, MAX_MOUNT_TIER, stableRows, stableUnlocked } from '@/engine/mounts';
+import {
+  currentMount,
+  MAX_MOUNT_TIER,
+  mountDaysLeft,
+  stableRows,
+  stableUnlocked,
+} from '@/engine/mounts';
+import { useGameClock } from '../hooks/useGameClock';
 import { t, type I18nKey } from '@/i18n';
 import { useGame } from '@/state/store';
 import { CurrencyChip } from '../components/CurrencyChip';
@@ -19,6 +26,7 @@ function isDrake(costGems: number | undefined): boolean {
 export function StableScreen() {
   const save = useGame((s) => s.save);
   const buy = useGame((s) => s.mountBuy);
+  const now = useGameClock(30_000);
 
   // Loading: the shell mounts screens before the slot finishes hydrating.
   if (!save) return null;
@@ -36,8 +44,8 @@ export function StableScreen() {
   }
 
   const mount = currentMount(save);
-  const rows = stableRows(save);
-  const firstPurchase = save.progress.mountTier === 0;
+  const rows = stableRows(save, now);
+  const daysLeft = mountDaysLeft(save, now);
 
   return (
     <div className="flex flex-col gap-4">
@@ -87,14 +95,23 @@ export function StableScreen() {
                 ? t('stable.speed', { pct: Math.round(mount.speed * 100) })
                 : t('mount.none.blurb')}
             </p>
+            {/* A rental is a standing decision, so the term is on the headline
+                rather than buried in the row it belongs to. */}
+            {mount && (
+              <p className="mt-0.5 text-[11px] font-bold text-teal">
+                {t('stable.daysLeft', { days: daysLeft })}
+              </p>
+            )}
           </div>
         </div>
       </Panel>
 
-      <p className="text-xs font-semibold text-ink-faint">{t('stable.pays')}</p>
+      <p className="text-xs leading-relaxed font-semibold text-ink-faint">
+        {t('stable.termNote')} {t('stable.pays')}
+      </p>
 
       <div className="flex flex-col gap-3">
-        {rows.map(({ mount: stall, price, owned, affordable }) => {
+        {rows.map(({ mount: stall, price, active, affordable, daysLeft: rowDays }) => {
           const gems = isDrake(stall.costGems);
           return (
             <Panel key={stall.id} variant={gems ? 'special' : 'secondary'}>
@@ -129,31 +146,28 @@ export function StableScreen() {
                 </div>
 
                 <div className="flex shrink-0 items-center justify-between gap-3 sm:flex-col sm:items-end">
-                  {owned ? (
+                  {active && (
                     <span className="inline-flex items-center gap-1 rounded-sm bg-panel-inset px-2 py-1 text-[10px] font-extrabold tracking-wide text-gold uppercase">
-                      <Icon id="star" size={11} /> {t('stable.owned')}
+                      <Icon id="star" size={11} /> {t('stable.daysLeft', { days: rowDays })}
                     </span>
-                  ) : (
-                    <>
-                      <span
-                        className={`inline-flex items-center gap-1.5 text-sm font-bold ${gems ? 'text-gem' : 'text-gold-bright'}`}
-                      >
-                        <Icon
-                          id={gems ? 'gem' : 'gold'}
-                          size={15}
-                          label={t(gems ? 'hud.gems' : 'hud.gold')}
-                        />
-                        {fmt(gems ? price.gems : price.gold)}
-                      </span>
-                      <FButton
-                        variant={gems ? 'gem' : 'primary'}
-                        disabled={!affordable}
-                        onClick={() => buy(stall.tier)}
-                      >
-                        {firstPurchase ? t('stable.buy') : t('stable.upgrade')}
-                      </FButton>
-                    </>
                   )}
+                  <span
+                    className={`inline-flex items-center gap-1.5 text-sm font-bold ${gems ? 'text-gem' : 'text-gold-bright'}`}
+                  >
+                    <Icon
+                      id={gems ? 'gem' : 'gold'}
+                      size={15}
+                      label={t(gems ? 'hud.gems' : 'hud.gold')}
+                    />
+                    {fmt(gems ? price.gems : price.gold)}
+                  </span>
+                  <FButton
+                    variant={gems ? 'gem' : 'primary'}
+                    disabled={!affordable}
+                    onClick={() => buy(stall.tier)}
+                  >
+                    {active ? t('stable.renew') : t('stable.rent')}
+                  </FButton>
                 </div>
               </div>
             </Panel>

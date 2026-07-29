@@ -38,12 +38,18 @@ import {
   resolveCard,
   startExpedition,
 } from '@/engine/expeditions';
-import { canEquip, equipItem } from '@/engine/inventoryOps';
+import { classFitness, equipItem } from '@/engine/inventoryOps';
 import { getSet } from '@/content/sets';
 import { itemArmor, sellPrice, slotOf, weaponDamage } from '@/engine/items';
 import { canSpinWheel, spinWheel } from '@/engine/wheel';
 import { canToss, freeTossAvailable, toss, tossCost, type TossResult } from '@/engine/gacha';
-import { canBuyMount, buyMount } from '@/engine/mounts';
+import {
+  activeMountTier,
+  buyMount,
+  canBuyMount,
+  mountDaysLeft,
+  mountPrice,
+} from '@/engine/mounts';
 import { canFeedPet, equipPet, feedPetMax, ownedPets, petState } from '@/engine/pets';
 import { isoWeekNumber } from '@/engine/time';
 import { totalAttribute } from '@/engine/stats';
@@ -53,6 +59,7 @@ import {
   acceptTavernOffer,
   claimMission,
   getTavernOffers,
+  missionDurationSec,
   missionEndsAt,
   rerollTavernOffers,
   tavernRerollCost,
@@ -135,6 +142,18 @@ export interface SimResult {
   mountTier: number;
   /** The single scalar the gem strategies are compared on */
   powerScore: number;
+  /**
+   * Real-world minutes the hero spent WAITING on missions across the run.
+   *
+   * This is what a mount actually buys, and `powerScore` structurally cannot
+   * see it: vigor meters the day, not the clock, so halving mission time never
+   * earns a point of anything — it hands back hours. Without this number the
+   * contract could only weigh the Drake's cost, and duly called the Stable's
+   * headline animal a trap (B1).
+   */
+  missionMinutes: number;
+  /** Missions actually run — pairs with `missionMinutes` to give minutes/mission. */
+  missionsRun: number;
   /** Named legendaries found (CONTENT §6.2) — the long tail's other collection */
   uniquesOwned: number;
   /** Sets fully owned, and set pieces actually WORN — the gacha payoff */
@@ -318,9 +337,15 @@ function itemScore(item: ItemInstance): number {
   return item.lines.reduce((sum, l) => sum + l.value, 0) * 3;
 }
 
-/** Set pieces carry bonus potential beyond raw stats — nudge the heuristic. */
-function scoreWithSetBias(item: ItemInstance, raw: number): number {
-  return item.rarity === 'set' ? raw * 1.2 : raw;
+/**
+ * Set pieces carry bonus potential beyond raw stats — nudge the heuristic. A
+ * piece cut for another class is discounted by how much of it this hero can
+ * actually use: since B1 nothing is class-LOCKED, so the model has to weigh
+ * off-class gear the way a player would rather than skip it the way the old
+ * `canEquip` gate did.
+ */
+function scoreWithSetBias(save: GameSave, item: ItemInstance, raw: number): number {
+  return (item.rarity === 'set' ? raw * 1.2 : raw) * classFitness(save, item);
 }
 
 /** Equip strictly-better drops before selling the rest (the real player habit). */
@@ -328,11 +353,11 @@ function equipUpgrades(save: GameSave): void {
   for (let pass = 0; pass < 2; pass++) {
     for (let i = 0; i < save.inventory.backpack.length; i++) {
       const item = save.inventory.backpack[i]!;
-      if (!canEquip(save, item)) continue;
       const current = save.inventory.equipped[slotOf(item)];
       if (
         !current ||
-        scoreWithSetBias(item, itemScore(item)) > scoreWithSetBias(current, itemScore(current))
+        scoreWithSetBias(save, item, itemScore(item)) >
+          scoreWithSetBias(save, current, itemScore(current))
       ) {
         equipItem(save, i);
         i = -1; // indices shifted; restart the scan
@@ -377,7 +402,6 @@ function wearBestSet(save: GameSave): void {
     if (item.setId !== bestSet) continue;
     const current = save.inventory.equipped[slotOf(item)];
     if (current?.setId === bestSet) continue;
-    if (!canEquip(save, item)) continue;
     equipItem(save, i);
     i = -1; // indices shifted; restart the scan
   }
@@ -402,19 +426,30 @@ function buyAttributes(save: GameSave): number {
 }
 
 /**
- * Climb the Stable ladder whenever gold allows. Mounts are the biggest one-off
- * gold sinks in the game (5k / 75k / 1.2M, BALANCING §6) and they buy back the
- * scarcest resource there is — real time — so an optimizer takes every rung the
- * moment it can. Tier 4 is deliberately NOT bought here: the Drake costs gems,
- * and which gems go where is the whole point of `gem-strategies`.
+ * Keep the best affordable GOLD mount in the stall. Mounts are the biggest
+ * recurring gold sinks in the game (5k / 75k / 1.2M a fortnight, BALANCING §6)
+ * and they buy back the scarcest resource there is — real time — so an
+ * optimizer keeps one saddled whenever gold allows.
+ *
+ * Since B1 they are rentals, so this runs every day rather than once per rung:
+ * it renews when the term is nearly up and trades up the moment a better animal
+ * becomes affordable. Tier 4 is deliberately NOT bought here — the Drake costs
+ * gems, and which gems go where is the whole point of `gem-strategies`.
  */
-function buyMounts(save: GameSave): number {
-  let spent = 0;
-  for (let tier = save.progress.mountTier + 1; tier < MAX_MOUNT_TIER; tier++) {
-    if (!canBuyMount(save, tier)) break;
-    spent += buyMount(save, tier).paid.gold;
+function buyMounts(save: GameSave, nowMs: number): number {
+  const active = activeMountTier(save, nowMs);
+  // Never downgrade a Drake that gem policy is paying for.
+  if (active >= MAX_MOUNT_TIER) return 0;
+  let best = 0;
+  for (let tier = 1; tier < MAX_MOUNT_TIER; tier++) {
+    if (canBuyMount(save, tier)) best = tier;
   }
-  return spent;
+  if (best === 0) return 0;
+  // Buy when there is nothing in the stall, when a better animal is affordable,
+  // or when the current rental is down to its last couple of days.
+  const stale = active > 0 && mountDaysLeft(save, nowMs) <= 2;
+  if (active !== 0 && best <= active && !stale) return 0;
+  return buyMount(save, best, nowMs).paid.gold;
 }
 
 /**
@@ -497,6 +532,9 @@ export function simulateDays(profile: Profile, days: number, seed = 'sim-seed'):
   let goldSpentOnAttrs = 0;
   let goldSpentOnWheel = 0;
   let goldSpentOnMounts = 0;
+  /** Wall-clock minutes spent waiting on missions — what a mount buys back. */
+  let missionMinutes = 0;
+  let missionsRun = 0;
   const gemsSpent = { ale: 0, tosses: 0, drake: 0 };
   let tosses = 0;
   function recordTosses(results: TossResult[]): void {
@@ -532,14 +570,25 @@ export function simulateDays(profile: Profile, days: number, seed = 'sim-seed'):
         gemsSpent.ale += ALE_COST_GEMS;
       }
     } else if (policy.gemPolicy === 'drake') {
-      // Hoard to the Drake, then behave exactly like ale-max forever after.
-      if (save.progress.mountTier >= MAX_MOUNT_TIER) {
-        while (canBuyAle(save)) {
-          buyAle(save);
-          gemsSpent.ale += ALE_COST_GEMS;
+      // Keep the Drake saddled, and put the SURPLUS into ale. Since B1 the
+      // Drake is a fortnightly rental, so this is a standing cost rather than a
+      // one-time hoard — which is exactly the decision the Stable now keeps
+      // asking the player to make.
+      //
+      // The reserve is the point. A first pass spent every gem on ale the day
+      // it arrived and then could not make rent, so the Drake was in the stall
+      // barely half the run and "drake-first" was really "ale-max that owns a
+      // dragon sometimes". Holding back the next renewal is what a player
+      // committed to the Drake actually does.
+      const drakeRent = mountPrice(save, MAX_MOUNT_TIER).gems;
+      if (activeMountTier(save, now) < MAX_MOUNT_TIER || mountDaysLeft(save, now) <= 2) {
+        if (canBuyMount(save, MAX_MOUNT_TIER)) {
+          gemsSpent.drake += buyMount(save, MAX_MOUNT_TIER, now).paid.gems;
         }
-      } else if (canBuyMount(save, MAX_MOUNT_TIER)) {
-        gemsSpent.drake += buyMount(save, MAX_MOUNT_TIER).paid.gems;
+      }
+      while (canBuyAle(save) && save.hero.gems - ALE_COST_GEMS >= drakeRent) {
+        buyAle(save);
+        gemsSpent.ale += ALE_COST_GEMS;
       }
     }
 
@@ -594,6 +643,21 @@ export function simulateDays(profile: Profile, days: number, seed = 'sim-seed'):
     // Mission grind through the persisted tavern board (the real player path).
     let spent = 0;
     const missionsBefore = save.stats.missionsCompleted ?? 0;
+    /**
+     * The day ends, and unspent vigor dies with it (`applyDailyReset` assigns
+     * the allowance rather than adding to it). The loop therefore has to stop at
+     * midnight, not merely when the vigor runs out.
+     *
+     * This was missing, and it made MOUNTS WORTHLESS to the model: the sim
+     * would run twenty 20-minute missions back to back regardless of how many
+     * hours that took, so halving mission time bought nothing it could measure.
+     * Fine while the Drake was a one-off 60 gems — noise. Fatal once B1 made it
+     * a 60-gem fortnightly rental, because then the model could see the whole
+     * cost and none of the benefit, and duly reported the Stable's headline
+     * animal as a trap. Same shape as the M7 set-piece bug: the simulator was
+     * quietly not playing the game.
+     */
+    const dayEnd = dayStart + 24 * HOUR;
     while (save.daily.vigor >= 5 && spent < policy.vigorBudget) {
       const budget = Math.min(save.daily.vigor, policy.vigorBudget - spent);
       let idx = bestAffordableIndex(getTavernOffers(save), budget);
@@ -603,8 +667,13 @@ export function simulateDays(profile: Profile, days: number, seed = 'sim-seed'):
       }
       if (idx === -1) break;
       const duration = getTavernOffers(save)[idx]!.durationMin;
+      // Would it still be running at midnight? Then there is no time for it.
+      if (now + missionDurationSec(save, duration) * 1000 > dayEnd) break;
       acceptTavernOffer(save, idx, now);
+      const startedAt = now;
       now = missionEndsAt(save.activities.mission!);
+      missionMinutes += (now - startedAt) / 60_000;
+      missionsRun += 1;
       goldFrom.missions += claimMission(save, now).gold;
       spent += duration;
     }
@@ -674,7 +743,7 @@ export function simulateDays(profile: Profile, days: number, seed = 'sim-seed'):
     managePets(save);
     // Mounts before attributes: an attribute point is always available later,
     // whereas a mount compounds over every remaining mission.
-    goldSpentOnMounts += buyMounts(save);
+    goldSpentOnMounts += buyMounts(save, now);
     goldSpentOnAttrs += buyAttributes(save);
 
     // Evening: the exhausted hero walks the walls until midnight.
@@ -725,6 +794,8 @@ export function simulateDays(profile: Profile, days: number, seed = 'sim-seed'):
     framesOwned: save.progress.frames.length,
     mountTier: save.progress.mountTier,
     powerScore: powerScore(save),
+    missionMinutes: Math.round(missionMinutes),
+    missionsRun,
     uniquesOwned: metricValue(save, 'uniquesOwned'),
     setsCompleted: metricValue(save, 'setsCompleted'),
     setPiecesEquipped: Object.values(save.inventory.equipped).filter((i) => i?.setId).length,

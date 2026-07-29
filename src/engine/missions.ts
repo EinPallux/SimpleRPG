@@ -8,6 +8,10 @@ import { zonePetChance, zonePetFor } from '@/content/pets';
 import { frontierZoneIndex, getZone } from '@/content/zones';
 import {
   MISSION_CHEST_CHANCE,
+  MISSION_CLOCK_BANDS,
+  MISSION_CLOCK_FAST_CAP_SEC,
+  MISSION_CLOCK_FAST_MAX_LEVEL,
+  MISSION_CLOCK_TUTORIAL_SEC,
   MISSION_DURATIONS,
   MOUNT_SPEED,
   TAVERN_REROLL_COST_GEMS,
@@ -16,6 +20,7 @@ import {
 import { missionGold, missionXp, zoneMultiplier } from './economy';
 import { effectiveItemChance, rollDrop, sellPrice, type DropSource } from './items';
 import { bump, recordDrop, recordMonster } from './ledger';
+import { expireMount } from './mounts';
 import { auraTotal, grantPet, petOwned } from './pets';
 import { getStream } from './rng';
 import { activeEffect } from './sets';
@@ -98,6 +103,27 @@ export function acceptTavernOffer(save: GameSave, index: number, nowMs: number):
 }
 
 /**
+ * The clock a mission of this SIZE runs on, before mount and pet speed.
+ *
+ * Below `MISSION_CLOCK_FAST_MAX_LEVEL` the early game runs on a compressed
+ * clock — 30–90 seconds instead of 5–20 minutes — so a new player sees the
+ * whole accept→wait→claim→reward loop several times in their first sitting.
+ * The vigor cost and the payout are the mission's SIZE and do not change, so
+ * this buys pace, not power: vigor is what meters the day (BALANCING §2.2).
+ */
+export function missionClockSec(save: GameSave, durationMin: number): number {
+  // The very first errand is always the short one, whatever size the board
+  // happened to offer: the onboarding's job is to show the loop closing, and a
+  // ninety-second wait on the first screen is a worse tutorial than a thirty-
+  // second one. Keyed off "has this save ever finished a mission", so it cannot
+  // desync from the onboarding script.
+  if ((save.stats.missionsCompleted ?? 0) === 0) return MISSION_CLOCK_TUTORIAL_SEC;
+  if (save.hero.level > MISSION_CLOCK_FAST_MAX_LEVEL) return durationMin * 60;
+  const band = MISSION_CLOCK_BANDS.find(([size]) => durationMin <= size);
+  return band ? band[1] : MISSION_CLOCK_FAST_CAP_SEC;
+}
+
+/**
  * Mount speed and the pet's `missionSpeed` aura stack MULTIPLICATIVELY, not
  * additively: an Ember Drake (−50%) plus a maxed Fernwyrm (−15%) leaves 42.5%
  * of the clock, never 35%. Additive stacking would let the pair approach a
@@ -107,7 +133,7 @@ export function acceptTavernOffer(save: GameSave, index: number, nowMs: number):
 export function missionDurationSec(save: GameSave, durationMin: number): number {
   const mount = MOUNT_SPEED[save.progress.mountTier] ?? 0;
   const pet = auraTotal(save, 'missionSpeed');
-  return Math.max(1, Math.round(durationMin * 60 * (1 - mount) * (1 - pet)));
+  return Math.max(1, Math.round(missionClockSec(save, durationMin) * (1 - mount) * (1 - pet)));
 }
 
 export function canStartMission(save: GameSave, offer: MissionOffer): boolean {
@@ -122,6 +148,9 @@ export function canStartMission(save: GameSave, offer: MissionOffer): boolean {
 /** Vigor is spent at start (S&F rule); rewards are locked into the payload. */
 export function startMission(save: GameSave, offer: MissionOffer, nowMs: number): void {
   if (!canStartMission(save, offer)) throw new Error('Cannot start mission (vigor/activity)');
+  // Checked here as well as on catch-up: a long session must not let a lapsed
+  // rental keep shortening missions until the next time the tab is reopened.
+  expireMount(save, nowMs);
   save.daily.vigor -= offer.durationMin;
   bump(save, 'vigorSpent', offer.durationMin);
   const payload: MissionPayload = {

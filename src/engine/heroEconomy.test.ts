@@ -3,7 +3,14 @@ import { describe, expect, it } from 'vitest';
 import { parseGameSave } from '@/persist/schema';
 import { buyAttributePoint, attrCost } from './economy';
 import { dismantleItem, dismantlesLeft, upgradeCost, upgradeItem } from './forge';
-import { canEquip, equipItem, sellItem, unequipItem } from './inventoryOps';
+import {
+  canEquip,
+  classFitness,
+  equipItem,
+  sellItem,
+  suitsClass,
+  unequipItem,
+} from './inventoryOps';
 import { generateItem, sellPrice, shopPrice } from './items';
 import { createNewSave, deriveEmblem } from './newSave';
 import { buyElixir, canBuyElixir, elixirPrice, prunePotions } from './potions';
@@ -33,7 +40,7 @@ function fresh(gold = 0): GameSave {
 const rig = () => new Rng(seedState('hero-econ', 'loot'));
 
 describe('equip / unequip / sell', () => {
-  it('equips into the right slot, swaps the previous piece back, enforces class cuts', () => {
+  it('equips into the right slot and swaps the previous piece back', () => {
     const save = fresh();
     const sword = generateItem(
       { ilvl: 5, rarity: 'rare', slot: 'weapon', classId: 'warrior' },
@@ -49,8 +56,14 @@ describe('equip / unequip / sell', () => {
     );
     save.inventory.backpack.push(sword, sword2, mageStaff);
 
-    expect(canEquip(save, mageStaff)).toBe(false);
-    expect(() => equipItem(save, 2)).toThrow(/another class/);
+    // Nothing is class-LOCKED since B1: the mage staff goes on a warrior fine,
+    // it is simply a worse deal, which `classFitness` is what quantifies.
+    expect(canEquip(save, mageStaff)).toBe(true);
+    expect(suitsClass(save, mageStaff)).toBe(false);
+    expect(classFitness(save, mageStaff)).toBeLessThan(1);
+    expect(classFitness(save, sword)).toBe(1);
+    expect(() => equipItem(save, 2)).not.toThrow();
+    unequipItem(save, 'weapon'); // put the staff back before the swap chain
 
     equipItem(save, 0);
     expect(save.inventory.equipped.weapon?.id).toBe(sword.id);
@@ -127,6 +140,7 @@ describe('shops', () => {
     expect(save.town.shops.armorer.stock).not.toEqual(first);
     expect(shopRerollCost(save, 'armorer')).toBe(1);
     expect(shopRerollCost(save, 'arcanum')).toBe(0); // per-shop gates
+    save.hero.gems = 0; // creation now grants STARTING_GEMS
     expect(() => rerollShopStock(save, 'armorer')).toThrow(/gems/);
 
     applyDailyReset(save, T0 + 24 * HOUR);

@@ -1,5 +1,5 @@
 import { dismantlesLeft } from '@/engine/forge';
-import { canEquip } from '@/engine/inventoryOps';
+import { classFitness, suitsClass } from '@/engine/inventoryOps';
 import { sellPrice, slotOf } from '@/engine/items';
 import type { GameSave, ItemInstance } from '@/engine/types';
 import { t, type I18nKey } from '@/i18n';
@@ -26,7 +26,10 @@ export function ItemActionModal({
   if (!item) return null;
 
   const equipped: ItemInstance | undefined = save.inventory.equipped[slotOf(item)];
-  const equippable = canEquip(save, item);
+  // Off-class gear equips fine; it is just a worse deal, so the modal advises
+  // rather than refuses (engine/inventoryOps.ts `classFitness`).
+  const suits = suitsClass(save, item);
+  const fitness = classFitness(save, item);
   const forgeUnlocked = save.hero.level >= 15;
   const gate = dismantlesLeft(save);
 
@@ -43,14 +46,16 @@ export function ItemActionModal({
           </div>
         )}
       </div>
-      {!equippable && (
-        <p className="mt-3 text-center text-xs font-bold text-[#e08a7a]">
-          {t('itemAction.classLocked')}
+      {!suits && (
+        <p className="mt-3 text-center text-xs font-bold text-[#e0b45a]">
+          {t('itemAction.offClass', {
+            cls: t(`class.${item.classId}.name` as I18nKey),
+            pct: Math.round(fitness * 100),
+          })}
         </p>
       )}
       <div className="mt-4 flex flex-wrap justify-center gap-2">
         <FButton
-          disabled={!equippable}
           onClick={() => {
             equip(backpackIndex);
             onClose();

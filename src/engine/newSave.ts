@@ -7,6 +7,7 @@ import {
   BACKPACK_BASE_CAPACITY,
   HONOR_START,
   SAVE_VERSION,
+  STARTING_GEMS,
   STARTING_GOLD,
   VIGOR_DAILY_BASE,
 } from './constants';
@@ -48,7 +49,7 @@ export function createNewSave(input: NewHeroInput, nowMs: number): GameSave {
       level: 1,
       xp: 0,
       gold: STARTING_GOLD,
-      gems: 0,
+      gems: STARTING_GEMS,
       scraps: 0,
       dust: 0,
       treats: 0,

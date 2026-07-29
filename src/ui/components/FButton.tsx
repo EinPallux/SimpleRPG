@@ -17,6 +17,14 @@ const TEXT: Record<ButtonVariant, string> = {
   gem: 'text-gem',
 };
 
+/** Each variant washes its own accent into the raised fill (styles/index.css). */
+const FILL: Record<ButtonVariant, string> = {
+  primary: 'btn-fill',
+  quiet: 'btn-fill btn-fill--quiet',
+  danger: 'btn-fill btn-fill--danger',
+  gem: 'btn-fill btn-fill--gem',
+};
+
 interface FButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: 'md' | 'lg' | 'sm';
@@ -52,7 +60,7 @@ export function FButton({
         playSfx('ui_click');
         onClick?.(e);
       }}
-      className={`${FRAME[variant]} panel-fill ${TEXT[variant]} ${pad} inline-flex items-center justify-center gap-2 font-body font-bold tracking-wide transition-[filter,transform] duration-(--motion-fast) enabled:hover:brightness-125 enabled:active:translate-y-px disabled:opacity-50 disabled:saturate-50 ${className}`}
+      className={`${FRAME[variant]} ${FILL[variant]} ${TEXT[variant]} ${pad} btn-press inline-flex items-center justify-center gap-2 font-body font-bold tracking-wide disabled:opacity-50 disabled:saturate-50 ${className}`}
       style={{ ['--frame-w' as string]: '10px' }}
     >
       {children}

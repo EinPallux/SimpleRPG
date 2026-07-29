@@ -9,6 +9,7 @@ import {
   generateMissionOffers,
   getTavernOffers,
   isMissionComplete,
+  missionClockSec,
   rerollTavernOffers,
   startMission,
   tavernRerollCost,
@@ -49,6 +50,7 @@ describe('vigor', () => {
     expect(save.daily.vigor).toBe(150);
     expect(() => claimSecondWind(save)).toThrow();
 
+    save.hero.gems = 0; // creation now grants STARTING_GEMS
     expect(() => buyAle(save)).toThrow(); // no gems
     save.hero.gems = 20;
     for (let i = 0; i < 5; i++) buyAle(save);
@@ -78,10 +80,13 @@ describe('missions', () => {
     startMission(save, offer, T0);
     expect(save.daily.vigor).toBe(vigorBefore - 10);
     expect(canStartMission(save, offer)).toBe(false); // one activity at a time
-    expect(isMissionComplete(save, T0 + 9 * MIN)).toBe(false);
-    expect(() => claimMission(save, T0 + 9 * MIN)).toThrow();
+    // Read the clock off the mission rather than assuming size == minutes: the
+    // early game runs compressed, so 10 vigor is not 10 minutes of waiting.
+    const runsFor = save.activities.mission!.durationSec * 1000;
+    expect(isMissionComplete(save, T0 + runsFor - 1000)).toBe(false);
+    expect(() => claimMission(save, T0 + runsFor - 1000)).toThrow();
 
-    const rewards = claimMission(save, T0 + 10 * MIN);
+    const rewards = claimMission(save, T0 + runsFor);
     expect(rewards.gold).toBe(offer.gold);
     expect(save.hero.gold).toBe(offer.gold);
     expect(save.activities.mission).toBeNull();
@@ -108,6 +113,7 @@ describe('missions', () => {
     const second = rerollTavernOffers(save);
     expect(second).not.toEqual(first);
     expect(tavernRerollCost(save)).toBe(1);
+    save.hero.gems = 0; // creation now grants STARTING_GEMS
     expect(() => rerollTavernOffers(save)).toThrow(); // no gems yet
     save.hero.gems = 3;
     rerollTavernOffers(save);
@@ -130,11 +136,73 @@ describe('missions', () => {
 
   it('mounts shorten the clock but never the vigor cost', () => {
     const save = fresh();
+    save.hero.level = 30; // past the fast-clock band, so size == minutes
+    save.stats.missionsCompleted = 5; // past the tutorial's fixed first errand
     save.progress.mountTier = 4; // Ember Drake −50%
     const offer = { ...generateMissionOffers(save)[0]!, durationMin: 20 };
     startMission(save, offer, T0);
     expect(save.activities.mission?.durationSec).toBe(10 * 60);
     expect(save.daily.vigor).toBe(100 - 20);
+  });
+});
+
+/**
+ * The early game runs on a compressed clock (B1). The property that makes it
+ * safe is that only the CLOCK moves: vigor and payout are the mission's size,
+ * and vigor is what meters the day, so a faster clock buys pace and not power.
+ */
+describe('the early-game clock', () => {
+  it('the very first errand is always 30 seconds, whatever size it was', () => {
+    const save = fresh();
+    const offer = { ...generateMissionOffers(save)[0]!, durationMin: 20 };
+    startMission(save, offer, T0);
+    expect(save.activities.mission?.durationSec).toBe(30);
+    // …and it still cost the full twenty vigor and pays the full reward.
+    expect(save.daily.vigor).toBe(100 - 20);
+    expect(save.activities.mission?.payload.xp).toBe(offer.xp);
+  });
+
+  it('levels 1–10 run 30–90 seconds; every size stays inside the 0.5–2 min band', () => {
+    const save = fresh();
+    save.stats.missionsCompleted = 1; // past the tutorial clamp
+    for (const [size, expected] of [
+      [5, 30],
+      [10, 50],
+      [15, 70],
+      [20, 90],
+    ] as const) {
+      expect(missionClockSec(save, size)).toBe(expected);
+      expect(expected).toBeGreaterThanOrEqual(30);
+      expect(expected).toBeLessThanOrEqual(120);
+    }
+  });
+
+  it('past level 10 the clock is the size again, in real minutes', () => {
+    const save = fresh();
+    save.stats.missionsCompleted = 1;
+    save.hero.level = 11;
+    expect(missionClockSec(save, 20)).toBe(20 * 60);
+    expect(missionClockSec(save, 5)).toBe(5 * 60);
+  });
+
+  it('the compressed clock does not touch vigor, so a day still buys the same', () => {
+    // The anti-rush property in one assertion: two heroes, one on each side of
+    // the band, spend identical vigor and bank identical rewards for the same
+    // mission size. Only the wait differs.
+    const early = fresh();
+    early.stats.missionsCompleted = 1;
+    const late = fresh();
+    late.stats.missionsCompleted = 1;
+    late.hero.level = 11;
+
+    const offer = { ...generateMissionOffers(early)[0]!, durationMin: 15 };
+    startMission(early, offer, T0);
+    startMission(late, offer, T0);
+
+    expect(early.daily.vigor).toBe(late.daily.vigor);
+    expect(early.activities.mission?.payload.xp).toBe(late.activities.mission?.payload.xp);
+    expect(early.activities.mission?.payload.gold).toBe(late.activities.mission?.payload.gold);
+    expect(early.activities.mission!.durationSec).toBeLessThan(late.activities.mission!.durationSec);
   });
 });
 

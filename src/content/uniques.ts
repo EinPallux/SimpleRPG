@@ -139,19 +139,22 @@ export function uniqueOrNull(id: string | undefined): UniqueDef | null {
 }
 
 /**
- * The uniques a given hero could actually wear. A class-cut unique is only
- * ever offered to that class — handing a Mage the Snickering Dagger would be a
- * "legendary" they can never equip, which is a worse feeling than no drop.
+ * The uniques in play at a given level. `level` applies the `minLevel` gate, so
+ * the eight arrive spread across the climb rather than all being reachable from
+ * the first jackpot; omit it for the full set (the Codex does this).
  *
- * `level` additionally applies the `minLevel` gate, so the eight arrive spread
- * across the climb rather than all being reachable from the first jackpot.
- * Omit it to list the class's full eventual pool (the Codex does this).
+ * This used to filter by class as well, on the reasoning that a legendary you
+ * can never equip is worse than no drop. Two things killed that: gear is no
+ * longer class-locked (engine/inventoryOps.ts), and the filter quietly made the
+ * *"all eight"* achievement impossible — only five uniques are classless, so a
+ * warrior topped out at six and a scout, who has no unique cut for them at all,
+ * at five. A goal nobody can finish is worse than an off-class drop.
+ *
+ * `classId` on a def now means only "who this was made for", which is what its
+ * stat lines are slanted toward.
  */
-export function uniquesForClass(classId: ClassId, level?: number): readonly UniqueDef[] {
-  return UNIQUES.filter(
-    (u) =>
-      (u.classId === null || u.classId === classId) && (level === undefined || level >= u.minLevel),
-  );
+export function availableUniques(level?: number): readonly UniqueDef[] {
+  return UNIQUES.filter((u) => level === undefined || level >= u.minLevel);
 }
 
 export function uniqueNameKey(id: string): string {

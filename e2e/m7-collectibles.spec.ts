@@ -179,15 +179,16 @@ test('the Menagerie: collection bonus → family tabs → feed → equip → sil
   await expect(petCard(page, 'Thicket Hare').getByText('Level 2 / 50')).toBeVisible();
 });
 
-test('the Stable: on foot → buy tier 1 → the Drake keeps charging gems', async ({
+test('the Stable: on foot → rent tier 1 → the Drake keeps charging gems', async ({
   page,
   isMobile,
 }) => {
   test.skip(isMobile, 'exercises the desktop rail; mobile nav is covered by day1/smoke specs');
 
   // Enough gold for Barley (5,000) and nothing else; no gems at all, so the
-  // Ember Drake's stall has to say no.
-  const save = craftSave('Wilhelmina', 12); // Stable opens at 10
+  // Ember Drake's stall has to say no. The Stable opens at level 1 since B1 —
+  // this hero is only past it because the rest of the fixture wants the level.
+  const save = craftSave('Wilhelmina', 12);
   save.hero.gold = 6_000;
   save.hero.gems = 0;
 
@@ -202,42 +203,43 @@ test('the Stable: on foot → buy tier 1 → the Drake keeps charging gems', asy
   const stall = panelWithHeading(page, 'In the stall');
   await expect(stall.getByText('On foot', { exact: true })).toBeVisible();
   await expect(stall.getByText(/walking builds character/)).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Buy', exact: true })).toHaveCount(4);
+  await expect(page.getByRole('button', { name: 'Rent · 14 days' })).toHaveCount(4);
 
   // — The Ember Drake: a gem price, and a stall that stays shut without gems —
   const drake = panelWithHeading(page, 'Ember Drake');
   await expect(drake.getByRole('img', { name: 'Gems' })).toBeVisible();
   await expect(drake.getByText('60', { exact: true })).toBeVisible();
   await expect(drake.getByRole('img', { name: 'Gold' })).toHaveCount(0);
-  await expect(drake.getByRole('button', { name: 'Buy', exact: true })).toBeDisabled();
+  await expect(drake.getByRole('button', { name: 'Rent · 14 days' })).toBeDisabled();
 
   // The Warhorse is gold-priced but far out of reach — also shut.
   const warhorse = panelWithHeading(page, 'Bastion Warhorse');
-  await expect(warhorse.getByRole('button', { name: 'Buy', exact: true })).toBeDisabled();
+  await expect(warhorse.getByRole('button', { name: 'Rent · 14 days' })).toBeDisabled();
 
-  // — Tier 1: the row flips to owned and the stall stops saying "On foot" —
+  // — Tier 1: the row shows its term and the stall stops saying "On foot" —
   const barley = panelWithHeading(page, 'Barley the Pack Mule');
   await expect(barley.getByText('5,000')).toBeVisible();
-  await barley.getByRole('button', { name: 'Buy', exact: true }).click();
+  await barley.getByRole('button', { name: 'Rent · 14 days' }).click();
 
-  await expect(barley.getByText('Owned')).toBeVisible();
-  await expect(barley.getByRole('button')).toHaveCount(0);
+  // A rental, so the row keeps its price and offers a renewal rather than
+  // flipping to a permanent "Owned".
+  await expect(barley.getByText('14d left')).toBeVisible();
+  await expect(barley.getByRole('button', { name: 'Renew · +14 days' })).toBeVisible();
   await expect(stall.getByText('On foot', { exact: true })).toHaveCount(0);
   await expect(stall.getByText('Barley the Pack Mule', { exact: true })).toBeVisible();
   await expect(stall.getByText('−10% mission time')).toBeVisible();
   await expect(hudChip(page, 'Gold')).toContainText('1,000');
-  // Every remaining stall now quotes the difference instead of a first purchase.
-  await expect(page.getByRole('button', { name: 'Trade up' })).toHaveCount(3);
-  await expect(page.getByRole('button', { name: 'Buy', exact: true })).toHaveCount(0);
+  // The other three stalls still quote a fresh rental at full price.
+  await expect(page.getByRole('button', { name: 'Rent · 14 days' })).toHaveCount(3);
 
-  // — Reload: the animal is in the stall for good —
+  // — Reload: the rental survives, term and all —
   await page.clock.fastForward('00:05');
   await page.reload();
   await page.getByRole('button', { name: 'Continue' }).click();
   await rail.getByTitle('Stable').click();
-  await expect(
-    panelWithHeading(page, 'In the stall').getByText('Barley the Pack Mule', { exact: true }),
-  ).toBeVisible();
+  const stallAfter = panelWithHeading(page, 'In the stall');
+  await expect(stallAfter.getByText('Barley the Pack Mule', { exact: true })).toBeVisible();
+  await expect(stallAfter.getByText('14d left')).toBeVisible();
 });
 
 /** The printed odds column of the banner currently on screen, as numbers. */

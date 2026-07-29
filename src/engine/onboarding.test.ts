@@ -35,6 +35,7 @@ import {
   tourDue,
 } from './onboarding';
 import type { GameSave } from './types';
+import { STARTING_GEMS } from './constants';
 
 const T0 = new Date(2026, 6, 28, 9, 0).getTime();
 
@@ -124,7 +125,7 @@ describe('the scripted sequence', () => {
     expect(currentOnboardingStep(save)).toBeNull();
     // Skipping grants nothing, because the tutorial withheld nothing (§17).
     expect(save.hero.gold).toBe(fresh().hero.gold);
-    expect(save.hero.gems).toBe(0);
+    expect(save.hero.gems).toBe(STARTING_GEMS);
   });
 });
 
