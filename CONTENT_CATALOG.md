@@ -138,7 +138,9 @@ always crits) · Grandma's Battle Ladle (War weapon — blocks CLANG for 8% refl
 
 ### 6.4 Mounts
 Barley the Pack Mule (−10%, 5k g) · Dappled Courser (−20%, 75k g) · Bastion Warhorse (−30%, 1.2M g) ·
-Ember Drake (−50%, 60 💎). Stable flavor lines **[build-fill]**.
+Ember Drake (−50%, 60 💎). Wilbur Hay keeps the Drake's stall at the far end of the yard, downwind, with
+two buckets of sand and an expression of enormous calm. Each mount carries a cosmetic title: **the
+Well-Saddled · the Punctual · the Heavily Horsed · the Uninsurable**.
 
 ## 7. Wishing Well banners — deterministic 8-week rotation
 
@@ -146,7 +148,18 @@ Ember Drake (−50%, 60 💎). Stable flavor lines **[build-fill]**.
 → W5 Ironroot→ W6 Galewind→ W7 Tidebound→ W8 Duskveil; L100 sets + neutrals enter the pool once the hero
 first reaches L85 (rotation then extends to 14). Featured banner auto-selects the set *tier* nearest
 (player level + 10). Pet banner phases (biweekly): A = Fernwyrm focus · B = Moon Calf focus.
-Cosmetic frames pool: 12 portrait frames **[build-fill: names]**.
+**Cosmetic frames pool (12).** Eight ship with a base-rotation featured set, so every one of the eight
+weeks has a cosmetic to chase; four sit in the general pool and can drop on any frame-carrying banner.
+Frames carry no stats *by design* — the one prize the balance model never has to hear about.
+
+| Frame | With | | Frame | With |
+|---|---|---|---|---|
+| Boarhide Braid | Bulwark Boar | | Ironroot Knot | Ironroot Sentinel |
+| Bramble Weave | Thicket Stalker | | Galewind Quill | Galewind Pathfinder |
+| Chalk Sigil | Apprentice's Folly | | Tideglass Rim | Tidebound Scholar |
+| Gutter Gilt | Alleycat's Guise | | Duskveil Lace | Duskveil Shroud |
+| Tavern Brass | general pool | | Pressed Fern | general pool |
+| Wishing Stone | general pool | | Moth-Eaten Velvet | general pool |
 
 ## 8. Arena rank milestones (first time, per save)
 

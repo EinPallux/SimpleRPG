@@ -4,16 +4,19 @@
  * mutate the passed save draft and are deterministic given the rng streams.
  */
 import { monstersOfZone } from '@/content/bestiary';
+import { zonePetChance, zonePetFor } from '@/content/pets';
 import { frontierZoneIndex, getZone } from '@/content/zones';
 import {
   MISSION_CHEST_CHANCE,
   MISSION_DURATIONS,
   MOUNT_SPEED,
   TAVERN_REROLL_COST_GEMS,
+  TREATS_PER_MISSION,
 } from './constants';
 import { missionGold, missionXp, zoneMultiplier } from './economy';
 import { effectiveItemChance, rollDrop, sellPrice, type DropSource } from './items';
 import { bump, recordDrop, recordMonster } from './ledger';
+import { auraTotal, grantPet, petOwned } from './pets';
 import { getStream } from './rng';
 import { activeEffect } from './sets';
 import { totalAttribute } from './stats';
@@ -94,9 +97,17 @@ export function acceptTavernOffer(save: GameSave, index: number, nowMs: number):
   save.activities.tavernOffers = null;
 }
 
+/**
+ * Mount speed and the pet's `missionSpeed` aura stack MULTIPLICATIVELY, not
+ * additively: an Ember Drake (−50%) plus a maxed Fernwyrm (−15%) leaves 42.5%
+ * of the clock, never 35%. Additive stacking would let the pair approach a
+ * zero-duration mission and quietly break the vigor economy the whole idle
+ * loop is metered by (BALANCING §2.2).
+ */
 export function missionDurationSec(save: GameSave, durationMin: number): number {
-  const speedup = MOUNT_SPEED[save.progress.mountTier] ?? 0;
-  return Math.round(durationMin * 60 * (1 - speedup));
+  const mount = MOUNT_SPEED[save.progress.mountTier] ?? 0;
+  const pet = auraTotal(save, 'missionSpeed');
+  return Math.max(1, Math.round(durationMin * 60 * (1 - mount) * (1 - pet)));
 }
 
 export function canStartMission(save: GameSave, offer: MissionOffer): boolean {
@@ -147,6 +158,9 @@ export interface MissionRewards {
   autoSoldGold: number;
   lucky: boolean;
   zoneIndex: number;
+  treats: number;
+  /** the zone's pet chain paid off on this run (GAME_DESIGN §11.1) */
+  petId: string | null;
 }
 
 /** Claim a finished mission: XP, gold, item roll (33%+luck), bonus chest (5%). */
@@ -159,7 +173,8 @@ export function claimMission(save: GameSave, nowMs: number): MissionRewards {
   const luck = totalAttribute(save, 'lck');
   // Innkeeper's Regalia full set: +pp on top of the luck-capped chance (§4.6).
   const setItemPP = (activeEffect(save, 'missionItemPP')?.pp ?? 0) / 100;
-  const item = loot.chance(effectiveItemChance(luck, save.hero.level) + setItemPP)
+  const petItemPP = auraTotal(save, 'itemChancePP') / 100;
+  const item = loot.chance(effectiveItemChance(luck, save.hero.level) + setItemPP + petItemPP)
     ? rollDrop('mission' as DropSource, save.hero.level, save.hero.classId, loot)
     : null;
   const chest = loot.chance(MISSION_CHEST_CHANCE)
@@ -187,6 +202,28 @@ export function claimMission(save: GameSave, nowMs: number): MissionRewards {
     }
   }
   save.hero.gold += autoSoldGold;
+
+  // Pet Treats trickle in from every mission (§11.1), boosted by a `treatFind`
+  // aura — the one aura that compounds, since treats buy aura levels.
+  //
+  // The base is 1, so the bonus is a FRACTION of a treat and rounding would
+  // silently eat it: a maxed Moon Calf pays +18%, and `round(1.18)` is 1 at
+  // every pet level. Roll the fraction instead — the aura then pays exactly its
+  // advertised value in expectation, and it rolls on the persisted loot stream
+  // so it cannot be re-rolled by reloading.
+  const treatRate = TREATS_PER_MISSION * (1 + auraTotal(save, 'treatFind'));
+  const treats = Math.floor(treatRate) + (loot.chance(treatRate % 1) ? 1 : 0);
+  save.hero.treats += treats;
+
+  // The zone's pet chain. Rolled last so the drop stream's earlier draws stay
+  // byte-identical to a save that never opens the Menagerie.
+  let petId: string | null = null;
+  const chain = zonePetFor(payload.zoneIndex);
+  if (chain && !petOwned(save, chain.id) && loot.chance(zonePetChance(payload.zoneIndex))) {
+    grantPet(save, chain.id);
+    petId = chain.id;
+  }
+
   const xp = applyXp(save, payload.xp);
   save.activities.mission = null;
 
@@ -198,5 +235,7 @@ export function claimMission(save: GameSave, nowMs: number): MissionRewards {
     autoSoldGold,
     lucky: payload.lucky,
     zoneIndex: payload.zoneIndex,
+    treats,
+    petId,
   };
 }

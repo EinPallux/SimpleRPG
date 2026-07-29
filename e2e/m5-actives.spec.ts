@@ -9,6 +9,8 @@ import { attemptFloor } from '../src/engine/dungeons';
 import { ensureCards, startExpedition } from '../src/engine/expeditions';
 import { getTavernOffers } from '../src/engine/missions';
 import { createNewSave, deriveEmblem } from '../src/engine/newSave';
+import { TOUR_SCREENS } from '../src/content/onboarding';
+import { skipOnboarding } from '../src/engine/onboarding';
 import { spinWheel } from '../src/engine/wheel';
 import type { ExpeditionCard, GameSave } from '../src/engine/types';
 import { encodeSave } from '../src/persist/codec';
@@ -29,6 +31,13 @@ function craftSave(): GameSave {
   save.hero.level = 15; // dungeons at 12, expeditions at 8, wheel at 5
   save.hero.attrsBought = { str: 400, dex: 150, int: 40, con: 300, lck: 150 };
   save.hero.gold = 50_000;
+  // These fixtures are established heroes, not first-timers, so they are
+  // past the scripted first run (GAME_DESIGN §17) — otherwise the cold-open
+  // coach mark sits over the screen every spec is trying to drive.
+  skipOnboarding(save);
+  // …and they have already read every screen's first-visit tour, so the tip
+  // card is not sitting over the controls each spec is here to drive.
+  save.progress.toursSeen = [...TOUR_SCREENS];
   return save;
 }
 
@@ -73,7 +82,9 @@ test('active pillars: dungeon wall → wheel spin → expedition embark', async 
   // — Dungeons: Squeaker the Bold makes his introduction and his exit —
   await rail.getByTitle('Dungeons').click();
   await expect(page.getByRole('heading', { name: 'The Dungeons' })).toBeVisible();
-  await expect(page.getByText('I have bitten larger ankles than yours. Present them.')).toBeVisible();
+  await expect(
+    page.getByText('I have bitten larger ankles than yours. Present them.'),
+  ).toBeVisible();
   await page.getByRole('button', { name: 'Fight', exact: true }).click();
   const playback = page.getByRole('dialog', { name: 'Brunhild vs Squeaker the Bold' });
   await expect(playback).toBeVisible();
@@ -113,8 +124,9 @@ test('active pillars: dungeon wall → wheel spin → expedition embark', async 
   const label = target.kind === 'treasure' ? 'Open' : 'Fight';
   const nth = cards
     .slice(0, targetIdx)
-    .filter((c) => (c.kind === 'treasure' ? 'Open' : c.kind === 'event' ? '' : 'Fight') === label)
-    .length;
+    .filter(
+      (c) => (c.kind === 'treasure' ? 'Open' : c.kind === 'event' ? '' : 'Fight') === label,
+    ).length;
   await page.getByRole('button', { name: label, exact: true }).nth(nth).click();
   if (target.kind === 'treasure') {
     await expect(page.getByText(/\+\d+ heroism/)).toBeVisible();

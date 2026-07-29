@@ -40,6 +40,11 @@ export const TITLES: readonly TitleDef[] = [
   // — Arena rank milestones —
   { id: 'the-contender', nameKey: 'title.the-contender', source: 'arena' },
   { id: 'the-champion', nameKey: 'title.the-champion', source: 'arena' },
+  // — The Stable (§11.2): one per mount, kept once earned even if you trade up —
+  { id: 'the-well-saddled', nameKey: 'title.the-well-saddled', source: 'mount' },
+  { id: 'the-punctual', nameKey: 'title.the-punctual', source: 'mount' },
+  { id: 'the-heavily-horsed', nameKey: 'title.the-heavily-horsed', source: 'mount' },
+  { id: 'the-uninsurable', nameKey: 'title.the-uninsurable', source: 'mount' },
 ];
 
 export function getTitle(id: string): TitleDef {

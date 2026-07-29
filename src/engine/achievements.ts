@@ -11,6 +11,7 @@ import { ACHIEVEMENTS, getAchievement } from '@/content/achievements';
 import type { AchievementDef } from '@/content/meta';
 import { ACHIEVEMENT_ATTR_PER_TIER } from './constants';
 import { lowerIsBetter, metricValue } from './metrics';
+import { petsOfSource } from '@/content/pets';
 import { grantReward, type GrantedReward } from './rewards';
 import type { GameSave } from './types';
 
@@ -67,12 +68,19 @@ export function claimAchievement(save: GameSave, id: string, nowMs: number): Ach
     save.hero.attrsBought[attr] += attrGained;
   }
 
-  // Reaching the last tier is the headline: gems and the title ride on it.
+  // Reaching the last tier is the headline: gems, the title, and — for the two
+  // feats that keep one — a pet ride on it. The pet↔achievement link lives in
+  // `content/pets.ts` (`source.achievementId`), so this stays a lookup rather
+  // than a list of ids the two files could drift apart on.
   let reward: GrantedReward | null = null;
   if (before < def.tiers.length && after >= def.tiers.length) {
+    const pet = petsOfSource('achievement').find(
+      (p) => p.source.kind === 'achievement' && p.source.achievementId === def.id,
+    );
     const payload = {
       ...(def.gems ? { gems: def.gems } : {}),
       ...(def.titleId ? { titleId: def.titleId } : {}),
+      ...(pet ? { petId: pet.id } : {}),
     };
     if (Object.keys(payload).length > 0) reward = grantReward(save, payload, nowMs);
   }

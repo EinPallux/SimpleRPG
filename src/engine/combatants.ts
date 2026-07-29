@@ -22,7 +22,7 @@ import type { Combatant } from './combat';
 import { itemArmor, weaponDamage } from './items';
 import { parArmor, parCon, parMainAttr, parOffAttr } from './par';
 import { setAggregate } from './sets';
-import { gearPercents, heroMaxHp, totalAttribute } from './stats';
+import { armorMultiplier, gearPercents, heroMaxHp, petEvade, totalAttribute } from './stats';
 import type { ClassId, GameSave } from './types';
 
 interface ClassSignature {
@@ -178,11 +178,11 @@ export function heroToCombatant(save: GameSave): Combatant {
       lck: totalAttribute(save, 'lck'),
     },
     maxHp: heroMaxHp(save),
-    armor: Math.round(armor * (1 + sets.armorPct)),
+    armor: Math.round(armor * armorMultiplier(save)),
     weapon,
     ...(offhandWeapon ? { offhandWeapon } : {}),
     blockChance: Math.min(CAP_BLOCK, sig.blockChance + sets.blockPP / 100),
-    evadeChance: Math.min(CAP_EVADE, sig.evadeChance + sets.evadePP / 100),
+    evadeChance: Math.min(CAP_EVADE, sig.evadeChance + sets.evadePP / 100 + petEvade(save)),
     unblockable: sig.unblockable,
     strikes: sig.strikes,
     strikeMult,

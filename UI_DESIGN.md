@@ -173,7 +173,7 @@ screen has a designed empty/loading/locked state (no blank panels, ever).
     highlighted, "days visited this month" counter.
 22. **Combat Playback overlay** — per §4; also hosts fight summary card (damage, biggest crit, rounds,
     seed copy button in dev builds).
-23. **Settings** — audio (master/music/sfx), motion, instant-combat, timers as absolute/relative,
+23. **Settings** — audio (master/sfx — **no music slider**, see §7), motion, instant-combat, timers as absolute/relative,
     save slots (export/import/delete), credits & licenses (ASSETS.md list rendered), version + patch notes.
 24. **Error / "Tavern fire" screen** — friendly art, Copy Debug Report, reload; never a white page.
 
@@ -186,9 +186,11 @@ screen has a designed empty/loading/locked state (no blank panels, ever).
   puff · legendary `magic_05` swirl · gem `twirl_02` glint · levelup `light_02` column.
 - Ambient: tavern hearth flicker (2% brightness sine), well water shimmer, wheel idle sway — all CSS,
   all disabled under `prefers-reduced-motion` (motion tokens: `--motion-fast:120ms --motion-base:200ms`).
-- Audio map (howler sprites, ASSETS.md §5): ui_click, ui_deny, coin_burst, chest_open, rarity stingers ×3,
-  crit_hit, block_clang, levelup_fanfare, wheel_tick, well_splash; music: town loop / combat sting /
-  night patrol loop. Master default 70%, music 40%; mute persists.
+- Audio map (**synthesised Web Audio**, ASSETS.md §4.1 — *was* howler sprites; no CC0 audio was ever
+  sourced, so the cues are generated in `src/ui/audio.ts`): ui_click, ui_deny, coin_burst, chest_open,
+  rarity stingers ×3, crit_hit, block_clang, levelup_fanfare, wheel_tick, well_splash. **No music at
+  v1.0** (ASSETS.md §4's own fallback), so Settings ships master + SFX only — a dead slider is worse than
+  an honest omission. Master default 70%, SFX 70%; mute persists.
 
 ## 8. Accessibility & responsiveness
 
@@ -197,6 +199,8 @@ screen has a designed empty/loading/locked state (no blank panels, ever).
 - ARIA: timers as `aria-live=off` with on-demand announce; RewardReveal announces summary text; ladder rows
   as table semantics.
 - Colorblind-safe: rarity pips (§4 ItemSlot), class icons beside class colors, win-chance words not colors.
+- Contrast: every ink token clears **4.5:1 on every surface token** (`--ink-faint` was raised to `#838f9f`
+  in M8 for exactly this; it measured 2.71:1 on `--panel-raised` before). Enforced by axe in `e2e/a11y.spec.ts`.
 - Text scaling to 125% without clipping (test gate); hit areas ≥ 44 px; no information in hover-only.
 - Breakpoints: ≥1280 comfy (rail labels visible) · 1024–1279 rail icons · 768–1023 rail collapses to
   drawer · <768 bottom tabs + stacked panels; combat playback goes vertical.

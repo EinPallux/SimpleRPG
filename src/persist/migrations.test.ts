@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { ONBOARDING_DONE } from '@/content/onboarding';
 import { migrateSave } from './migrations';
 
 /** A save exactly as milestone M0 (schema v1) wrote it — frozen fixture, do not update. */
@@ -119,7 +120,7 @@ const V4_FIXTURE = {
 describe('save migrations', () => {
   it('migrates a v1 (M0) save forward to the current version', () => {
     const save = migrateSave(structuredClone(V1_FIXTURE));
-    expect(save.version).toBe(6);
+    expect(save.version).toBe(7);
     expect(save.hero.name).toBe('Fixture');
     expect(save.inventory.backpack[0]?.classId).toBeNull();
     expect(save.activities.tavernOffers).toBeNull();
@@ -131,7 +132,7 @@ describe('save migrations', () => {
 
   it('migrates a v2 (M1) save with an in-flight mission (payload gains flavor)', () => {
     const save = migrateSave(structuredClone(V2_FIXTURE));
-    expect(save.version).toBe(6);
+    expect(save.version).toBe(7);
     expect(save.activities.mission?.payload.flavor).toBe(0);
     expect(save.activities.mission?.payload.xp).toBe(55);
     expect(save.activities.tavernOffers).toBeNull();
@@ -140,11 +141,22 @@ describe('save migrations', () => {
 
   it('migrates a v4 (M3/M4) save: expeditions reset, day counter added', () => {
     const save = migrateSave(structuredClone(V4_FIXTURE));
-    expect(save.version).toBe(6);
+    expect(save.version).toBe(7);
     expect(save.activities.expedition).toBeNull();
     expect(save.daily.expeditions).toBe(0);
     // pre-M5 items simply carry no setId
     expect(save.inventory.backpack[0]?.setId).toBeUndefined();
+  });
+
+  it('v6 → v7: an existing hero is onboarded, but has seen no tours yet', () => {
+    // The v1 fixture walks the whole chain, so it exercises 7 like every other.
+    const save = migrateSave(structuredClone(V1_FIXTURE));
+    // A save that already exists has, by definition, played its first day —
+    // dragging it back through the cold open would be absurd.
+    expect(save.progress.onboarding).toEqual({ step: ONBOARDING_DONE, skipped: true });
+    // …but the 15-second per-screen tours are contextual tips, not a tutorial:
+    // a veteran who has never opened the Menagerie should still get one.
+    expect(save.progress.toursSeen).toEqual([]);
   });
 
   it('refuses saves with no migration path', () => {

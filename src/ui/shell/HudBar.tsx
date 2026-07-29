@@ -4,6 +4,7 @@ import { t } from '@/i18n';
 import { useGame } from '@/state/store';
 import { CurrencyChip } from '../components/CurrencyChip';
 import { EmblemAvatar } from '../components/EmblemAvatar';
+import { HelpButton } from '../components/HelpOverlay';
 import { Icon } from '../components/Icon';
 import { ProgressBar } from '../components/ProgressBar';
 import { fmt } from '../format';
@@ -11,7 +12,7 @@ import { fmt } from '../format';
 export function HudBar() {
   const save = useGame((s) => s.save);
   const openSettings = useGame((s) => s.setSettingsOpen);
-  const toast = useGame((s) => s.toast);
+  const screen = useGame((s) => s.screen);
   const timeFrozen = useGame((s) => s.timeFrozen);
   if (!save) return null;
 
@@ -73,19 +74,14 @@ export function HudBar() {
               className="h-2.5"
             />
           </div>
-          <button
-            aria-label={t('hud.help')}
-            title={t('hud.help')}
-            onClick={() => toast(t('toast.helpSoon'))}
-            className="text-ink-muted transition-colors hover:text-ink"
-          >
-            <Icon id="help" size={20} />
-          </button>
+          {/* §17: every screen keeps its "?" forever. It reads the CURRENT
+              screen, so one button in the header covers all twenty. */}
+          <HelpButton screen={screen} />
           <button
             aria-label={t('hud.settings')}
             title={t('hud.settings')}
             onClick={() => openSettings(true)}
-            className="text-ink-muted transition-colors hover:text-gold"
+            className="-m-3 grid h-11 w-11 place-items-center text-ink-muted transition-colors hover:text-gold"
           >
             <Icon id="settings" size={20} />
           </button>

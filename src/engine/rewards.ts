@@ -14,6 +14,7 @@ import { SETS } from '@/content/sets';
 import { missionGold, missionXp } from './economy';
 import { rollDrop, sellPrice } from './items';
 import { recordDrop } from './ledger';
+import { grantPet } from './pets';
 import { getStream } from './rng';
 import { rollSetPiece } from './sets';
 import type { ActivePotion, GameSave, ItemInstance } from './types';
@@ -30,6 +31,8 @@ export interface GrantedReward {
   potion: ActivePotion | null;
   titleId: string | null;
   frameId: string | null;
+  /** the pet that joined the menagerie, if this reward carried one */
+  petId: string | null;
   /** paid instead of an item when the backpack was full */
   autoSoldGold: number;
 }
@@ -50,7 +53,8 @@ export function grantFrame(save: GameSave, frameId: string): boolean {
 /** Sets whose pieces this hero can meaningfully receive (own class or any). */
 function eligibleSetIds(save: GameSave): string[] {
   const ids = SETS.filter(
-    (s) => (s.classId === null || s.classId === save.hero.classId) && s.level <= save.hero.level + 5,
+    (s) =>
+      (s.classId === null || s.classId === save.hero.classId) && s.level <= save.hero.level + 5,
   ).map((s) => s.id);
   return ids.length > 0 ? ids : ['innkeepers-regalia'];
 }
@@ -93,6 +97,7 @@ export function grantReward(save: GameSave, reward: MetaReward, nowMs: number): 
     potion: null,
     titleId: null,
     frameId: null,
+    petId: null,
     autoSoldGold: 0,
   };
 
@@ -137,6 +142,7 @@ export function grantReward(save: GameSave, reward: MetaReward, nowMs: number): 
   if (reward.elixir) granted.potion = grantElixir(save, nowMs);
   if (reward.titleId && grantTitle(save, reward.titleId)) granted.titleId = reward.titleId;
   if (reward.frameId && grantFrame(save, reward.frameId)) granted.frameId = reward.frameId;
+  if (reward.petId && grantPet(save, reward.petId)) granted.petId = reward.petId;
 
   // XP last: a level-up mid-grant would otherwise change the payouts above.
   if (reward.xp) {

@@ -9,7 +9,14 @@
   /* Ink */
   --ink: #e8e3d5;
   --ink-muted: #9aa5b5;
-  --ink-faint: #5e6a7a;
+  /* Raised from #5e6a7a in M8: the old value measured 2.71:1 on --panel-raised
+     and 3.44:1 on --panel-inset, below the 4.5:1 AA floor for text under
+     18.66px — which is exactly the size it is always used at. #838f9f clears
+     4.5 on every surface in this file (worst case 4.54 on --panel-raised) while
+     staying clearly dimmer than --ink-muted. Fixing the token rather than the
+     three screens axe happened to catch means every existing and future use is
+     compliant (UI_DESIGN §8). */
+  --ink-faint: #838f9f;
 
   /* Accents */
   --gold: #d9a94b;

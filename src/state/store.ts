@@ -9,11 +9,7 @@ import { canFight, fightArena, skipCooldown, type ArenaOutcome } from '@/engine/
 import { ARENA_COOLDOWN_SKIP_GEMS, QUESTS_UNLOCK_LEVEL } from '@/engine/constants';
 import { bossNameKey, getDungeon } from '@/content/dungeons';
 import { getQuest } from '@/content/quests';
-import {
-  canClaimAchievement,
-  claimAchievement,
-  claimAllAchievements,
-} from '@/engine/achievements';
+import { canClaimAchievement, claimAchievement, claimAllAchievements } from '@/engine/achievements';
 import { canClaimCalendar, claimCalendarDay } from '@/engine/calendar';
 import { readLore } from '@/engine/codex';
 import {
@@ -27,11 +23,7 @@ import {
 } from '@/engine/quests';
 import type { GrantedReward } from '@/engine/rewards';
 import { canClaimStep, claimStep } from '@/engine/story';
-import {
-  attemptFloor,
-  canAttemptFloor,
-  type DungeonOutcome,
-} from '@/engine/dungeons';
+import { attemptFloor, canAttemptFloor, type DungeonOutcome } from '@/engine/dungeons';
 import {
   abandonExpedition,
   canStartExpedition,
@@ -41,6 +33,21 @@ import {
   type ExpeditionStepOutcome,
 } from '@/engine/expeditions';
 import { canSpinWheel, spinWheel, type WheelOutcome } from '@/engine/wheel';
+import type { BannerId } from '@/content/collectibles';
+import { canToss, toss, type TossResult } from '@/engine/gacha';
+import { buyMount, canBuyMount } from '@/engine/mounts';
+import { canFeedPet, equipPet, feedPet, feedPetMax, petOwned } from '@/engine/pets';
+import { isoWeekNumber } from '@/engine/time';
+import {
+  advanceOnboarding,
+  currentOnboardingStep,
+  markTourSeen,
+  skipOnboarding,
+  stepSatisfied,
+  tourDue,
+} from '@/engine/onboarding';
+import { loadPrefs, savePrefs, type Prefs } from '@/persist/prefs';
+import { setAudioPrefs } from '@/ui/audio';
 import { createNewSave, deriveEmblem } from '@/engine/newSave';
 import { systemClock } from '@/engine/clock';
 import {
@@ -132,6 +139,12 @@ interface GameStore {
   expedOutcome: ExpeditionStepOutcome | null;
   /** landed wheel spin awaiting the reveal */
   wheelOutcome: WheelOutcome | null;
+  /** the tosses of the last visit to the well, awaiting their reveal (M7) */
+  tossOutcome: { bannerId: BannerId; results: TossResult[] } | null;
+  /** device settings (M8) — localStorage, not the save: a pref is a device */
+  prefs: Prefs;
+  /** the screen whose 15-second first-visit tour is showing, if any */
+  tourScreen: string | null;
   /** a meta-layer payout (quest, story step, chest, calendar) awaiting its reveal */
   metaReward: { titleKey: I18nKey; reward: GrantedReward } | null;
 
@@ -182,6 +195,20 @@ interface GameStore {
   closeExpedOutcome(): void;
   wheelSpin(): void;
   closeWheelOutcome(): void;
+
+  // Onboarding, prefs & help (M8)
+  setPrefs(patch: Partial<Prefs>): void;
+  onboardingAck(): void;
+  onboardingSkip(): void;
+  dismissTour(): void;
+
+  // Menagerie, Stable & the Wishing Well (M7)
+  petEquip(petId: string | null): void;
+  petFeed(petId: string): void;
+  petFeedMax(petId: string): void;
+  mountBuy(tier: number): void;
+  wellToss(bannerId: BannerId, count?: number): void;
+  closeTossOutcome(): void;
 
   // Hero economy (M3)
   buyAttr(attr: AttributeId, times?: number): void;
@@ -240,6 +267,9 @@ export const useGame = create<GameStore>()(
       dungeonOutcome: null,
       expedOutcome: null,
       wheelOutcome: null,
+      tossOutcome: null,
+      prefs: loadPrefs(),
+      tourScreen: null,
       metaReward: null,
 
       catchUp() {
@@ -452,6 +482,109 @@ export const useGame = create<GameStore>()(
         set((s) => {
           s.wheelOutcome = null;
         });
+      },
+
+      petEquip(petId) {
+        set((s) => {
+          if (!s.save) return;
+          if (petId !== null && !petOwned(s.save, petId)) return;
+          equipPet(s.save, petId);
+        });
+        scheduleAutosave();
+      },
+
+      petFeed(petId) {
+        set((s) => {
+          if (!s.save || !canFeedPet(s.save, petId)) return;
+          feedPet(s.save, petId);
+        });
+        scheduleAutosave();
+      },
+
+      petFeedMax(petId) {
+        let fed = 0;
+        set((s) => {
+          if (!s.save) return;
+          fed = feedPetMax(s.save, petId);
+        });
+        if (fed > 0) get().toast(t('menagerie.fedLevels', { n: fed }));
+        scheduleAutosave();
+      },
+
+      mountBuy(tier) {
+        let bought: { name: string } | null = null;
+        set((s) => {
+          if (!s.save || !canBuyMount(s.save, tier)) return;
+          const purchase = buyMount(s.save, tier);
+          bought = { name: t(`${purchase.mount.nameKey}` as I18nKey) };
+        });
+        if (bought) get().toast(t('stable.bought', bought));
+        scheduleAutosave();
+      },
+
+      wellToss(bannerId, count = 1) {
+        set((s) => {
+          if (!s.save || !canToss(s.save, bannerId, count)) return;
+          const week = isoWeekNumber(systemClock.now());
+          s.tossOutcome = {
+            bannerId,
+            results: toss(s.save, bannerId, week, count, systemClock.now()),
+          };
+        });
+        scheduleAutosave();
+      },
+
+      closeTossOutcome() {
+        set((s) => {
+          s.tossOutcome = null;
+        });
+      },
+
+      setPrefs(patch) {
+        let next: Prefs | null = null;
+        set((s) => {
+          s.prefs = { ...s.prefs, ...patch };
+          next = s.prefs;
+        });
+        if (next) {
+          savePrefs(next);
+          // The audio graph reads prefs directly so a slider is audible while
+          // you are still dragging it, not one interaction later.
+          setAudioPrefs(next);
+        }
+      },
+
+      /**
+       * Finish an `acknowledge` step, or step past a goal step the player has
+       * already satisfied. Goal steps that are NOT yet satisfied ignore this —
+       * the coach mark stays up until the deed is done.
+       */
+      onboardingAck() {
+        set((s) => {
+          if (!s.save) return;
+          const step = currentOnboardingStep(s.save);
+          if (!step) return;
+          if (step.goal.kind === 'acknowledge' || stepSatisfied(s.save, step)) {
+            advanceOnboarding(s.save);
+          }
+        });
+        scheduleAutosave();
+      },
+
+      onboardingSkip() {
+        set((s) => {
+          if (s.save) skipOnboarding(s.save);
+        });
+        get().toast(t('ob.skipped'));
+        scheduleAutosave();
+      },
+
+      dismissTour() {
+        set((s) => {
+          if (s.save && s.tourScreen) markTourSeen(s.save, s.tourScreen);
+          s.tourScreen = null;
+        });
+        scheduleAutosave();
       },
 
       questsEnsureBoards() {
@@ -757,6 +890,10 @@ export const useGame = create<GameStore>()(
       setScreen(screen) {
         set((s) => {
           s.screen = screen;
+          // First visit to a screen with something non-obvious to say (§17).
+          // Never while the scripted sequence is still pointing — `tourDue`
+          // enforces the one-finger rule.
+          s.tourScreen = s.save && tourDue(s.save, screen) ? screen : null;
         });
       },
 

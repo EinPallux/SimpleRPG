@@ -4,6 +4,7 @@
  * SAVE_VERSION, then zod-validates. Every future entry ships a fixture test in
  * `migrations.test.ts` alongside the schema bump.
  */
+import { ONBOARDING_DONE } from '@/content/onboarding';
 import { SAVE_VERSION } from '@/engine/constants';
 import type { GameSave } from '@/engine/types';
 import { parseGameSave } from './schema';
@@ -130,6 +131,26 @@ const MIGRATIONS: Record<number, (raw: RawSave) => RawSave> = {
           itemsSeen: codex.itemsSeen ?? {},
           loreSeen: {},
         },
+      },
+    };
+  },
+  /**
+   * v6 (M6) → v7 (M8): the scripted first run (GAME_DESIGN §17).
+   *
+   * An existing save has, by definition, already played its first day — so it
+   * is marked onboarded rather than dragged back through the cold open. The
+   * per-screen tours are left UNSEEN: they are 15-second contextual tips, and
+   * an existing hero who has never opened the Menagerie should still get one.
+   */
+  7: (raw) => {
+    const progress = raw.progress as Record<string, unknown>;
+    return {
+      ...raw,
+      version: 7,
+      progress: {
+        ...progress,
+        onboarding: { step: ONBOARDING_DONE, skipped: true },
+        toursSeen: [],
       },
     };
   },

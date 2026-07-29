@@ -40,8 +40,8 @@ tinted line-art frames, warm gold accents. Cohesion rules:
 |---|---|---|
 | **Item/monster/system icons (~400 at v1.0)** | game-icons.net curated subset (weapons, armor, creatures, potions, UI glyphs), recolored to family | CC BY 3.0 → credit "Lorc, Delapouite & contributors, game-icons.net" |
 | Currency/emblem glyph accents | Kenney "Board Game Icons" + "Game Icons" packs as fallback family | CC0 |
-| **SFX (~25 cues)** | Kenney "Interface Sounds", "RPG Audio", "Impact Sounds", "Casino Audio" (wheel) | CC0 |
-| **Music (3 loops: town, patrol/night, combat sting)** | OpenGameArt CC0 medieval/ambient loops (shortlist & verify at build; fallback: ship v1.0 SFX-only, add music in 1.0.x) | CC0 only |
+| **SFX (12 cues)** | ~~Kenney audio packs~~ → **synthesised at runtime** (`src/ui/audio.ts`, M8): no files, no download, no licence to track. See §4.1. | n/a — originally authored |
+| **Music (3 loops: town, patrol/night, combat sting)** | **Not shipped at v1.0** — the documented fallback ("ship v1.0 SFX-only, add music in 1.0.x") is the one taken. Sourcing CC0 loops is a 1.0.x task. | CC0 only, when sourced |
 | Fonts | Cinzel + Nunito Sans via @fontsource (self-hosted) | OFL |
 | Extra backgrounds (town hub, arena backdrop, dungeon tints) | Derive from existing 15 via crops/tints/blur first; only source new low-poly art if it matches §2 | CC0 |
 | Cosmetic frame variants | Generated from Kenney border SVGs (recolor/composite) — no sourcing needed | CC0 (derivative) |
@@ -49,12 +49,30 @@ tinted line-art frames, warm gold accents. Cohesion rules:
 Rule: **derive before download** — crops, tints, composites of existing CC0 assets keep the style tighter
 than any new pack.
 
+### 4.1 Audio: why there are no audio files
+
+The plan was a Kenney CC0 sprite bundled by `audiosprite`. The packs were never brought into
+`game_assets/`, and the honest options at M8 were (a) block the milestone on sourcing binaries, or (b) take
+the fallback this table already allowed. We took (b) and went one step further: rather than *no* sound, the
+twelve UI_DESIGN §7 cues are **synthesised with the Web Audio API** — a click is a 50 ms blip, a clang is a
+filtered noise burst plus a metallic partial, the level-up is three rising notes.
+
+What that buys: nothing to download (the audio adds ~4 kB of code, not ~400 kB of samples), nothing to
+license or credit, it works offline on the very first paint, and every cue is original by construction so
+there is no provenance question at all. What it costs: the cues are *synthetic*, not recorded — good enough
+to punctuate an action, not a substitute for a sound designer.
+
+If real audio is sourced later it replaces exactly one function (`playSfx`) and nothing else; the rest of
+the game only knows cue names. Music is deliberately absent, so **Settings ships no music slider** — a dead
+control is worse than an honest omission.
+
 ## 5. Pipeline (implemented as `scripts/optimize-assets.mjs`, ROADMAP M0)
 
 `game_assets/` (pristine sources, git) → `public/assets/` (shipped, generated, git-ignored):
 backgrounds → AVIF/WebP 1280w/1920w ≤200 KB · borders → tinted variant sheet + `nine-slice.css` ·
-icons → SVG sprite (`currentColor`) · VFX → trimmed spritesheet + JSON atlas · audio → sprite via
-audiosprite. Manifest with content hashes for PWA precache. `examples/` explicitly excluded.
+icons → SVG sprite (`currentColor`) · VFX → trimmed spritesheet + JSON atlas. **No audio stage** — the cues
+are synthesised at runtime (§4.1), so there is nothing to pack. Manifest with content hashes for PWA
+precache. `examples/` explicitly excluded.
 
 ## 6. CREDITS (rendered in Settings → Credits; keep in sync)
 

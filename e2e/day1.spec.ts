@@ -17,6 +17,12 @@ test('day-1 loop: offer → mission → claim → reward → second wind → pat
   await page.getByPlaceholder(/Grimble/).fill('DayOne');
   await page.getByRole('button', { name: 'Sign the ledger' }).click();
 
+  // M8: a genuinely fresh hero lands on the cold open (GAME_DESIGN §17 beat 1).
+  // This spec is the one place a hero is created through the UI, so it is also
+  // the honest place to prove the first thing a new player ever sees.
+  await expect(page.getByText(/Your cart gave out on the road/)).toBeVisible();
+  await page.getByRole('button', { name: 'Got it' }).click();
+
   // The board offers three jobs with flavor text
   await expect(page.getByRole('button', { name: 'Take the job' })).toHaveCount(3);
 
@@ -60,6 +66,7 @@ test('gold and xp actually landed after a claimed mission', async ({ page }) => 
   await page.getByRole('button', { name: 'New adventurer' }).first().click();
   await page.getByPlaceholder(/Grimble/).fill('Ledger');
   await page.getByRole('button', { name: 'Sign the ledger' }).click();
+  await page.getByRole('button', { name: 'Got it' }).click(); // cold open (§17)
 
   await page.getByRole('button', { name: 'Take the job' }).first().click();
   await page.clock.fastForward('21:00');

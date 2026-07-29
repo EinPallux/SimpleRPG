@@ -28,13 +28,8 @@ import { missionGold, missionXp } from './economy';
 import { fnv1a } from './hash';
 import { rollDrop, sellPrice } from './items';
 import { bump, lower, raise, recordCombat, recordDrop } from './ledger';
-import {
-  botCombatant,
-  botLadder,
-  playerRank,
-  worldDayIndex,
-  type BotSnapshot,
-} from './botworld';
+import { auraTotal } from './pets';
+import { botCombatant, botLadder, playerRank, worldDayIndex, type BotSnapshot } from './botworld';
 import { getStream, Rng, seedState } from './rng';
 import type { GameSave, ItemInstance } from './types';
 import { applyXp, type XpResult } from './xpGain';
@@ -126,7 +121,10 @@ function quickStance(save: GameSave, bot: BotSnapshot): 'safe' | 'even' | 'risky
   let wins = 0;
   const trials = 5;
   for (let i = 0; i < trials; i++) {
-    const seed = seedState(save.worldSeed, `stance|${save.daily.dayKey}|${bot.id}|${i}|${fnv1a(bot.name)}`);
+    const seed = seedState(
+      save.worldSeed,
+      `stance|${save.daily.dayKey}|${bot.id}|${i}|${fnv1a(bot.name)}`,
+    );
     if (simulateCombat(hero, rival, seed).winner === 0) wins++;
   }
   if (wins >= 4) return 'safe';
@@ -191,9 +189,15 @@ export function fightArena(save: GameSave, offerIndex: number, nowMs: number): A
     ).toISOString();
 
     bump(save, 'arenaFights');
+    // The Grave Owl's pair of auras: a bigger purse and a bigger place-swap.
+    // Both apply only on a WIN — a pet cannot soften a loss, so the ladder
+    // still costs what it costs (BALANCING §3.4).
+    const arenaGoldAura = 1 + auraTotal(save, 'arenaGold');
     if (won) {
-      honorDelta = honorOnWin(save.hero.honor, offer.bot.honor);
-      gold = Math.round(missionGold(save.hero.level, 10) * ARENA_WIN_GOLD_MULT);
+      honorDelta = Math.round(
+        honorOnWin(save.hero.honor, offer.bot.honor) * (1 + auraTotal(save, 'honorGain')),
+      );
+      gold = Math.round(missionGold(save.hero.level, 10) * ARENA_WIN_GOLD_MULT * arenaGoldAura);
       bump(save, 'arenaWins');
       bump(save, 'arenaWinStreak');
       raise(save, 'arenaBestStreak', save.stats.arenaWinStreak ?? 0);
@@ -210,7 +214,7 @@ export function fightArena(save: GameSave, offerIndex: number, nowMs: number): A
       }
     } else {
       honorDelta = -honorOnLoss(save.hero.honor, offer.bot.honor);
-      gold = Math.round(missionGold(save.hero.level, 10) * ARENA_LOSS_GOLD_MULT);
+      gold = Math.round(missionGold(save.hero.level, 10) * ARENA_LOSS_GOLD_MULT * arenaGoldAura);
       bump(save, 'arenaLosses');
       save.stats.arenaWinStreak = 0;
     }

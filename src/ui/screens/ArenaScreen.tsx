@@ -105,7 +105,9 @@ function OfferCard({
 
       <div className="mt-auto flex items-center justify-between gap-2">
         <span className="text-[11px] font-semibold text-ink-muted">
-          {sparring ? t('arena.reward.sparNote') : t('arena.honorPreview', { honor: offer.honorOnWin })}
+          {sparring
+            ? t('arena.reward.sparNote')
+            : t('arena.honorPreview', { honor: offer.honorOnWin })}
         </span>
       </div>
       <FButton onClick={onFight} disabled={disabled}>
@@ -143,9 +145,7 @@ export function ArenaScreen() {
       <Panel variant="primary">
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <div>
-            <h1 className="font-display text-2xl font-bold text-gold-bright">
-              {t('arena.title')}
-            </h1>
+            <h1 className="font-display text-2xl font-bold text-gold-bright">{t('arena.title')}</h1>
             <p className="text-sm text-ink-muted">{t('arena.subtitle')}</p>
           </div>
           <div className="flex flex-col items-end gap-1.5">
@@ -201,7 +201,7 @@ export function ArenaScreen() {
         </Panel>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div id="arena-offers" className="grid gap-3 sm:grid-cols-3">
         {offers.map((offer, i) => (
           <OfferCard
             key={offer.bot.id}
