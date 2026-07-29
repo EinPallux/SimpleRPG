@@ -37,12 +37,20 @@ export function Tooltip({
   children,
   placement = 'auto',
   delayMs = 120,
+  className = 'inline-flex',
 }: {
   content: ReactNode;
   children: ReactElement<{ 'aria-describedby'?: string | undefined }>;
   /** 'auto' picks by available room; the rest force a side */
   placement?: 'auto' | 'top' | 'bottom';
   delayMs?: number;
+  /**
+   * Layout classes for the anchor. The anchor is a real element in the flow, so
+   * a trigger that was `w-full` or `flex-1` before being wrapped needs the
+   * wrapper to carry that too — otherwise adding an explanation silently
+   * reflows the thing it explains.
+   */
+  className?: string;
 }) {
   const id = useId();
   const [open, setOpen] = useState(false);
@@ -117,7 +125,7 @@ export function Tooltip({
     <>
       <span
         ref={anchor}
-        className="inline-flex"
+        className={className}
         onPointerEnter={(e) => {
           if (e.pointerType !== 'touch') show();
         }}

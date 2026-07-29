@@ -1,8 +1,11 @@
 /**
  * Mounts (GAME_DESIGN.md §11.2, CONTENT_CATALOG.md §6.4): the Stable's four
- * animals, unlocked at L10. A mount does exactly one thing — it shortens every
- * mission by a flat fraction — so the whole system is a four-row price ladder
- * and a single number the engine multiplies into mission duration.
+ * animals, open from level 1 (`STABLE_UNLOCK_LEVEL`). A mount does exactly one
+ * thing — it shortens every mission by a flat fraction — so the whole system is
+ * a four-row price ladder and a single number the engine multiplies into
+ * mission duration. They are RENTED by the fortnight, never owned
+ * (`MOUNT_RENTAL_DAYS`, engine/mounts.ts): the ladder below is a price list, not
+ * a collection.
  *
  * Tier 1..4 mirrors `MOUNT_SPEED` in `engine/constants.ts` ([0, .1, .2, .3, .5],
  * index = tier, tier 0 = on foot). The speeds are restated here as data so the

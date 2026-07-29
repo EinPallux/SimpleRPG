@@ -64,7 +64,7 @@ test('item lifecycle: import → shop → equip → attributes → forge → eli
   const rail = page.getByRole('navigation', { name: 'Main' });
 
   // Shop: buy the predicted piece; learn its display name from the toast
-  await rail.getByTitle('Shops').click();
+  await rail.getByRole('button', { name: 'Shops' }).click();
   const buyButtons = page.getByRole('button', { name: /^Buy · / });
   await expect(buyButtons.first()).toBeVisible();
   await buyButtons.nth(buyIdx).click();
@@ -73,7 +73,7 @@ test('item lifecycle: import → shop → equip → attributes → forge → eli
   const boughtName = (await toast.innerText()).slice('Bought '.length, -1);
 
   // Backpack: open the item and equip it
-  await rail.getByTitle('Character').click();
+  await rail.getByRole('button', { name: 'Character' }).click();
   await page.getByRole('button', { name: /Backpack \(1\)/ }).click();
   await page.getByRole('button', { name: boughtName, exact: true }).click();
   await page.getByRole('button', { name: 'Equip', exact: true }).click();
@@ -87,13 +87,13 @@ test('item lifecycle: import → shop → equip → attributes → forge → eli
   await expect(page.getByText('Strength increased to 1.')).toBeVisible();
 
   // Forge: strike the anvil on the equipped piece
-  await rail.getByTitle('Forge').click();
+  await rail.getByRole('button', { name: 'Forge' }).click();
   await page.getByRole('button', { name: boughtName, exact: true }).first().click();
   await page.getByRole('button', { name: 'Strike the anvil' }).click();
   await expect(page.getByText(/shines a little brighter/)).toBeVisible();
 
   // Arcanum: drink something that hums
-  await rail.getByTitle('Shops').click();
+  await rail.getByRole('button', { name: 'Shops' }).click();
   await page.getByRole('button', { name: 'The Arcanum' }).click();
   await page.getByRole('button', { name: /Minor Elixir of Strength/ }).click();
   await expect(page.getByText(/kicking in/)).toBeVisible();
@@ -103,7 +103,7 @@ test('item lifecycle: import → shop → equip → attributes → forge → eli
   await page.clock.fastForward('00:05');
   await page.reload();
   await page.getByRole('button', { name: 'Continue' }).click();
-  await rail.getByTitle('Character').click();
+  await rail.getByRole('button', { name: 'Character' }).click();
   await expect(
     page.getByRole('button', { name: new RegExp(`^${boughtName.replace(/[+]/g, '\\+')}`) }),
   ).toBeVisible();

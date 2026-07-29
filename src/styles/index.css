@@ -67,6 +67,19 @@ h3,
   background:
     radial-gradient(120% 80% at 50% -20%, rgba(217, 169, 75, 0.05), transparent 70%),
     linear-gradient(180deg, var(--panel-raised) 0%, var(--panel) 60%, var(--panel) 100%);
+  /**
+   * BOTH halves are needed, and only having the first is a distinct bug.
+   *
+   * `background-clip` says how far the paint may reach; `background-origin`
+   * says where the gradient's own 0%–100% is measured from, and it defaults to
+   * the padding box. Clip alone therefore gave a gradient sized to the padding
+   * box and then TILED outward to fill the border — so the 16px band above and
+   * below every panel showed the wrong end of the ramp and read as a dark strip
+   * inside the frame. Left and right looked fine only because the gradient is
+   * vertical and has nothing to get wrong horizontally.
+   */
+  background-clip: border-box;
+  background-origin: border-box;
   border-radius: 6px;
   box-shadow:
     inset 0 1px 0 var(--edge-light),
@@ -79,7 +92,13 @@ h3,
  * is now a shade ABOVE the canvas and carved by shadow instead of by darkness.
  */
 .panel-fill-inset {
-  background: linear-gradient(180deg, var(--panel-inset) 0%, color-mix(in srgb, var(--panel-inset) 88%, black) 100%);
+  background: linear-gradient(
+    180deg,
+    var(--panel-inset) 0%,
+    color-mix(in srgb, var(--panel-inset) 88%, black) 100%
+  );
+  background-clip: border-box;
+  background-origin: border-box;
   border-radius: 4px;
   box-shadow: var(--recess-shadow);
 }
@@ -98,8 +117,14 @@ h3,
  */
 .btn-fill {
   --btn-tint: var(--gold);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--btn-tint) 16%, var(--panel-raised)) 0%, var(--panel) 78%, color-mix(in srgb, var(--btn-tint) 8%, var(--panel)) 100%);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--btn-tint) 16%, var(--panel-raised)) 0%,
+    var(--panel) 78%,
+    color-mix(in srgb, var(--btn-tint) 8%, var(--panel)) 100%
+  );
+  background-clip: border-box;
+  background-origin: border-box;
   border-radius: 4px;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.1),
@@ -126,7 +151,11 @@ h3,
 
 /* Meter tracks: carved, with a glass highlight over the filled part. */
 .meter-track {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--panel-inset) 85%, black) 0%, var(--panel-inset) 100%);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--panel-inset) 85%, black) 0%,
+    var(--panel-inset) 100%
+  );
   box-shadow: var(--recess-shadow);
 }
 .meter-fill::after {

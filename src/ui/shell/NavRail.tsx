@@ -5,17 +5,22 @@ import { claimableAchievements } from '@/engine/achievements';
 import { canClaimCalendar } from '@/engine/calendar';
 import {
   ARENA_FIGHTS_PER_DAY,
+  ARENA_UNLOCK_LEVEL,
   CALENDAR_UNLOCK_LEVEL,
+  DUNGEONS_UNLOCK_LEVEL,
+  EXPEDITIONS_UNLOCK_LEVEL,
   QUESTS_UNLOCK_LEVEL,
+  WHEEL_UNLOCK_LEVEL,
 } from '@/engine/constants';
 import { canAttemptFloor } from '@/engine/dungeons';
 import { expeditionsLeft } from '@/engine/expeditions';
 import { missionEndsAt } from '@/engine/missions';
 import { canClaimActivityChest, canClaimQuest, questBlock } from '@/engine/quests';
 import { wheelSpinsLeft } from '@/engine/wheel';
-import { t } from '@/i18n';
+import { t, type I18nKey } from '@/i18n';
 import { useGame, type ScreenId } from '@/state/store';
 import { NAV_GROUPS, type NavEntry } from '../nav';
+import { Hint } from '../components/Hint';
 import { Icon } from '../components/Icon';
 import { useGameClock } from '../hooks/useGameClock';
 
@@ -29,20 +34,21 @@ function useNavBadges(): Partial<Record<ScreenId, string>> {
   const mission = save.activities.mission;
   if (mission && now >= missionEndsAt(mission)) badges.tavern = '!';
   if (save.activities.patrol) badges.patrol = '💤';
-  if (level >= 5 && save.activities.arena.fightsToday < ARENA_FIGHTS_PER_DAY) {
+  if (level >= ARENA_UNLOCK_LEVEL && save.activities.arena.fightsToday < ARENA_FIGHTS_PER_DAY) {
     badges.arena = String(ARENA_FIGHTS_PER_DAY - save.activities.arena.fightsToday);
   }
-  if (level >= 8) {
+  if (level >= EXPEDITIONS_UNLOCK_LEVEL) {
     const left = expeditionsLeft(save);
     if (left > 0 || save.activities.expedition) {
       badges.expeditions = save.activities.expedition ? '!' : String(left);
     }
   }
-  if (level >= 12) {
+  if (level >= DUNGEONS_UNLOCK_LEVEL) {
     const ready = DUNGEONS.filter((d) => canAttemptFloor(save, d.id, now).ok).length;
     if (ready > 0) badges.dungeons = String(ready);
   }
-  if (level >= 5 && wheelSpinsLeft(save) > 0) badges.wheel = String(wheelSpinsLeft(save));
+  if (level >= WHEEL_UNLOCK_LEVEL && wheelSpinsLeft(save) > 0)
+    badges.wheel = String(wheelSpinsLeft(save));
   // Meta layer: only ever badge things that are actually claimable right now.
   if (level >= QUESTS_UNLOCK_LEVEL) {
     const ready =
@@ -95,39 +101,54 @@ function RailEntry({
   const locked = level < entry.unlockLevel;
   const active = screen === entry.screen;
   const labelClass = labels === 'always' ? 'block' : 'hidden xl:block';
+  const name = t(entry.labelKey);
   return (
-    <button
-      onClick={() => onActivate(entry)}
-      aria-current={active ? 'page' : undefined}
-      title={locked ? t('nav.lockedTooltip', { level: entry.unlockLevel }) : t(entry.labelKey)}
-      className={`group flex w-full items-center gap-3 px-3 py-2 text-left text-sm font-bold transition-colors duration-(--motion-fast) ${
-        active
-          ? 'border-l-2 border-gold bg-panel-raised text-gold'
-          : locked
-            ? 'text-ink-faint hover:text-ink-muted'
-            : 'text-ink-muted hover:bg-panel-raised hover:text-ink'
-      }`}
+    <Hint
+      title={name}
+      body={t(`nav.tip.${entry.screen}` as I18nKey)}
+      note={locked ? t('nav.lockedTooltip', { level: entry.unlockLevel }) : undefined}
+      className="flex w-full"
     >
-      <span className="relative shrink-0">
-        <Icon id={entry.icon} size={22} className={locked ? 'opacity-50' : ''} />
+      <button
+        onClick={() => onActivate(entry)}
+        aria-current={active ? 'page' : undefined}
+        // Between `lg` and `xl` the rail is icons only, so the visible label is
+        // display:none and the button would have no accessible name at all.
+        // The name is spelled out here instead — including the lock, which is
+        // otherwise carried purely by a 11px padlock glyph.
+        aria-label={locked ? t('nav.lockedLabel', { name, level: entry.unlockLevel }) : name}
+        className={`group flex w-full items-center gap-3 px-3 py-2 text-left text-sm font-bold transition-colors duration-(--motion-fast) ${
+          active
+            ? 'border-l-2 border-gold bg-panel-raised text-gold'
+            : locked
+              ? 'text-ink-faint hover:text-ink-muted'
+              : 'text-ink-muted hover:bg-panel-raised hover:text-ink'
+        }`}
+      >
+        <span className="relative shrink-0">
+          <Icon id={entry.icon} size={22} className={locked ? 'opacity-50' : ''} />
+          {locked && (
+            <Icon id="lock" size={11} className="absolute -right-1.5 -bottom-1 text-ink-faint" />
+          )}
+          {!locked && badge && (
+            <span className="absolute -top-1.5 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-gold px-0.5 text-[9px] font-extrabold text-canvas">
+              {badge}
+            </span>
+          )}
+        </span>
+        <span className={`${labelClass} min-w-0 flex-1 truncate`} aria-hidden="true">
+          {name}
+        </span>
         {locked && (
-          <Icon id="lock" size={11} className="absolute -right-1.5 -bottom-1 text-ink-faint" />
-        )}
-        {!locked && badge && (
-          <span className="absolute -top-1.5 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-gold px-0.5 text-[9px] font-extrabold text-canvas">
-            {badge}
+          <span
+            className={`${labelClass} shrink-0 rounded-sm bg-panel-inset px-1 py-0.5 text-[10px] font-extrabold text-ink-faint`}
+            aria-hidden="true"
+          >
+            {t('common.levelShort', { level: entry.unlockLevel })}
           </span>
         )}
-      </span>
-      <span className={`${labelClass} min-w-0 flex-1 truncate`}>{t(entry.labelKey)}</span>
-      {locked && (
-        <span
-          className={`${labelClass} shrink-0 rounded-sm bg-panel-inset px-1 py-0.5 text-[10px] font-extrabold text-ink-faint`}
-        >
-          {t('common.levelShort', { level: entry.unlockLevel })}
-        </span>
-      )}
-    </button>
+      </button>
+    </Hint>
   );
 }
 

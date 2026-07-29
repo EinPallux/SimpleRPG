@@ -6,6 +6,7 @@ import type { EquipSlot, GameSave } from '@/engine/types';
 import { t } from '@/i18n';
 import { useGame } from '@/state/store';
 import { FButton } from '../components/FButton';
+import { Hint } from '../components/Hint';
 import { ItemCard } from '../components/ItemCard';
 import { ItemSlot } from '../components/ItemSlot';
 import { Panel } from '../components/Panel';
@@ -108,17 +109,21 @@ function DismantleBench({ save }: { save: GameSave }) {
       variant="secondary"
       title={t('forge.dismantleBench')}
       headerRight={
-        <span
-          className="flex items-center gap-1"
-          title={t('forge.dismantleLeft', { left, max: DISMANTLES_PER_DAY })}
+        <Hint
+          title={t('forge.tip.pips.title')}
+          body={t('forge.tip.pips.body', { max: DISMANTLES_PER_DAY })}
+          rows={[[t('forge.tip.pips.left'), `${left} / ${DISMANTLES_PER_DAY}`]]}
+          placement="bottom"
         >
-          {Array.from({ length: DISMANTLES_PER_DAY }, (_, i) => (
-            <span
-              key={i}
-              className={`h-2 w-2 rounded-full ${i < left ? 'bg-gold' : 'bg-ink-faint/40'}`}
-            />
-          ))}
-        </span>
+          <span className="flex items-center gap-1" tabIndex={0}>
+            {Array.from({ length: DISMANTLES_PER_DAY }, (_, i) => (
+              <span
+                key={i}
+                className={`h-2 w-2 rounded-full ${i < left ? 'bg-gold' : 'bg-ink-faint/40'}`}
+              />
+            ))}
+          </span>
+        </Hint>
       }
     >
       {save.inventory.backpack.length === 0 ? (
@@ -145,18 +150,23 @@ function DismantleBench({ save }: { save: GameSave }) {
                   dust: yields.dust > 0 ? t('forge.dismantleDust', { n: yields.dust }) : '',
                 })}
               </span>
-              <FButton
-                variant="danger"
-                size="sm"
-                disabled={left === 0}
-                title={left === 0 ? t('forge.noneLeft') : undefined}
-                onClick={() => {
-                  dismantle(index!);
-                  setIndex(null);
-                }}
+              <Hint
+                title={t('forge.dismantle')}
+                body={t('forge.tip.dismantle.body')}
+                note={left === 0 ? t('forge.noneLeft') : undefined}
               >
-                {t('forge.dismantle')}
-              </FButton>
+                <FButton
+                  variant="danger"
+                  size="sm"
+                  disabled={left === 0}
+                  onClick={() => {
+                    dismantle(index!);
+                    setIndex(null);
+                  }}
+                >
+                  {t('forge.dismantle')}
+                </FButton>
+              </Hint>
             </div>
           )}
         </>

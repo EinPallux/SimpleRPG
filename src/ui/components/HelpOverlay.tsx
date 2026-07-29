@@ -16,6 +16,7 @@ import { t, type I18nKey } from '@/i18n';
 import type { ScreenId } from '@/state/store';
 import { findNavEntry } from '../nav';
 import { FButton } from './FButton';
+import { Hint } from './Hint';
 import { Icon } from './Icon';
 import { Modal } from './Modal';
 
@@ -50,18 +51,19 @@ export function HelpButton({ screen, className = '' }: { screen: ScreenId; class
 
   return (
     <>
-      <button
-        type="button"
-        aria-label={t('help.open')}
-        title={t('help.open')}
-        onClick={() => setOpen(true)}
-        // UI_DESIGN §8: hit areas >= 44px. The glyph stays 20px; the button
-        // grows around it, so the target is finger-sized without the icon
-        // looking oversized next to the HUD bars.
-        className={`-m-3 grid h-11 w-11 place-items-center text-ink-muted transition-colors hover:text-ink ${className}`}
-      >
-        <Icon id="help" size={20} />
-      </button>
+      <Hint title={t('help.open')} body={t('hud.tip.help.body')} placement="bottom">
+        <button
+          type="button"
+          aria-label={t('help.open')}
+          onClick={() => setOpen(true)}
+          // UI_DESIGN §8: hit areas >= 44px. The glyph stays 20px; the button
+          // grows around it, so the target is finger-sized without the icon
+          // looking oversized next to the HUD bars.
+          className={`-m-3 grid h-11 w-11 place-items-center text-ink-muted transition-colors hover:text-ink ${className}`}
+        >
+          <Icon id="help" size={20} />
+        </button>
+      </Hint>
       {open && <HelpOverlay screen={screen} onClose={() => setOpen(false)} />}
     </>
   );

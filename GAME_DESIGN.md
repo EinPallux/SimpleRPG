@@ -481,12 +481,12 @@ The **choice-driven** way to spend vigor (S&F expeditions, reimagined):
 
 | Level | Unlocks |
 |---|---|
-| 1 | Tavern, Character sheet, Backpack, story ch. 1 |
+| 1 | Tavern, Character sheet, Backpack, story ch. 1, **Stable** (mounts — §11.2, B1) |
 | 3 | Patrol |
 | 5 | Arena (with mini-rank), Wheel of Destiny |
 | 6 | Daily/Weekly/Monthly quest board, Activity chest |
 | 8 | Expeditions |
-| 10 | Stable (mounts), Weapon Smith, Armorer |
+| 10 | Weapon Smith, Armorer |
 | 12 | Dungeon 1, The Arcanum (potions) |
 | 15 | Forge, full Hall of Fame |
 | 18 | Wishing Well (gacha) + Login Calendar |

@@ -59,7 +59,7 @@ async function importSave(page: Page, save: GameSave) {
 
 /** The HUD purse — the first currency chip of its kind on the page. */
 function hudChip(page: Page, currency: 'Gold' | 'Gems'): Locator {
-  return page.locator(`span[title="${currency}"]`).first();
+  return page.getByRole('group', { name: currency }).first();
 }
 
 /** A Panel by its heading — Panels are <section>s and never nest here. */
@@ -99,7 +99,7 @@ test('the Menagerie: collection bonus → family tabs → feed → equip → sil
   await importSave(page, save);
   const rail = page.getByRole('navigation', { name: 'Main' });
 
-  await rail.getByTitle('Menagerie').click();
+  await rail.getByRole('button', { name: 'Menagerie' }).click();
   await expect(page.getByRole('heading', { name: 'The Menagerie' })).toBeVisible();
 
   // — The header ledger: how many, and what the collection alone is worth —
@@ -174,7 +174,7 @@ test('the Menagerie: collection bonus → family tabs → feed → equip → sil
   await page.clock.fastForward('00:05');
   await page.reload();
   await page.getByRole('button', { name: 'Continue' }).click();
-  await rail.getByTitle('Menagerie').click();
+  await rail.getByRole('button', { name: 'Menagerie' }).click();
   await expect(page.getByRole('heading', { level: 2, name: 'Thicket Hare' })).toBeVisible();
   await expect(petCard(page, 'Thicket Hare').getByText('Level 2 / 50')).toBeVisible();
 });
@@ -196,7 +196,7 @@ test('the Stable: on foot → rent tier 1 → the Drake keeps charging gems', as
   await importSave(page, save);
   const rail = page.getByRole('navigation', { name: 'Main' });
 
-  await rail.getByTitle('Stable').click();
+  await rail.getByRole('button', { name: 'Stable' }).click();
   await expect(page.getByRole('heading', { name: 'The Stable' })).toBeVisible();
 
   // — On foot, and Wilbur has opinions about it —
@@ -236,7 +236,7 @@ test('the Stable: on foot → rent tier 1 → the Drake keeps charging gems', as
   await page.clock.fastForward('00:05');
   await page.reload();
   await page.getByRole('button', { name: 'Continue' }).click();
-  await rail.getByTitle('Stable').click();
+  await rail.getByRole('button', { name: 'Stable' }).click();
   const stallAfter = panelWithHeading(page, 'In the stall');
   await expect(stallAfter.getByText('Barley the Pack Mule', { exact: true })).toBeVisible();
   await expect(stallAfter.getByText('14d left')).toBeVisible();
@@ -301,7 +301,7 @@ test('the Wishing Well: odds and pity posted first, free toss, ten-toss, banners
   const rail = page.getByRole('navigation', { name: 'Main' });
   const gems = hudChip(page, 'Gems');
 
-  await rail.getByTitle('Wishing Well').click();
+  await rail.getByRole('button', { name: 'Wishing Well' }).click();
   await expect(page.getByRole('heading', { name: 'The Wishing Well' })).toBeVisible();
 
   // — First paint, Standard Well: the numbers are already there —
@@ -389,10 +389,16 @@ test('the Wishing Well: odds and pity posted first, free toss, ten-toss, banners
  * `continueSlot()` resets it to 'tavern' — so the rail gate below IS the locked
  * state from outside the code. Flagged in the M7 report, not worked around.
  */
-test('the three M7 doors stay shut below their unlock levels', async ({ page, isMobile }) => {
+test('the M7 doors stay shut below their unlock levels — and the Stable does not', async ({
+  page,
+  isMobile,
+}) => {
   test.skip(isMobile, 'exercises the desktop rail; mobile nav is covered by day1/smoke specs');
 
-  // Level 9 is under all three gates at once: Stable 10, Well 18, Menagerie 35.
+  // Level 9 is under both remaining gates at once: Well 18, Menagerie 35. The
+  // Stable is NOT among them — B3 moved it to level 1 — and it is asserted open
+  // below, because the rail advertising "Stable · Lv 10" for a whole milestone
+  // after the constant moved is the exact regression this file failed to catch.
   const save = craftSave('Toosoon', 9);
 
   await page.clock.install({ time: new Date(CLOCK) });
@@ -400,21 +406,26 @@ test('the three M7 doors stay shut below their unlock levels', async ({ page, is
   const rail = page.getByRole('navigation', { name: 'Main' });
 
   const doors = [
-    { nav: 'Stable', level: 10, heading: 'The Stable' },
     { nav: 'Wishing Well', level: 18, heading: 'The Wishing Well' },
     { nav: 'Menagerie', level: 35, heading: 'The Menagerie' },
   ] as const;
 
   for (const door of doors) {
-    const entry = rail.getByRole('button', { name: door.nav });
-    // The rail shows the door as a locked silhouette carrying its own level…
-    await expect(entry).toHaveAttribute('title', `Unlocks at level ${door.level}`);
+    // The rail's accessible name carries the lock, since between lg and xl the
+    // visible "Lv N" chip is not rendered at all.
+    const entry = rail.getByRole('button', {
+      name: `${door.nav} — unlocks at level ${door.level}`,
+    });
     await entry.click();
-    // …and refuses to open it, with a line that names the level out loud.
+    // …and it refuses to open, with a line that names the level out loud.
     await expect(page.getByText(`${door.nav} unlocks at level ${door.level}.`)).toBeVisible();
     await expect(page.getByRole('heading', { name: door.heading })).toHaveCount(0);
     await expect(page.getByText('The Gilded Tankard')).toBeVisible();
   }
+
+  // The Stable, by contrast, opens at level 9 — as it does at level 1.
+  await rail.getByRole('button', { name: 'Stable', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'The Stable' })).toBeVisible();
 
   // Neither the pet grid nor the well's bucket exists at this level.
   await expect(page.getByRole('tablist', { name: 'The Menagerie' })).toHaveCount(0);

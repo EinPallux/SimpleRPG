@@ -1,3 +1,4 @@
+import { FORGE_UNLOCK_LEVEL } from '@/engine/constants';
 import { dismantlesLeft } from '@/engine/forge';
 import { classFitness, suitsClass } from '@/engine/inventoryOps';
 import { sellPrice, slotOf } from '@/engine/items';
@@ -30,7 +31,7 @@ export function ItemActionModal({
   // rather than refuses (engine/inventoryOps.ts `classFitness`).
   const suits = suitsClass(save, item);
   const fitness = classFitness(save, item);
-  const forgeUnlocked = save.hero.level >= 15;
+  const forgeUnlocked = save.hero.level >= FORGE_UNLOCK_LEVEL;
   const gate = dismantlesLeft(save);
 
   return (

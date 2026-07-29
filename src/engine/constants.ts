@@ -82,6 +82,8 @@ export const DISMANTLES_PER_DAY = 5;
 export const DUNGEON_COOLDOWN_MIN = 60;
 export const PATROL_TICK_MIN = 30;
 export const PATROL_CAP_HOURS = 8;
+/** The Watch only hires the exhausted: vigor must be under this to sign on. */
+export const PATROL_VIGOR_THRESHOLD = 5;
 
 /**
  * Every mission ends in a scrap with something local (B1, the S&F shape).
@@ -334,7 +336,25 @@ export const WELL_LEGENDARY_ILVL_BONUS = 8;
 export const QUEST_SLOTS = 3; // dailies on the board
 export const WEEKLY_QUEST_SLOTS = 3;
 export const MONTHLY_QUEST_SLOTS = 2;
+/**
+ * The unlock ladder (GAME_DESIGN §18), in one place.
+ *
+ * These used to live as literals in `ui/nav.ts` with copies in badge logic, a
+ * modal and the simulator. That is how the Stable went on advertising "Lv 10"
+ * after `STABLE_UNLOCK_LEVEL` moved to 1 — the rail was reading its own private
+ * copy. Everything that gates on a level reads from here now, so a change
+ * cannot be half-applied.
+ */
+export const PATROL_UNLOCK_LEVEL = 3;
+export const ARENA_UNLOCK_LEVEL = 5;
+export const WHEEL_UNLOCK_LEVEL = 5;
 export const QUESTS_UNLOCK_LEVEL = 6;
+export const ACHIEVEMENTS_UNLOCK_LEVEL = 6;
+export const EXPEDITIONS_UNLOCK_LEVEL = 8;
+export const SHOPS_UNLOCK_LEVEL = 10;
+export const DUNGEONS_UNLOCK_LEVEL = 12;
+export const FORGE_UNLOCK_LEVEL = 15;
+export const HALL_OF_FAME_UNLOCK_LEVEL = 15;
 export const CODEX_UNLOCK_LEVEL = 25;
 export const CALENDAR_UNLOCK_LEVEL = 18;
 export const ACTIVITY_MAX = 100;
