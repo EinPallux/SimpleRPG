@@ -3,8 +3,10 @@
 > **Canonical for all content enumerations.** Systems/rules: GAME_DESIGN.md. Numbers: BALANCING.md.
 > Every entry here becomes a typed record in `src/content/` (TECHNICAL_ARCHITECTURE.md §8) with a stable
 > `id` (kebab-case of the name unless noted). Flavor strings live in the i18n catalog, keyed by id.
-> Counts marked **[build-fill]** define required volume; final prose is written during the build milestone,
-> following the Writing Guide (§13).
+> Counts were marked **[build-fill]** while the prose was outstanding. **As of M9 none remain** — every
+> pool in §13 is written to its stated volume and asserted against the catalog by `content/flavor.test.ts`.
+> New content added after v1.0 follows the Writing Guide (§13) and the same rule: declare the volume, then
+> make a test hold you to it.
 
 ---
 

@@ -149,10 +149,27 @@ cold open to a claimed reward, and the sequence is six beats long with a one-cli
 real hallway test remains **open for the owner** before v1.0 — it is the one M8 acceptance criterion that
 automation cannot stand in for.
 
-**M9 · Content-complete & balance freeze** — all [build-fill] flavor written (mission texts, boss intros,
-codex lore, tips), icon set finalized, 180-day sim scenarios green, tuning changelog reconciled, QA sweep
-(save migration fixtures, clock-jump tests, 375px layout), CHANGELOG + v1.0.0 tag.
-*Done when:* **v1.0 on Vercel production.**
+**M9 · Content-complete & balance freeze** ✅ — the last [build-fill] block closes and the numbers freeze.
+**The eight named legendaries** (§6.2) ship with bespoke effects that reuse hooks the set system already
+reads, gated by `minLevel` and dropping only from the sources that already pay a Legendary — so they
+inherit that pacing instead of inflating it. Three "you never knew you had it" bugs were found while
+measuring them: a unique rolled at its gate level was *strictly worse* than the drop it replaced past L55;
+a full backpack auto-sold a one-of-eight into pocket change unseen; and the simulator vendored them with
+the rest of the bag, so the collection measured as permanently empty. **Flavor** reached its §13 volumes —
+missions 30→72 (zones 4–10 had no pool of their own), patrol 10→20, arena quips 0→30 (wins never had a
+line at all), tips 0→25 with a daily rotation on the Tavern, and six expedition mini-boss reserves so a
+locale you revisit for months has more than one face. Pool sizes moved out of inline modulo literals into
+`content/flavor.ts` and are asserted against the real catalog — the Patrol screen had been cycling ten of
+its twenty lines for three milestones without anything breaking. **The contract** widened from 8 seeds to
+16 after four-seed subsets measured the gacha deficit anywhere from 11.3% to 22.2%; the 12%/18% bounds are
+product statements and did not move. **QA:** long-absence tests (a year away lands correctly and per-day
+allowances do not stack), and a 375 px sweep of all 16 screens — nothing had ever tested the narrowest
+supported width, because the mobile Playwright project is a 412 px Pixel 7.
+*Deviation:* the icon set needed no finalization pass — `IconId` is a generated union, so a missing icon
+is a compile error rather than a runtime blank, and the 44-icon set has been complete since M0.
+*Done when:* **v1.0 on Vercel production.** The build, the full suite (449 unit + 27 e2e) and the sim
+contract are green; the remaining gate is the owner's — the **hallway test with three people** still open
+from M8, and the production deploy itself.
 
 ## Phase 2 — Post-1.0 patches (WoW-style content drops)
 
