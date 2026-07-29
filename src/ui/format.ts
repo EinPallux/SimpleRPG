@@ -20,6 +20,27 @@ export function formatCountdown(totalSec: number): string {
   return `${h > 0 ? `${h}:` : ''}${mm}:${String(sec).padStart(2, '0')}`;
 }
 
+/**
+ * A duration as a human would say it: "30s", "1m 10s", "20 min", "1h 5m".
+ *
+ * Distinct from {@link formatCountdown}, which is a ticking clock and wants
+ * fixed digits. This is for the label on an offer you have not taken yet, where
+ * "0:30" reads like a stopwatch and "30s" reads like an answer. It matters now
+ * that early missions run in seconds — the board used to print the mission's
+ * SIZE with "min" glued to it, so a level-1 hero was told a 70-second errand
+ * would take fifteen minutes.
+ */
+export function formatDuration(totalSec: number): string {
+  const s = Math.max(0, Math.round(totalSec));
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  const rem = s % 60;
+  if (m < 60) return rem === 0 ? `${m} min` : `${m}m ${rem}s`;
+  const h = Math.floor(m / 60);
+  const mm = m % 60;
+  return mm === 0 ? `${h}h` : `${h}h ${mm}m`;
+}
+
 export function relativeTime(iso: string, nowMs: number): string {
   const delta = Math.max(0, nowMs - Date.parse(iso));
   const minutes = Math.floor(delta / 60_000);

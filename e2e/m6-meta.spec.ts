@@ -78,7 +78,7 @@ test('the meta layer: quest board → chest → achievement → calendar → bal
   // — The board: 3 dailies + 3 weeklies + 2 monthlies, none pre-completed —
   // (i18n lives in JSON that Playwright's ESM loader won't import, so the spec
   // asserts the board's structure rather than its prose.)
-  await rail.getByTitle('Quests').click();
+  await rail.getByRole('button', { name: 'Quests' }).click();
   await expect(page.getByRole('heading', { name: 'The Quest Board' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Today' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'This week' })).toBeVisible();
@@ -95,7 +95,7 @@ test('the meta layer: quest board → chest → achievement → calendar → bal
   await expect(page.getByRole('button', { name: 'Swap' }).first()).toBeDisabled();
 
   // — Achievements: a lifetime feat banks permanent attributes —
-  await rail.getByTitle('Achievements').click();
+  await rail.getByRole('button', { name: 'Achievements' }).click();
   await expect(page.getByRole('heading', { name: 'Achievements' })).toBeVisible();
   await expect(page.getByText(/Achievements grant you \+0 to every attribute\./)).toBeVisible();
   const claimAll = page.getByRole('button', { name: /Claim all/ });
@@ -108,7 +108,7 @@ test('the meta layer: quest board → chest → achievement → calendar → bal
   ).toBeVisible();
 
   // — Calendar: today's stamp, once —
-  await rail.getByTitle('Calendar').click();
+  await rail.getByRole('button', { name: 'Calendar' }).click();
   await expect(page.getByRole('heading', { name: "The Innkeeper's Calendar" })).toBeVisible();
   await expect(page.getByText('0 / 28 stamped')).toBeVisible();
   await page.getByRole('button', { name: 'Stamp today' }).click();
@@ -119,7 +119,7 @@ test('the meta layer: quest board → chest → achievement → calendar → bal
   await expect(page.getByRole('button', { name: 'Stamp today' })).toBeDisabled();
 
   // — The ballad: a finished step pays out and the chapter moves on —
-  await rail.getByTitle('Tavern').click();
+  await rail.getByRole('button', { name: 'Tavern' }).click();
   await expect(page.getByText(/The Ballad of Brambleford/)).toBeVisible();
   const continueBallad = page.getByRole('button', { name: 'Continue the ballad' });
   await expect(continueBallad).toBeVisible();
@@ -131,7 +131,7 @@ test('the meta layer: quest board → chest → achievement → calendar → bal
   await expect(storyReward).toBeHidden();
 
   // — Codex: the bestiary is shelved and readable —
-  await rail.getByTitle('Codex').click();
+  await rail.getByRole('button', { name: 'Codex' }).click();
   await expect(page.getByRole('heading', { name: 'The Codex' })).toBeVisible();
   await expect(page.getByText('Bramblewood').first()).toBeVisible();
 
@@ -139,9 +139,9 @@ test('the meta layer: quest board → chest → achievement → calendar → bal
   await page.clock.fastForward('00:05');
   await page.reload();
   await page.getByRole('button', { name: 'Continue' }).click();
-  await rail.getByTitle('Calendar').click();
+  await rail.getByRole('button', { name: 'Calendar' }).click();
   await expect(page.getByText('1 / 28 stamped')).toBeVisible();
-  await rail.getByTitle('Achievements').click();
+  await rail.getByRole('button', { name: 'Achievements' }).click();
   await expect(
     page.getByText(/Achievements grant you \+[1-9]\d* to every attribute\./),
   ).toBeVisible();

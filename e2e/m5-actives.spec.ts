@@ -80,7 +80,7 @@ test('active pillars: dungeon wall → wheel spin → expedition embark', async 
   const rail = page.getByRole('navigation', { name: 'Main' });
 
   // — Dungeons: Squeaker the Bold makes his introduction and his exit —
-  await rail.getByTitle('Dungeons').click();
+  await rail.getByRole('button', { name: 'Dungeons' }).click();
   await expect(page.getByRole('heading', { name: 'The Dungeons' })).toBeVisible();
   await expect(
     page.getByText('I have bitten larger ankles than yours. Present them.'),
@@ -95,7 +95,7 @@ test('active pillars: dungeon wall → wheel spin → expedition embark', async 
   await expect(page.getByText(/Next attempt in/).first()).toBeVisible();
 
   // — The Wheel: one free spin, honestly rigged —
-  await rail.getByTitle('Wheel of Destiny').click();
+  await rail.getByRole('button', { name: 'Wheel of Destiny' }).click();
   await expect(page.getByRole('heading', { name: 'The Wheel of Destiny' })).toBeVisible();
   await expect(page.getByText('The odds, posted honestly')).toBeVisible();
   await page.getByRole('button', { name: /Spin/ }).click();
@@ -107,7 +107,7 @@ test('active pillars: dungeon wall → wheel spin → expedition embark', async 
   void wheelOut; // the probe keeps the streams aligned for the expedition below
 
   // — Expeditions: embark (Castaway Cove is the first locale card) —
-  await rail.getByTitle('Expeditions').click();
+  await rail.getByRole('button', { name: 'Expeditions' }).click();
   await expect(page.getByRole('heading', { name: 'Expeditions' })).toBeVisible();
   await page.getByRole('button', { name: 'Embark' }).first().click();
   await expect(page.getByText('Encounter 1/5')).toBeVisible();
@@ -147,7 +147,7 @@ test('active pillars: dungeon wall → wheel spin → expedition embark', async 
   await page.clock.fastForward('00:05');
   await page.reload();
   await page.getByRole('button', { name: 'Continue' }).click();
-  await rail.getByTitle('Dungeons').click();
+  await rail.getByRole('button', { name: 'Dungeons' }).click();
   await expect(page.getByText('Floor 1/10').first()).toBeVisible();
   await expect(page.getByText(/Next attempt in/).first()).toBeVisible();
 });

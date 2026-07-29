@@ -15,9 +15,11 @@ import { expect, test, type Page } from '@playwright/test';
 async function watchTheFight(page: Page) {
   const skip = page.getByRole('button', { name: 'Skip' });
   if (await skip.count()) await skip.click();
-  await page.getByRole('button', { name: /Continue|Done/ }).last().click();
+  await page
+    .getByRole('button', { name: /Continue|Done/ })
+    .last()
+    .click();
 }
-
 
 test('day-1 loop: offer → mission → claim → reward → second wind → patrol', async ({
   page,
@@ -70,7 +72,7 @@ test('day-1 loop: offer → mission → claim → reward → second wind → pat
   if (!isMobile) {
     await page
       .getByRole('navigation', { name: 'Main' })
-      .getByTitle(/Unlocks at level 3$/)
+      .getByRole('button', { name: /unlocks at level 3$/i })
       .click();
     await expect(page.getByText(/Patrol unlocks at level 3/)).toBeVisible();
     await expect(
@@ -97,6 +99,6 @@ test('gold and xp actually landed after a claimed mission', async ({ page }) => 
   await page.clock.fastForward('01:00');
   await page.reload();
   await page.getByRole('button', { name: 'Continue' }).click();
-  const goldChip = page.locator('span[title="Gold"]');
+  const goldChip = page.getByRole('group', { name: 'Gold' });
   await expect(goldChip).not.toContainText(/^0$/);
 });

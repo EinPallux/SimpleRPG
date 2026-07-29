@@ -10,9 +10,24 @@ interface ProgressBarProps {
   variant: BarVariant;
   value: number;
   max: number;
+  /** text drawn INSIDE the bar; pass '' for a bare bar */
   label?: string;
+  /**
+   * The accessible name, when the visible `label` is not one. A bar labelled
+   * `""` (bare) or `"100"` (the raw value) has no usable name of its own, and
+   * an unnamed `role="progressbar"` is a serious axe finding — this is the
+   * separation between what is drawn and what is announced.
+   */
+  name?: string;
   className?: string;
   title?: string;
+  /**
+   * Take a tab stop. A meter is not a control, so it is not focusable by
+   * default — but a meter wrapped in a `Hint` is the trigger for an explanation,
+   * and an explanation only a mouse can reach is not one.
+   */
+  tabbable?: boolean;
+  'aria-describedby'?: string | undefined;
 }
 
 export function ProgressBar({
@@ -20,8 +35,11 @@ export function ProgressBar({
   value,
   max,
   label,
+  name,
   className = '',
   title,
+  tabbable = false,
+  'aria-describedby': describedBy,
 }: ProgressBarProps) {
   const pct = max <= 0 ? 0 : Math.max(0, Math.min(100, (value / max) * 100));
   return (
@@ -31,7 +49,9 @@ export function ProgressBar({
       aria-valuenow={Math.round(value)}
       aria-valuemin={0}
       aria-valuemax={Math.round(max)}
-      aria-label={label ?? variant}
+      aria-label={name ?? (label || variant)}
+      aria-describedby={describedBy}
+      tabIndex={tabbable ? 0 : undefined}
       title={title}
     >
       <div

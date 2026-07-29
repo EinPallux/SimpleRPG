@@ -69,7 +69,7 @@ test('arena day: offers → peek → fight playback → cooldown → Hall of Fam
   const rail = page.getByRole('navigation', { name: 'Main' });
 
   // Arena: three offers on the board, ten pips ready
-  await rail.getByTitle('Arena').click();
+  await rail.getByRole('button', { name: 'Arena' }).click();
   await expect(page.getByRole('heading', { name: 'The Arena' })).toBeVisible();
   await expect(page.getByRole('img', { name: 'Bouts left today: 10/10' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Fight' })).toHaveCount(3);
@@ -98,7 +98,7 @@ test('arena day: offers → peek → fight playback → cooldown → Hall of Fam
   await expect(page.getByRole('button', { name: 'Fight' }).first()).toBeDisabled();
 
   // Hall of Fame: your row, the summit, and a searchable realm
-  await rail.getByTitle('Hall of Fame').click();
+  await rail.getByRole('button', { name: 'Hall of Fame' }).click();
   await expect(page.getByRole('heading', { name: 'Hall of Fame' })).toBeVisible();
   await expect(
     page.getByText(`Your standing: rank ${expectedRank} · ${probe.hero.honor} honor`),
@@ -123,6 +123,6 @@ test('arena day: offers → peek → fight playback → cooldown → Hall of Fam
   await page.clock.fastForward('00:05');
   await page.reload();
   await page.getByRole('button', { name: 'Continue' }).click();
-  await rail.getByTitle('Arena').click();
+  await rail.getByRole('button', { name: 'Arena' }).click();
   await expect(page.getByRole('img', { name: 'Bouts left today: 9/10' })).toBeVisible();
 });

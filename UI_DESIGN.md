@@ -69,13 +69,15 @@ dust (violet), treat (bone), vigor (tankard ⭐ flavor), honor (laurel). Class +
 |---|---|
 | `Panel` | `variant` (primary/secondary/special/danger), `title?`, `headerRight?`, collapsible on mobile |
 | `FButton` | `variant` (primary/quiet/danger/gem), `size`, `cooldownUntil?` (radial sweep), `cost?` (renders CurrencyChip inline, auto-disables + shake-on-poor) |
-| `CurrencyChip` | icon + animated value; `delta` floaters (+120 🪙); click → tooltip with today's sources |
+| `CurrencyChip` | icon + animated value; `delta` floaters (+120 🪙); hover/focus → `Hint` with purpose, exact balance and sources |
 | `StatRow` | label, value, `+`-buy button w/ cost, per-attribute tint, achievement/potion bonus breakdown tooltip |
 | `ItemSlot` | rarity frame, ilvl badge, upgrade "+n", set glyph, pips (0–5 corner dots = rarity, colorblind-safe), empty-state silhouette |
 | `ItemTooltip` | full card + **live compare vs equipped** (green/red deltas), source line, sell/dismantle value |
-| `ProgressBar` | variants: xp/hp/vigor/heroism/activity; label-in-bar; `animateFrom` |
+| `Hint` / `TipBody` | the small-tooltip body every other surface shares: title · sentence · label→value rows · quiet footer · amber note. Wraps `Tooltip` |
+| `ProgressBar` | variants: xp/hp/vigor/heroism/activity; label-in-bar; `animateFrom`; `name` when the visible label is not an accessible name; `tabbable` when the bar is a tooltip trigger |
 | `TimerBar` | derives from `{startedAt,duration}`, 1 Hz, "Skip (1💎)" affordance slot |
 | `TabBar`, `Modal`, `Drawer`, `Toast`, `Tooltip`, `Badge` | standard, frame-styled; toasts stack max 3 |
+| — **`title` is not a tooltip** | the native attribute is unreachable by keyboard and touch, unstyleable, and its delay is the browser's. Every explanation goes through `Tooltip`/`Hint`; `title` survives only where it is a real document title (`Modal`, `Panel`) |
 | `EmblemAvatar` | procedural portrait: bg palette × icon × frame; sizes 24–96 |
 | `LadderRow` | rank, emblem, name+guild tag, class icon, level, honor; player-highlight; virtualized list |
 | `RewardReveal` | sequential chest-open: items fly to slots, rarity flash, gem sparkle (Kenney VFX sprites) |

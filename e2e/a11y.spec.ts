@@ -72,7 +72,10 @@ const CORE_SCREENS: readonly { nav: string; heading: string }[] = [
 ];
 
 async function gotoScreen(page: Page, screen: (typeof CORE_SCREENS)[number]) {
-  await page.getByRole('navigation', { name: 'Main' }).getByTitle(screen.nav).click();
+  await page
+    .getByRole('navigation', { name: 'Main' })
+    .getByRole('button', { name: screen.nav })
+    .click();
   await expect(page.getByRole('heading', { name: screen.heading }).first()).toBeVisible();
 }
 

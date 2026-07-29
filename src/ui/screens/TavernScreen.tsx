@@ -3,22 +3,24 @@ import { frontierZoneIndex, getZone, ZONES } from '@/content/zones';
 import {
   ALE_COST_GEMS,
   ALE_MAX_PER_DAY,
+  ALE_VIGOR,
   REFILL_SECOND_WIND,
   VIGOR_DAILY_BASE,
 } from '@/engine/constants';
-import { missionEndsAt, tavernRerollCost } from '@/engine/missions';
+import { missionDurationSec, missionEndsAt, tavernRerollCost } from '@/engine/missions';
 import { canBuyAle, canClaimSecondWind } from '@/engine/vigor';
 import { t, type I18nKey } from '@/i18n';
 import { useGame } from '@/state/store';
 import { BackgroundArt } from '../components/BackgroundArt';
 import { FButton } from '../components/FButton';
+import { Hint } from '../components/Hint';
 import { Icon } from '../components/Icon';
 import { Panel } from '../components/Panel';
 import { StoryBanner } from '../components/StoryBanner';
 import { TipOfTheDay } from '../components/TipOfTheDay';
 import { ProgressBar } from '../components/ProgressBar';
 import { TimerBar } from '../components/TimerBar';
-import { fmt } from '../format';
+import { fmt, formatDuration } from '../format';
 import { useGameClock } from '../hooks/useGameClock';
 import { missionFlavor } from '../itemName';
 
@@ -53,19 +55,45 @@ function OfferCard({ index }: { index: number }) {
           {missionFlavor(offer.zoneIndex, offer.flavor)}
         </p>
         <div className="flex items-center justify-between text-[11px] font-bold text-ink-faint">
-          <span>{t('tavern.offerDuration', { min: offer.durationMin })}</span>
+          {/* The real clock, not the mission's size. Early missions run in
+              seconds while still costing their full vigor, so printing the size
+              with "min" after it told a level-1 hero a 70-second errand would
+              take fifteen minutes. */}
+          <span>
+            {t('tavern.offerDuration', {
+              time: formatDuration(missionDurationSec(save, offer.durationMin)),
+              vigor: offer.durationMin,
+            })}
+          </span>
           <span className="text-gold">
             {t('tavern.rewards', { gold: fmt(offer.gold), xp: fmt(offer.xp) })}
           </span>
         </div>
-        <FButton
-          className="w-full"
-          disabled={!affordable || busy}
-          title={busy ? t('tavern.busy') : affordable ? undefined : t('tavern.cantAfford')}
-          onClick={() => accept(index)}
+        <Hint
+          title={t('tavern.accept')}
+          body={t('tavern.tip.accept.body')}
+          rows={[
+            [
+              t('tavern.tip.accept.time'),
+              formatDuration(missionDurationSec(save, offer.durationMin)),
+            ],
+            [
+              t('tavern.tip.accept.cost'),
+              t('tavern.tip.accept.vigor', { vigor: offer.durationMin }),
+            ],
+            [
+              t('tavern.tip.accept.pays'),
+              t('tavern.rewards', { gold: fmt(offer.gold), xp: fmt(offer.xp) }),
+            ],
+          ]}
+          footer={t('tavern.tip.accept.fight')}
+          note={busy ? t('tavern.busy') : affordable ? undefined : t('tavern.cantAfford')}
+          className="block w-full"
         >
-          {t('tavern.accept')}
-        </FButton>
+          <FButton className="w-full" disabled={!affordable || busy} onClick={() => accept(index)}>
+            {t('tavern.accept')}
+          </FButton>
+        </Hint>
       </div>
     </div>
   );
@@ -114,39 +142,59 @@ function VigorPanel() {
 
   return (
     <Panel variant="secondary" title={t('hud.vigor')}>
-      <ProgressBar
-        variant="vigor"
-        value={daily.vigor}
-        max={Math.max(VIGOR_DAILY_BASE, daily.vigor)}
-        label={`${daily.vigor}`}
-        className="h-5"
-        title={t('hud.vigorTooltip')}
-      />
+      <Hint
+        title={t('hud.vigor')}
+        body={t('hud.vigorTooltip')}
+        rows={[[t('hud.tip.vigor.left'), `${daily.vigor} / ${VIGOR_DAILY_BASE}`]]}
+        footer={t('hud.tip.vigor.refill', { base: VIGOR_DAILY_BASE })}
+        className="block"
+      >
+        <ProgressBar
+          variant="vigor"
+          value={daily.vigor}
+          max={Math.max(VIGOR_DAILY_BASE, daily.vigor)}
+          label={`${daily.vigor}`}
+          name={t('hud.vigor')}
+          className="h-5"
+          tabbable
+        />
+      </Hint>
       <div className="mt-3 flex flex-col gap-2">
-        <FButton
-          disabled={!canClaimSecondWind(save)}
-          onClick={secondWind}
-          title={t('tavern.secondWindHint')}
-          className={canClaimSecondWind(save) ? 'animate-pulse' : ''}
+        <Hint
+          title={t('tavern.tip.secondWind.title')}
+          body={t('tavern.secondWindHint')}
+          note={canClaimSecondWind(save) ? undefined : t('tavern.secondWindClaimed')}
+          className="block"
         >
-          <Icon id="tavern" size={16} />
-          {canClaimSecondWind(save)
-            ? `${t('tavern.secondWind')} +${REFILL_SECOND_WIND}`
-            : t('tavern.secondWindClaimed')}
-        </FButton>
-        <FButton
-          variant="gem"
-          disabled={!canBuyAle(save)}
-          onClick={ale}
-          title={
-            daily.aleUsed >= ALE_MAX_PER_DAY
-              ? t('tavern.aleNone')
-              : t('tavern.aleHint', { left: ALE_MAX_PER_DAY - daily.aleUsed })
-          }
+          <FButton
+            disabled={!canClaimSecondWind(save)}
+            onClick={secondWind}
+            className={`w-full ${canClaimSecondWind(save) ? 'animate-pulse' : ''}`}
+          >
+            <Icon id="tavern" size={16} />
+            {canClaimSecondWind(save)
+              ? `${t('tavern.secondWind')} +${REFILL_SECOND_WIND}`
+              : t('tavern.secondWindClaimed')}
+          </FButton>
+        </Hint>
+        <Hint
+          title={t('tavern.tip.ale.title')}
+          body={t('tavern.tip.ale.body', {
+            vigor: ALE_VIGOR,
+            gems: ALE_COST_GEMS,
+            max: ALE_MAX_PER_DAY,
+          })}
+          rows={[
+            [t('hud.tip.vigor.left'), `${ALE_MAX_PER_DAY - daily.aleUsed} / ${ALE_MAX_PER_DAY}`],
+          ]}
+          note={daily.aleUsed >= ALE_MAX_PER_DAY ? t('tavern.aleNone') : undefined}
+          className="block"
         >
-          <Icon id="gem" size={15} />
-          {t('tavern.ale')} · {ALE_COST_GEMS} 💎 ({ALE_MAX_PER_DAY - daily.aleUsed})
-        </FButton>
+          <FButton variant="gem" disabled={!canBuyAle(save)} onClick={ale} className="w-full">
+            <Icon id="gem" size={15} />
+            {t('tavern.ale')} · {ALE_COST_GEMS} 💎 ({ALE_MAX_PER_DAY - daily.aleUsed})
+          </FButton>
+        </Hint>
         <p className="text-[11px] text-ink-faint">
           {fmt(hero.gems)} 💎 {t('hud.gems')}
         </p>
@@ -183,15 +231,28 @@ function BoardControls() {
         ))}
       </select>
       <p className="mt-1.5 text-[11px] leading-snug text-ink-faint">{t('tavern.zoneDecayHint')}</p>
-      <FButton
-        variant={cost > 0 ? 'gem' : 'quiet'}
-        size="sm"
-        className="mt-3 w-full"
-        disabled={save.hero.gems < cost}
-        onClick={reroll}
+      <Hint
+        title={t('tavern.tip.reroll.title')}
+        body={t('tavern.tip.reroll.body')}
+        rows={[
+          [
+            t('tavern.tip.reroll.cost'),
+            cost > 0 ? t('tavern.tip.reroll.gems', { gems: cost }) : t('tavern.tip.reroll.free'),
+          ],
+        ]}
+        note={save.hero.gems < cost ? t('tavern.tip.reroll.broke') : undefined}
+        className="mt-3 block w-full"
       >
-        {cost > 0 ? t('tavern.rerollPaid') : t('tavern.reroll')}
-      </FButton>
+        <FButton
+          variant={cost > 0 ? 'gem' : 'quiet'}
+          size="sm"
+          className="w-full"
+          disabled={save.hero.gems < cost}
+          onClick={reroll}
+        >
+          {cost > 0 ? t('tavern.rerollPaid') : t('tavern.reroll')}
+        </FButton>
+      </Hint>
     </Panel>
   );
 }

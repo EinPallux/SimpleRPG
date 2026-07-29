@@ -1,13 +1,30 @@
 import { xpToNext } from '@/engine/xp';
-import { VIGOR_DAILY_BASE } from '@/engine/constants';
+import { PATROL_UNLOCK_LEVEL, PATROL_VIGOR_THRESHOLD, VIGOR_DAILY_BASE } from '@/engine/constants';
 import { t } from '@/i18n';
 import { useGame } from '@/state/store';
 import { CurrencyChip } from '../components/CurrencyChip';
 import { EmblemAvatar } from '../components/EmblemAvatar';
 import { HelpButton } from '../components/HelpOverlay';
+import { Hint } from '../components/Hint';
 import { Icon } from '../components/Icon';
 import { ProgressBar } from '../components/ProgressBar';
 import { fmt } from '../format';
+
+/**
+ * The one line of the vigor tooltip worth acting on, or nothing.
+ *
+ * An empty tank and a nearly-empty one are two different situations with two
+ * different answers — top it up downstairs, or go and get paid for being tired.
+ * Anything above that needs no advice at all, and a tooltip that always has
+ * something urgent to say quickly has nothing.
+ */
+function vigorNote(vigor: number, level: number): string | undefined {
+  if (vigor === 0) return t('hud.tip.vigor.empty');
+  if (vigor < PATROL_VIGOR_THRESHOLD && level >= PATROL_UNLOCK_LEVEL) {
+    return t('hud.tip.vigor.patrol');
+  }
+  return undefined;
+}
 
 export function HudBar() {
   const save = useGame((s) => s.save);
@@ -39,14 +56,27 @@ export function HudBar() {
                 {t('common.levelShort', { level: hero.level })}
               </span>
             </div>
-            <ProgressBar
-              variant="xp"
-              value={hero.xp}
-              max={next}
-              className="mt-1 h-2.5 w-36 md:w-44"
-              label=""
-              title={t('hud.xpTooltip', { xp: fmt(hero.xp), next: fmt(next) })}
-            />
+            <Hint
+              title={t('hud.tip.xp.title')}
+              body={t('hud.tip.xp.body')}
+              rows={[
+                [t('hud.tip.xp.current'), fmt(hero.xp)],
+                [t('hud.tip.xp.next'), fmt(next)],
+                [t('hud.tip.xp.togo'), fmt(Math.max(0, next - hero.xp))],
+              ]}
+              placement="bottom"
+              className="mt-1 block"
+            >
+              <ProgressBar
+                variant="xp"
+                value={hero.xp}
+                max={next}
+                className="h-2.5 w-36 md:w-44"
+                label=""
+                name={t('hud.tip.xp.title')}
+                tabbable
+              />
+            </Hint>
           </div>
         </div>
 
@@ -60,31 +90,43 @@ export function HudBar() {
 
         {/* Vigor + system */}
         <div className="ml-auto flex items-center gap-3">
-          <div className="w-32 md:w-40" title={t('hud.vigorTooltip')}>
-            <div className="mb-0.5 flex items-center justify-between text-[10px] font-bold tracking-wider text-ink-muted uppercase">
-              <span>{t('hud.vigor')}</span>
-              <span>
-                {daily.vigor}/{VIGOR_DAILY_BASE}
-              </span>
+          <Hint
+            title={t('hud.vigor')}
+            body={t('hud.vigorTooltip')}
+            rows={[[t('hud.tip.vigor.left'), `${daily.vigor} / ${VIGOR_DAILY_BASE}`]]}
+            footer={t('hud.tip.vigor.refill', { base: VIGOR_DAILY_BASE })}
+            note={vigorNote(daily.vigor, hero.level)}
+            placement="bottom"
+            className="block w-32 md:w-40"
+          >
+            <div tabIndex={0}>
+              <div className="mb-0.5 flex items-center justify-between text-[10px] font-bold tracking-wider text-ink-muted uppercase">
+                <span>{t('hud.vigor')}</span>
+                <span>
+                  {daily.vigor}/{VIGOR_DAILY_BASE}
+                </span>
+              </div>
+              <ProgressBar
+                variant="vigor"
+                value={daily.vigor}
+                max={Math.max(VIGOR_DAILY_BASE, daily.vigor)}
+                name={t('hud.vigor')}
+                className="h-2.5"
+              />
             </div>
-            <ProgressBar
-              variant="vigor"
-              value={daily.vigor}
-              max={Math.max(VIGOR_DAILY_BASE, daily.vigor)}
-              className="h-2.5"
-            />
-          </div>
+          </Hint>
           {/* §17: every screen keeps its "?" forever. It reads the CURRENT
               screen, so one button in the header covers all twenty. */}
           <HelpButton screen={screen} />
-          <button
-            aria-label={t('hud.settings')}
-            title={t('hud.settings')}
-            onClick={() => openSettings(true)}
-            className="-m-3 grid h-11 w-11 place-items-center text-ink-muted transition-colors hover:text-gold"
-          >
-            <Icon id="settings" size={20} />
-          </button>
+          <Hint title={t('hud.settings')} body={t('hud.tip.settings.body')} placement="bottom">
+            <button
+              aria-label={t('hud.settings')}
+              onClick={() => openSettings(true)}
+              className="-m-3 grid h-11 w-11 place-items-center text-ink-muted transition-colors hover:text-gold"
+            >
+              <Icon id="settings" size={20} />
+            </button>
+          </Hint>
         </div>
       </div>
     </header>

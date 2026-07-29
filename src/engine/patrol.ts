@@ -2,14 +2,17 @@
  * City Watch patrol (GAME_DESIGN.md §6): passive trickle once vigor is spent.
  * 30-minute ticks; ≤8h may sit uncollected; auto-banks at midnight (time.ts).
  */
-import { PATROL_CAP_HOURS, PATROL_TICK_MIN, PATROL_TICKS_PER_TREAT } from './constants';
+import {
+  PATROL_CAP_HOURS,
+  PATROL_TICK_MIN,
+  PATROL_TICKS_PER_TREAT,
+  PATROL_VIGOR_THRESHOLD,
+} from './constants';
 import { patrolGoldPerHour, patrolXpPerHour } from './economy';
 import { auraTotal } from './pets';
 import { uniqueTotal } from './uniques';
 import type { GameSave, PatrolPayload, TimedActivity } from './types';
 import { applyXp, type XpResult } from './xpGain';
-
-export const PATROL_VIGOR_THRESHOLD = 5;
 
 export function canStartPatrol(save: GameSave): boolean {
   return (

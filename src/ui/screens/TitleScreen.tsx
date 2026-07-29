@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useId, useMemo, useRef, useState } from 'react';
 import { CLASSES } from '@/content/classes';
 import { EMBLEM_ICONS, EMBLEM_PALETTES } from '@/content/emblems';
 import { NAME_MAX_LENGTH, NAME_MIN_LENGTH } from '@/engine/constants';
@@ -101,6 +101,7 @@ function CreateDialog({ slot, onClose }: { slot: number; onClose: () => void }) 
   const [name, setName] = useState('');
   const [classId, setClassId] = useState<ClassId>('warrior');
   const [cycle, setCycle] = useState(0);
+  const nameHelpId = useId();
 
   const trimmed = name.trim();
   const valid = trimmed.length >= NAME_MIN_LENGTH && trimmed.length <= NAME_MAX_LENGTH;
@@ -131,7 +132,17 @@ function CreateDialog({ slot, onClose }: { slot: number; onClose: () => void }) 
             placeholder={t('create.namePlaceholder')}
             className="w-full rounded-sm border border-ink-faint/40 bg-panel-inset px-3 py-2 font-display text-lg text-ink placeholder:text-ink-faint"
           />
-          <span className="mt-1 block text-[11px] text-ink-faint">{t('create.nameHelp')}</span>
+          {/* The refusal used to live in a `title` on the disabled button —
+              invisible to touch and keyboard, and pointing at the wrong control
+              anyway. A form error belongs under its field, said out loud. */}
+          <span id={nameHelpId} className="mt-1 block text-[11px] text-ink-faint">
+            {t('create.nameHelp')}
+          </span>
+          {trimmed.length > 0 && !valid && (
+            <span role="alert" className="mt-1 block text-[11px] font-bold text-[#e08a7a]">
+              {t('create.nameTooShort')}
+            </span>
+          )}
         </label>
 
         <fieldset>
@@ -198,7 +209,7 @@ function CreateDialog({ slot, onClose }: { slot: number; onClose: () => void }) 
             size="lg"
             className="ml-auto"
             disabled={!valid}
-            title={valid ? undefined : t('create.nameTooShort')}
+            aria-describedby={valid ? undefined : nameHelpId}
             onClick={() => {
               void createHero(slot, { name: trimmed, classId, emblem });
             }}

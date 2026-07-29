@@ -42,9 +42,11 @@ test('locked navigation toasts instead of navigating', async ({ page, isMobile }
 
   await page
     .getByRole('navigation', { name: 'Main' })
-    .getByTitle(/Unlocks at level 5/)
+    .getByRole('button', { name: /unlocks at level 5/i })
     .first()
     .click();
-  await expect(page.getByText(/unlocks at level 5/i)).toBeVisible();
+  // The toast, specifically: the rail entry's own tooltip is open behind it
+  // (the click focused the trigger) and says "Unlocks at level 5" too.
+  await expect(page.getByText('Arena unlocks at level 5.')).toBeVisible();
   await expect(page.getByText('The Gilded Tankard')).toBeVisible();
 });

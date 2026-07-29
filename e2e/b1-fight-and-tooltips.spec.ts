@@ -17,6 +17,28 @@ import { encodeSave } from '../src/persist/codec';
 
 const CLOCK = '2026-07-28T09:00:00';
 
+/**
+ * Let the screen stop moving before pointing at it.
+ *
+ * Panels and cards animate in (B1), so for the first few hundred milliseconds
+ * after a navigation the thing under test is still sliding. Playwright aims the
+ * mouse at where an element is *now*; if it is mid-transform the pointer lands
+ * beside it, no `pointerenter` fires, and the tooltip never opens — a failure
+ * that reproduces only on a loaded machine. Infinite animations (the attention
+ * pulses) never finish and are excluded.
+ */
+async function settle(page: Page) {
+  await page.waitForFunction(
+    () =>
+      document
+        .getAnimations()
+        .filter((a) => (a.effect?.getComputedTiming().iterations ?? 1) !== Infinity)
+        .every((a) => a.playState !== 'running'),
+    undefined,
+    { timeout: 5000 },
+  );
+}
+
 function craftSave(): GameSave {
   const save = createNewSave(
     {
@@ -69,9 +91,7 @@ test('a mission ends in a fight, and the fight pays on top of the job', async ({
 
   // Skipping jumps to the verdict rather than skipping the outcome.
   await bout.getByRole('button', { name: 'Skip' }).click();
-  await expect(
-    bout.getByText(/You saw it off|It got the better of you/),
-  ).toBeVisible();
+  await expect(bout.getByText(/You saw it off|It got the better of you/)).toBeVisible();
 
   // …and then the payout, which arrives whether the scrap went well or not.
   await bout.getByRole('button', { name: 'Continue' }).click();
@@ -88,12 +108,16 @@ test('backpack items explain themselves on hover, and off-class is advice not a 
   await page.clock.setFixedTime(new Date(CLOCK));
   await importSave(page, craftSave());
 
-  await page.getByRole('navigation', { name: 'Main' }).getByTitle('Character').click();
+  await page
+    .getByRole('navigation', { name: 'Main' })
+    .getByRole('button', { name: 'Character' })
+    .click();
   await page.getByRole('button', { name: 'Backpack' }).click();
 
   // Located by its rarity frame rather than by name: item names are generated,
   // so any name pattern here would be a guess about the loot roller.
   const cell = page.locator('button[class*="frame-slot--"]').first();
+  await settle(page);
   await cell.hover();
 
   const tip = page.getByRole('tooltip');
@@ -114,7 +138,11 @@ test('attributes explain where their number came from', async ({ page, isMobile 
   await page.clock.setFixedTime(new Date(CLOCK));
   await importSave(page, craftSave());
 
-  await page.getByRole('navigation', { name: 'Main' }).getByTitle('Character').click();
+  await page
+    .getByRole('navigation', { name: 'Main' })
+    .getByRole('button', { name: 'Character' })
+    .click();
+  await settle(page);
   await page.getByText('Strength', { exact: true }).hover();
 
   const tip = page.getByRole('tooltip');
@@ -122,4 +150,36 @@ test('attributes explain where their number came from', async ({ page, isMobile 
   await expect(tip.getByText('Your class')).toBeVisible();
   await expect(tip.getByText('Bought with gold')).toBeVisible();
   await expect(tip.getByText('Total')).toBeVisible();
+});
+
+/**
+ * The chrome explains itself too.
+ *
+ * The purse and the rail were the last two surfaces still running on `title`
+ * attributes — four currencies nobody had ever been told the purpose of, and
+ * twenty doors whose only description was their own name. Both are now real
+ * tooltips, which means both can be asserted.
+ */
+test('the purse and the rail explain themselves', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'hover is the mechanism under test; touch has its own long-press path');
+  await page.clock.setFixedTime(new Date(CLOCK));
+  await importSave(page, craftSave());
+  await settle(page);
+
+  // A currency: what it buys, the exact balance, and where it comes from.
+  await page.getByRole('group', { name: 'Gems' }).hover();
+  const purse = page.getByRole('tooltip');
+  await expect(purse).toBeVisible();
+  await expect(purse.getByText(/never once been for sale/)).toBeVisible();
+  await expect(purse.getByText('You have')).toBeVisible();
+  await expect(purse.getByText(/Never from money/)).toBeVisible();
+
+  // A rail entry: what is behind the door, before walking through it.
+  const rail = page.getByRole('navigation', { name: 'Main' });
+  await rail.getByRole('button', { name: 'Forge', exact: true }).hover();
+  await expect(page.getByText(/One bench makes a piece of gear better/)).toBeVisible();
+
+  // …and a locked one says so in the tooltip, not just in a padlock glyph.
+  await rail.getByRole('button', { name: /Menagerie — unlocks at level 35/ }).hover();
+  await expect(page.getByText('Unlocks at level 35')).toBeVisible();
 });

@@ -13,6 +13,7 @@ import { t, type I18nKey } from '@/i18n';
 import { useGame } from '@/state/store';
 import { EmblemAvatar } from '../components/EmblemAvatar';
 import { FButton } from '../components/FButton';
+import { Hint } from '../components/Hint';
 import { StatTooltip } from '../components/StatTooltip';
 import { Tooltip } from '../components/Tooltip';
 import { Icon } from '../components/Icon';
@@ -33,13 +34,21 @@ function GearSlot({ save, slot }: { save: GameSave; slot: EquipSlot }) {
   const item = save.inventory.equipped[slot];
   if (!item) {
     return (
-      <div
-        className="frame-slot panel-fill-inset flex h-14 w-14 items-center justify-center md:h-16 md:w-16"
-        style={{ ['--frame-w' as string]: '8px' }}
-        title={`${slot} — ${t('screen.character.emptySlot')}`}
+      <Hint
+        title={t(`slot.${slot}` as I18nKey)}
+        body={t('screen.character.emptySlotHint')}
+        note={t('screen.character.emptySlot')}
       >
-        <Icon id="plus" size={16} className="text-ink-faint/50" />
-      </div>
+        <div
+          className="frame-slot panel-fill-inset flex h-14 w-14 items-center justify-center md:h-16 md:w-16"
+          style={{ ['--frame-w' as string]: '8px' }}
+          role="img"
+          aria-label={`${t(`slot.${slot}` as I18nKey)} — ${t('screen.character.emptySlot')}`}
+          tabIndex={0}
+        >
+          <Icon id="plus" size={16} className="text-ink-faint/50" />
+        </div>
+      </Hint>
     );
   }
   return (
@@ -286,13 +295,25 @@ export function CharacterScreen() {
                   </div>
                 </div>
                 <TitlePicker save={save} />
-                <ProgressBar
-                  variant="xp"
-                  value={save.hero.xp}
-                  max={next}
-                  className="h-3 w-40"
-                  title={t('hud.xpTooltip', { xp: fmt(save.hero.xp), next: fmt(next) })}
-                />
+                <Hint
+                  title={t('hud.tip.xp.title')}
+                  body={t('hud.tip.xp.body')}
+                  rows={[
+                    [t('hud.tip.xp.current'), fmt(save.hero.xp)],
+                    [t('hud.tip.xp.next'), fmt(next)],
+                    [t('hud.tip.xp.togo'), fmt(Math.max(0, next - save.hero.xp))],
+                  ]}
+                  className="block"
+                >
+                  <ProgressBar
+                    variant="xp"
+                    value={save.hero.xp}
+                    max={next}
+                    name={t('hud.tip.xp.title')}
+                    className="h-3 w-40"
+                    tabbable
+                  />
+                </Hint>
                 <div className="mt-1 flex gap-2">
                   {BOTTOM_SLOTS.map((s) => (
                     <GearSlot key={s} save={save} slot={s} />
