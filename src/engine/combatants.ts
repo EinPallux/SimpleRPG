@@ -22,7 +22,15 @@ import type { Combatant } from './combat';
 import { itemArmor, weaponDamage } from './items';
 import { parArmor, parCon, parMainAttr, parOffAttr } from './par';
 import { setAggregate } from './sets';
-import { armorMultiplier, gearPercents, heroMaxHp, petEvade, totalAttribute } from './stats';
+import {
+  armorMultiplier,
+  gearPercents,
+  heroMaxHp,
+  petEvade,
+  totalAttribute,
+  uniqueEvade,
+} from './stats';
+import { hasUniqueFlag, uniqueTotal } from './uniques';
 import type { ClassId, GameSave } from './types';
 
 interface ClassSignature {
@@ -115,9 +123,10 @@ export function heroToCombatant(save: GameSave): Combatant {
     0,
   );
 
+  // The Polite Grimoire adds its damage on the same multiplier the sets use.
   const weapon = scaleWeapon(
     weaponItem ? weaponDamage(weaponItem) : unarmed(save.hero.level),
-    sets.weaponDmgPct,
+    sets.weaponDmgPct + uniqueTotal(save, 'weaponDmgPct'),
   );
   const offhandWeapon =
     save.hero.classId === 'assassin' && offhandItem
@@ -165,6 +174,17 @@ export function heroToCombatant(save: GameSave): Combatant {
     }
   }
 
+  // Grandma's Battle Ladle reflects on a block — the same hook the Bulwark set
+  // uses, so combat needs no new branch. The Snickering Dagger crits its first
+  // strike, which is what `firstStrikeDmgMult` on an overridden first strike
+  // already means.
+  const ladle = uniqueTotal(save, 'blockReflect');
+  if (ladle > 0) fx.reflectOnBlockPct = (fx.reflectOnBlockPct ?? 0) + ladle;
+  if (hasUniqueFlag(save, 'firstStrikeAlwaysCrit')) {
+    fx.firstStrikeOverride = true;
+    fx.firstStrikeDmgMult = Math.max(fx.firstStrikeDmgMult ?? 0, sig.critMult);
+  }
+
   return {
     id: 'hero',
     name: save.hero.name,
@@ -182,7 +202,10 @@ export function heroToCombatant(save: GameSave): Combatant {
     weapon,
     ...(offhandWeapon ? { offhandWeapon } : {}),
     blockChance: Math.min(CAP_BLOCK, sig.blockChance + sets.blockPP / 100),
-    evadeChance: Math.min(CAP_EVADE, sig.evadeChance + sets.evadePP / 100 + petEvade(save)),
+    evadeChance: Math.min(
+      CAP_EVADE,
+      sig.evadeChance + sets.evadePP / 100 + petEvade(save) + uniqueEvade(save),
+    ),
     unblockable: sig.unblockable,
     strikes: sig.strikes,
     strikeMult,

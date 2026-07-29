@@ -19,6 +19,7 @@ import pets from './parts/pets.json';
 import quests from './parts/quests.json';
 import story from './parts/story.json';
 import titles from './parts/titles.json';
+import uniques from './parts/uniques.json';
 
 const catalog = {
   ...en,
@@ -32,6 +33,7 @@ const catalog = {
   ...quests,
   ...story,
   ...titles,
+  ...uniques,
 };
 
 export type I18nKey = keyof typeof catalog;

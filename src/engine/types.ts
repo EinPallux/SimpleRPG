@@ -97,6 +97,12 @@ export interface ItemInstance {
   seed: number;
   /** set membership (rarity 'set' pieces only; content/sets.ts) */
   setId?: string;
+  /**
+   * One of the eight named legendaries (content/uniques.ts). Optional, so a
+   * pre-M9 save parses unchanged and needs no migration — every item that
+   * predates the uniques simply is not one.
+   */
+  uniqueId?: string;
 }
 
 export type EquipSlot =

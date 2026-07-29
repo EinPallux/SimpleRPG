@@ -30,10 +30,9 @@ export function lowerIsBetter(metric: MetricId): boolean {
 // --- derived helpers -------------------------------------------------------
 
 function ownedItems(save: GameSave) {
-  return [
-    ...Object.values(save.inventory.equipped),
-    ...save.inventory.backpack,
-  ].filter((item) => item !== undefined && item !== null);
+  return [...Object.values(save.inventory.equipped), ...save.inventory.backpack].filter(
+    (item) => item !== undefined && item !== null,
+  );
 }
 
 function setsCompleted(save: GameSave): number {
@@ -120,6 +119,16 @@ export function metricValue(save: GameSave, metric: MetricId): number {
       return ownedItems(save).filter((item) => item?.setId).length;
     case 'legendariesOwned':
       return ownedItems(save).filter((item) => item?.rarity === 'legendary').length;
+    case 'uniquesOwned': {
+      // DISTINCT uniques — the achievement says "all 8", and two copies of the
+      // Ladle is not seven eighths of the way there.
+      const held = new Set(
+        ownedItems(save)
+          .map((item) => item?.uniqueId)
+          .filter((id): id is string => id !== undefined),
+      );
+      return held.size;
+    }
     case 'petsOwned':
       return Object.values(save.progress.pets).filter((p) => p.owned).length;
     case 'framesOwned':

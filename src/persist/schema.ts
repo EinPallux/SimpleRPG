@@ -84,6 +84,7 @@ const itemInstance = z
     upgrade: z.number().int().min(0).max(20),
     seed: z.number().int(),
     setId: z.string().optional(),
+    uniqueId: z.string().optional(),
   })
   .strict();
 
@@ -219,9 +220,7 @@ export const gameSaveSchema = z
             .strict(),
         ),
         milestonesClaimed: z.array(z.string()),
-        onboarding: z
-          .object({ step: z.number().int().min(0), skipped: z.boolean() })
-          .strict(),
+        onboarding: z.object({ step: z.number().int().min(0), skipped: z.boolean() }).strict(),
         toursSeen: z.array(z.string()),
       })
       .strict(),

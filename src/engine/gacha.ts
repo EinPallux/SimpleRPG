@@ -53,7 +53,8 @@ import {
   WELL_UNLOCK_LEVEL,
 } from './constants';
 import { missionGold } from './economy';
-import { generateItem, sellPrice } from './items';
+import { generateItem, generateUnique, sellPrice } from './items';
+import { rollUnique } from './uniques';
 import { bump, recordDrop } from './ledger';
 import { grantPet, petOwned } from './pets';
 import { grantFrame, grantReward } from './rewards';
@@ -344,16 +345,15 @@ function tossOnce(
       result,
     );
   } else if (kind === 'legendary') {
+    // The 1% row is the well's headline, so it is also a real path to the eight
+    // named legendaries rather than always a generated one (CONTENT §6.2).
+    const namedId = rollUnique(save, rng);
+    const ilvl = level + WELL_LEGENDARY_ILVL_BONUS;
     stow(
       save,
-      generateItem(
-        {
-          ilvl: level + WELL_LEGENDARY_ILVL_BONUS,
-          rarity: 'legendary',
-          biasClass: save.hero.classId,
-        },
-        rng,
-      ),
+      namedId
+        ? generateUnique(namedId, ilvl, rng)
+        : generateItem({ ilvl, rarity: 'legendary', biasClass: save.hero.classId }, rng),
       result,
     );
   } else if (kind === 'setPiece') {

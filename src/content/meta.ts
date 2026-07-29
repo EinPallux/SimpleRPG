@@ -101,6 +101,7 @@ export type MetricId =
   | 'setsCompleted'
   | 'setPiecesOwned'
   | 'legendariesOwned'
+  | 'uniquesOwned' // the eight NAMED legendaries, not any legendary-rarity item
   | 'petsOwned'
   | 'framesOwned'
   | 'mountTier'

@@ -92,14 +92,24 @@ export const ACHIEVEMENTS: readonly AchievementDef[] = [
   a('fewer-problems', 'collection', 'mountTier', [2, 3, 4], 12),
   a('matching-finally', 'collection', 'setsCompleted', [1, 5, 14], 22, 'the-collector'),
   a('nearly-a-set', 'collection', 'setPiecesFound', [10, 60, 300], 12),
-  a('named-things', 'collection', 'legendariesOwned', [1, 4, 8], 22),
+  // 'uniquesOwned', not 'legendariesOwned': the description promises the eight
+  // NAMED legendaries (§6.2), and counting any legendary-rarity drop made it a
+  // claim the game did not honour.
+  a('named-things', 'collection', 'uniquesOwned', [1, 4, 8], 22),
   a('lightning-repeatedly', 'collection', 'legendariesFound', [1, 5, 20], 15),
   a('framed', 'collection', 'framesOwned', [3, 12], 12),
 
   // -------------------------------------------------------------------------
   // Economy (10) — the pouch, the anvil, the vendor and one deep regret
   // -------------------------------------------------------------------------
-  a('gold-fever', 'economy', 'goldEarned', [100_000, 10_000_000, 1_000_000_000], 25, 'the-affluent'),
+  a(
+    'gold-fever',
+    'economy',
+    'goldEarned',
+    [100_000, 10_000_000, 1_000_000_000],
+    25,
+    'the-affluent',
+  ),
   a('money-moves-out', 'economy', 'goldSpent', [100_000, 10_000_000, 1_000_000_000], 20),
   a('self-improvement-budget', 'economy', 'attrTotalBought', [100, 1000, 5000], 18),
   a('one-expensive-pushup', 'economy', 'biggestAttrPurchase', [10_000_000], 15),
@@ -113,7 +123,14 @@ export const ACHIEVEMENTS: readonly AchievementDef[] = [
   // -------------------------------------------------------------------------
   // Exploration (10) — the board, the road, the lantern round
   // -------------------------------------------------------------------------
-  a('boots-on-the-board', 'exploration', 'missionsCompleted', [50, 500, 2500], 20, 'the-persistent'),
+  a(
+    'boots-on-the-board',
+    'exploration',
+    'missionsCompleted',
+    [50, 500, 2500],
+    20,
+    'the-persistent',
+  ),
   a('ten-thousand-errands', 'exploration', 'missionsCompleted', [10_000], 25),
   a('out-of-office', 'exploration', 'expeditions', [10, 100], 18, 'the-wayfarer'),
   a('professional-elsewhere', 'exploration', 'expeditions', [500], 22),
@@ -194,9 +211,7 @@ export function achievementDescKey(id: string): string {
 
 /** Titles handed out by the board — cross-checked against `content/titles.ts`. */
 export function achievementTitleIds(): string[] {
-  return ACHIEVEMENTS.flatMap((achievement) =>
-    achievement.titleId ? [achievement.titleId] : [],
-  );
+  return ACHIEVEMENTS.flatMap((achievement) => (achievement.titleId ? [achievement.titleId] : []));
 }
 
 export { achievementSchema };

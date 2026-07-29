@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { monstersOfZone } from '@/content/bestiary';
+import { UNIQUES, UNIQUE_COUNT, uniqueBlurbKey, uniqueNameKey } from '@/content/uniques';
 import { ZONES } from '@/content/zones';
 import { CODEX_UNLOCK_LEVEL } from '@/engine/constants';
 import { armorySeen, codexBonuses, monsterEntry, zonePage } from '@/engine/codex';
+import { ownedUniqueIds } from '@/engine/uniques';
 import { metricValue } from '@/engine/metrics';
 import { LORE_KILL_THRESHOLD } from '@/content/meta';
 import { t, type I18nKey } from '@/i18n';
 import { useGame } from '@/state/store';
+import { RARITY_TEXT } from '../rarity';
 import { EmptyState } from '../components/EmptyState';
 import { Icon } from '../components/Icon';
 import { Panel } from '../components/Panel';
@@ -96,6 +99,57 @@ function Bestiary() {
   );
 }
 
+/**
+ * The eight named legendaries (CONTENT §6.2). Shown in full even before any are
+ * found — a collection you cannot see the shape of is not a goal, and the ones
+ * still missing are the reason to keep spinning the Wheel.
+ */
+function NamedLegendaries() {
+  const save = useGame((s) => s.save)!;
+  const owned = ownedUniqueIds(save);
+
+  return (
+    <Panel variant="secondary" title={t('codex.uniques')}>
+      <ProgressBar
+        variant="xp"
+        value={owned.size}
+        max={UNIQUE_COUNT}
+        className="mb-2 h-3"
+        label={t('codex.uniquesFound', { n: owned.size, total: UNIQUE_COUNT })}
+      />
+      <p className="mb-3 text-[11px] leading-relaxed text-ink-muted">{t('codex.uniqueBlurb')}</p>
+      <ul className="grid gap-1.5 sm:grid-cols-2">
+        {UNIQUES.map((def) => {
+          const found = owned.has(def.id);
+          return (
+            <li key={def.id} className="rounded-sm bg-panel-inset px-2.5 py-2">
+              <div className="flex items-baseline justify-between gap-2">
+                <span
+                  className={`truncate text-xs font-bold ${
+                    found ? RARITY_TEXT.legendary : 'text-ink-faint italic'
+                  }`}
+                >
+                  {found ? t(uniqueNameKey(def.id) as I18nKey) : t('codex.uniqueUnknown')}
+                </span>
+                {found && (
+                  <span className={`shrink-0 text-[10px] font-bold ${RARITY_TEXT.legendary}`}>
+                    {t('unique.badge')}
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 text-[11px] leading-relaxed text-ink-muted italic">
+                {found
+                  ? t(uniqueBlurbKey(def.id) as I18nKey)
+                  : t('codex.uniqueRumour', { level: def.minLevel })}
+              </p>
+            </li>
+          );
+        })}
+      </ul>
+    </Panel>
+  );
+}
+
 export function CodexScreen() {
   const save = useGame((s) => s.save);
   const [tab, setTab] = useState<'bestiary' | 'armory'>('bestiary');
@@ -153,18 +207,21 @@ export function CodexScreen() {
       {tab === 'bestiary' ? (
         <Bestiary />
       ) : (
-        <Panel variant="secondary" title={t('codex.tab.armory')}>
-          <ProgressBar
-            variant="xp"
-            value={metricValue(save, 'armoryPct')}
-            max={100}
-            className="mb-2 h-3"
-            label={t('codex.completion', { pct: metricValue(save, 'armoryPct') })}
-          />
-          <p className="text-sm text-ink-muted">
-            {t('codex.armoryBlurb', { seen: armorySeen(save) })}
-          </p>
-        </Panel>
+        <>
+          <Panel variant="secondary" title={t('codex.tab.armory')}>
+            <ProgressBar
+              variant="xp"
+              value={metricValue(save, 'armoryPct')}
+              max={100}
+              className="mb-2 h-3"
+              label={t('codex.completion', { pct: metricValue(save, 'armoryPct') })}
+            />
+            <p className="text-sm text-ink-muted">
+              {t('codex.armoryBlurb', { seen: armorySeen(save) })}
+            </p>
+          </Panel>
+          <NamedLegendaries />
+        </>
       )}
     </div>
   );

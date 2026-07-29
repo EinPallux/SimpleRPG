@@ -4,6 +4,7 @@ import { CAP_CRIT_DMG_BONUS, CAP_GOLD_FIND, CAP_XP_BONUS } from './constants';
 import { codexBonuses } from './codex';
 import { auraTotal, collectionBonus } from './pets';
 import { potionPercent } from './potions';
+import { uniqueFlatAttributes, uniqueTotal } from './uniques';
 import { setAggregate } from './sets';
 import type { AttributeId, GameSave, ItemInstance } from './types';
 import { baseAttribute } from './newSave';
@@ -32,6 +33,8 @@ export function totalAttribute(save: GameSave, attr: AttributeId): number {
       if (line.attr === attr || line.attr === 'all') total += line.value;
     }
   }
+  // Crown of the Understudy: flat, and keyed to hero level so it never retires.
+  total += uniqueFlatAttributes(save);
   const setPct = setAggregate(save).attrPct[attr];
   const petPct = auraTotal(save, 'attrPct', attr) + collectionBonus(save);
   return Math.round(total * (1 + potionPercent(save, attr)) * (1 + setPct) * (1 + petPct));
@@ -72,6 +75,11 @@ export function heroMaxHp(save: GameSave): number {
   return Math.round(
     totalAttribute(save, 'con') * cls.hpFactor * (save.hero.level + 1) * (1 + hpPct),
   );
+}
+
+/** Extra evade from a unique, as a fraction (the effect is in points). */
+export function uniqueEvade(save: GameSave): number {
+  return uniqueTotal(save, 'evadePP') / 100;
 }
 
 /** Armour multiplier from sets and the equipped pet — combatants.ts applies it. */

@@ -110,11 +110,34 @@ Sergeant Nap (Watchman's Rest) · The Pinewatch Impostor · +6 reserve **[build-
 Piece slots: 4-pc = helm/chest/gloves/boots · 5-pc adds weapon · 6-pc adds belt.
 
 ### 6.2 Legendary uniques (8)
-Kettle of Endless Soup (talisman — patrol gold +25%) · The Snickering Dagger (Asn offhand — first strike
-always crits) · Grandma's Battle Ladle (War weapon — blocks CLANG for 8% reflected) · The Polite Grimoire
-(Mage tome — +12% dmg, apologizes) · Boots of Somewhere Else (boots — +8 pp evade) · The Gilded IOU (amulet
-— shop prices −15%) · Wheelwright's Lucky Spoke (ring — wheel gem slot +4 pp) · Crown of the Understudy
-(helm — +1 all attrs per 10 levels).
+
+| Unique | Slot · Class | From L | Effect |
+|---|---|---|---|
+| Kettle of Endless Soup | talisman · any | 30 | patrol gold +25% |
+| The Gilded IOU | amulet · any | 35 | shop prices −15% |
+| Wheelwright's Lucky Spoke | ring · any | 35 | wheel gem slot +4 pp |
+| Grandma's Battle Ladle | weapon · Warrior | 40 | blocks CLANG for 8% reflected |
+| The Snickering Dagger | offhand · Assassin | 45 | first strike always crits |
+| The Polite Grimoire | offhand · Mage | 45 | +12% dmg, apologizes |
+| Boots of Somewhere Else | boots · any | 50 | +8 pp evade |
+| Crown of the Understudy | helm · any | 55 | +1 all attrs per 10 levels |
+
+**Sources.** Uniques have **no faucet of their own**: the two sources that already pay a guaranteed
+Legendary — the Wheel's jackpot and the Well's 1% row — ask first, and hand over a named one instead of a
+generated one `UNIQUE_DROP_SHARE` of the time (BALANCING §10). They therefore inherit the pacing of those
+systems rather than inflating the legendary supply. Expect **2–3 of the eight by day 120**; all eight is a
+multi-season chase, which is the point.
+
+**Rules that make "all eight" a goal rather than a lottery.** One of each, ever — an owned unique is never
+offered again. A class-cut unique is only ever offered to that class. The **From L** column is a *drop
+gate*, not an item level: the piece rolls at the level of the legendary it replaced, so finding one is
+never a downgrade. And the well declines to offer one at all while the backpack is full, because every
+legendary source auto-sells into gold when there is no room — losing a one-of-a-kind to pocket change,
+unseen, is not a thing this game does.
+
+Found uniques are listed in the **Codex → Armory** tab, which shows all eight from the start (the missing
+ones are the reason to keep spinning) and the achievement *Named Things* counts the named eight — never
+generic legendary-rarity drops.
 
 ### 6.3 Pets (16) — family · rarity · aura (major/minor) · source
 | Pet | Family · Rarity | Aura | Source |

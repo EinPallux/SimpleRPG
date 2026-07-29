@@ -222,7 +222,31 @@ describe('anti-rush contract (optimal play ceilings)', () => {
     // The product question: is any way of spending the one premium currency
     // simply WRONG? Measured on a pool of seeds, because gacha is variance and
     // a single run swings ±15% on set-piece luck alone.
-    const seeds = ['sim-seed', 'alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf'];
+    //
+    // The pool doubled to 16 in M9 (§10 2026-07-29). Eight seeds was not enough
+    // sample for a release gate: four-seed subsets of this same pool measure the
+    // gacha deficit anywhere from 11.3% to 22.2%, and the eight-seed halves sit
+    // 2 points apart, so any change that merely re-aligns the RNG streams could
+    // swing the headline number by more than the margin to the ceiling. Sixteen
+    // seeds costs ~22s and halves that wobble.
+    const seeds = [
+      'sim-seed',
+      'alpha',
+      'bravo',
+      'charlie',
+      'delta',
+      'echo',
+      'foxtrot',
+      'golf',
+      'hotel',
+      'india',
+      'juliett',
+      'kilo',
+      'lima',
+      'mike',
+      'november',
+      'oscar',
+    ];
     const runs = seeds.map((seed) => ({
       ale: simulateDays('ale-max', 120, seed),
       gacha: simulateDays('gacha-max', 120, seed),
@@ -256,11 +280,27 @@ describe('anti-rush contract (optimal play ceilings)', () => {
       true,
     );
     expect(runs.every((r) => r.drake.mountTier === 4 && r.drake.gemsSpent.drake === 60)).toBe(true);
-    // Pity is not decorative: hundreds of tosses must trip it repeatedly.
-    expect(runs.every((r) => r.gacha.pityHits > 5)).toBe(true);
+
+    // Pity is not decorative: hundreds of tosses must trip it repeatedly. Stated
+    // as a pool mean with a per-seed floor rather than a tight per-seed bound —
+    // pity hits are high-variance (measured 5–17 over 20 seeds, mean 11.1, sd
+    // 3.0), so a per-seed bound anywhere near the mean asserts one seed's luck
+    // instead of the system's behaviour.
+    expect(mean((r) => r.gacha.pityHits)).toBeGreaterThan(8);
+    expect(runs.every((r) => r.gacha.pityHits > 3)).toBe(true);
+
     // Sets must actually complete, or this measures a world without set bonuses.
     expect(mean((r) => r.gacha.setsCompleted)).toBeGreaterThan(0);
-    // 24 × 120-day runs: the most expensive contract in the suite, and the one
+
+    // The eight named legendaries (CONTENT §6.2) are the other thing gems buy.
+    // Gacha rolls the legendary row most, so it must lead here — that lead IS
+    // the collection it is paying attributes for.
+    expect(mean((r) => r.gacha.uniquesOwned)).toBeGreaterThan(1.5);
+    expect(mean((r) => r.gacha.uniquesOwned)).toBeGreaterThan(mean((r) => r.ale.uniquesOwned));
+    // …and all eight stays a long tail: nobody completes the set in 120 days.
+    expect(runs.every((r) => r.gacha.uniquesOwned < 8)).toBe(true);
+
+    // 48 × 120-day runs: the most expensive contract in the suite, and the one
     // that most needs the sample size.
   }, 120_000);
 

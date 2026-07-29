@@ -38,6 +38,7 @@ const DERIVED_METRICS = new Set<string>([
   'storyChapter',
   'setsCompleted',
   'legendariesOwned',
+  'uniquesOwned',
   'petsOwned',
   'framesOwned',
   'mountTier',
@@ -238,7 +239,9 @@ describe('rewards', () => {
       expect(getAchievement(id).titleId, id).toBe(titleId);
     }
     // …and nothing else hands out a title.
-    const titled = ACHIEVEMENTS.filter((a) => a.titleId).map((a) => a.id).sort();
+    const titled = ACHIEVEMENTS.filter((a) => a.titleId)
+      .map((a) => a.id)
+      .sort();
     expect(titled).toEqual(Object.keys(expected).sort());
   });
 });
