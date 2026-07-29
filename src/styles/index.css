@@ -60,8 +60,17 @@ h3,
  * the padding box left the canvas showing through the frame and gave every
  * panel a hard-edged dark rectangle sitting inside its own border. Running the
  * fill underneath means the frame is drawn ON the panel, which is what a frame
- * is. The small radius keeps the fill's square corners from poking past the
- * frame's softer ones (border-image ignores border-radius; backgrounds do not).
+ * is.
+ *
+ * NO INSET SHADOWS HERE, and none on any other framed surface. An `inset`
+ * box-shadow is painted at the PADDING box, which on a 9-slice frame is 8–16px
+ * inside the frame the player can see — so `inset 0 1px 0 var(--edge-light)`,
+ * meant as a top highlight, drew a bright 1px rule right around the interior
+ * and read as a second frame inside the first. Measured on the nav rail: a
+ * (51,60,72) line against a (38,48,60) panel, 16px in, running the full width.
+ * Framed surfaces get their depth from the gradient, which has no edge to trace;
+ * inset shadows stay on the frameless recesses further down, where the padding
+ * box IS the visible edge.
  */
 .panel-fill {
   background:
@@ -80,10 +89,6 @@ h3,
    */
   background-clip: border-box;
   background-origin: border-box;
-  border-radius: 6px;
-  box-shadow:
-    inset 0 1px 0 var(--edge-light),
-    inset 0 -14px 22px -18px rgba(0, 0, 0, 0.9);
 }
 
 /**
@@ -99,8 +104,6 @@ h3,
   );
   background-clip: border-box;
   background-origin: border-box;
-  border-radius: 4px;
-  box-shadow: var(--recess-shadow);
 }
 
 /* Raised interactive surfaces (buttons, chips) — the opposite of a recess. */
@@ -125,10 +128,10 @@ h3,
   );
   background-clip: border-box;
   background-origin: border-box;
-  border-radius: 4px;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    inset 0 -2px 6px -3px rgba(0, 0, 0, 0.8);
+  /* Outer, never inset — see .panel-fill. A drop shadow sits outside the border
+     box, so it lifts the button off the panel without drawing a rectangle
+     inside its own frame. */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 .btn-fill--quiet {
   --btn-tint: var(--ink-faint);
@@ -144,8 +147,13 @@ h3,
  * Anything painted with the inset surface is a RECESS, so it gets carved here
  * once rather than at each of the ~57 call sites. This is what turns the old
  * flat black rectangles into something that reads as pressed into the panel.
+ *
+ * `:not([class*='frame-'])` is the guard, not decoration: on a framed element
+ * this inset shadow would land at the padding box and draw the second rectangle
+ * inside the frame that `.panel-fill` explains at length. Nothing currently
+ * carries both classes; this makes sure nothing ever does by accident.
  */
-[class*='bg-panel-inset'] {
+[class*='bg-panel-inset']:not([class*='frame-']) {
   box-shadow: var(--recess-shadow);
 }
 

@@ -43,13 +43,7 @@ import { getSet } from '@/content/sets';
 import { itemArmor, sellPrice, slotOf, weaponDamage } from '@/engine/items';
 import { canSpinWheel, spinWheel } from '@/engine/wheel';
 import { canToss, freeTossAvailable, toss, tossCost, type TossResult } from '@/engine/gacha';
-import {
-  activeMountTier,
-  buyMount,
-  canBuyMount,
-  mountDaysLeft,
-  mountPrice,
-} from '@/engine/mounts';
+import { activeMountTier, buyMount, canBuyMount, mountDaysLeft, mountPrice } from '@/engine/mounts';
 import { canFeedPet, equipPet, feedPetMax, ownedPets, petState } from '@/engine/pets';
 import { isoWeekNumber } from '@/engine/time';
 import { totalAttribute } from '@/engine/stats';
@@ -264,8 +258,8 @@ function bestAffordableIndex(offers: MissionOffer[], vigor: number): number {
   let bestScore = -1;
   for (let i = 0; i < offers.length; i++) {
     const o = offers[i]!;
-    if (o.durationMin > vigor) continue;
-    const score = (o.xp + o.gold) / o.durationMin;
+    if (o.vigorCost > vigor) continue;
+    const score = (o.xp + o.gold) / o.vigorCost;
     if (score > bestScore) {
       best = i;
       bestScore = score;
@@ -658,7 +652,10 @@ export function simulateDays(profile: Profile, days: number, seed = 'sim-seed'):
      * quietly not playing the game.
      */
     const dayEnd = dayStart + 24 * HOUR;
-    while (save.daily.vigor >= 5 && spent < policy.vigorBudget) {
+    // The floor is half a vigor, not 5: B2 priced the early band at 0.5–2, and
+    // a `>= 5` gate would have made the whole fast band unreachable in the model
+    // while a real player ran it all day.
+    while (save.daily.vigor >= 0.5 && spent < policy.vigorBudget) {
       const budget = Math.min(save.daily.vigor, policy.vigorBudget - spent);
       let idx = bestAffordableIndex(getTavernOffers(save), budget);
       if (idx === -1 && tavernRerollCost(save) === 0) {
@@ -666,16 +663,17 @@ export function simulateDays(profile: Profile, days: number, seed = 'sim-seed'):
         idx = bestAffordableIndex(rerollTavernOffers(save), budget);
       }
       if (idx === -1) break;
-      const duration = getTavernOffers(save)[idx]!.durationMin;
+      const offer = getTavernOffers(save)[idx]!;
       // Would it still be running at midnight? Then there is no time for it.
-      if (now + missionDurationSec(save, duration) * 1000 > dayEnd) break;
+      if (now + missionDurationSec(save, offer.durationMin) * 1000 > dayEnd) break;
+      const cost = offer.vigorCost;
       acceptTavernOffer(save, idx, now);
       const startedAt = now;
       now = missionEndsAt(save.activities.mission!);
       missionMinutes += (now - startedAt) / 60_000;
       missionsRun += 1;
       goldFrom.missions += claimMission(save, now).gold;
-      spent += duration;
+      spent += cost;
     }
 
     // Arena bouts (cooldowns interleave with the mission clock; L5 unlock).

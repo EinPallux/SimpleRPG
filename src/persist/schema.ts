@@ -19,6 +19,9 @@ const missionOffer = z
   .object({
     zoneIndex: z.number().int().min(1),
     durationMin: z.number().int().positive(),
+    // Not an integer: one vigor per minute of clock means the early band costs
+    // half-vigors (v8). Still bounded — a cost of 0 would be a free mission.
+    vigorCost: z.number().positive(),
     lucky: z.boolean(),
     xp: z.number().int().min(0),
     gold: z.number().int().min(0),
@@ -118,7 +121,7 @@ const shopState = z
 
 export const gameSaveSchema = z
   .object({
-    version: z.literal(7),
+    version: z.literal(8),
     createdAt: isoDate,
     lastSeenAt: isoDate,
     worldSeed: z.string().min(8),

@@ -120,7 +120,7 @@ const V4_FIXTURE = {
 describe('save migrations', () => {
   it('migrates a v1 (M0) save forward to the current version', () => {
     const save = migrateSave(structuredClone(V1_FIXTURE));
-    expect(save.version).toBe(7);
+    expect(save.version).toBe(8);
     expect(save.hero.name).toBe('Fixture');
     expect(save.inventory.backpack[0]?.classId).toBeNull();
     expect(save.activities.tavernOffers).toBeNull();
@@ -132,7 +132,7 @@ describe('save migrations', () => {
 
   it('migrates a v2 (M1) save with an in-flight mission (payload gains flavor)', () => {
     const save = migrateSave(structuredClone(V2_FIXTURE));
-    expect(save.version).toBe(7);
+    expect(save.version).toBe(8);
     expect(save.activities.mission?.payload.flavor).toBe(0);
     expect(save.activities.mission?.payload.xp).toBe(55);
     expect(save.activities.tavernOffers).toBeNull();
@@ -141,7 +141,7 @@ describe('save migrations', () => {
 
   it('migrates a v4 (M3/M4) save: expeditions reset, day counter added', () => {
     const save = migrateSave(structuredClone(V4_FIXTURE));
-    expect(save.version).toBe(7);
+    expect(save.version).toBe(8);
     expect(save.activities.expedition).toBeNull();
     expect(save.daily.expeditions).toBe(0);
     // pre-M5 items simply carry no setId
@@ -159,6 +159,47 @@ describe('save migrations', () => {
     expect(save.progress.toursSeen).toEqual([]);
   });
 
+  /**
+   * v7 → v8 (B2): a mission carries the vigor it cost.
+   *
+   * The fixture is built by taking a current save back to the v7 shape — drop
+   * `vigorCost`, set the version — because that is exactly what is sitting in a
+   * real player's IndexedDB right now. The assertion that matters is that the
+   * migration writes `durationMin`, not the new cheap price: a v7 board was
+   * SOLD at full size and its stored xp/gold were priced to match, so anything
+   * else would hand a standing offer a discount it never had.
+   */
+  it('v7 → v8: a standing board and an in-flight mission are priced at what they cost', () => {
+    const current = migrateSave(structuredClone(V1_FIXTURE));
+    const offer = {
+      zoneIndex: 1,
+      durationMin: 15,
+      lucky: false,
+      xp: 120,
+      gold: 90,
+      flavor: 3,
+    };
+    const v7 = JSON.parse(JSON.stringify(current)) as Record<string, unknown>;
+    v7.version = 7;
+    v7.activities = {
+      ...(current.activities as object),
+      tavernOffers: [offer, { ...offer, durationMin: 5 }, { ...offer, durationMin: 20 }],
+      mission: {
+        kind: 'mission',
+        startedAt: current.createdAt,
+        durationSec: 900,
+        payload: { ...offer, durationMin: 10 },
+      },
+    };
+
+    const save = migrateSave(v7);
+    expect(save.version).toBe(8);
+    expect(save.activities.tavernOffers?.map((o) => o.vigorCost)).toEqual([15, 5, 20]);
+    expect(save.activities.mission?.payload.vigorCost).toBe(10);
+    // The rewards it was sold with are untouched — only the price is recorded.
+    expect(save.activities.mission?.payload.gold).toBe(90);
+  });
+
   it('refuses saves with no migration path', () => {
     expect(() => migrateSave({ ...structuredClone(V1_FIXTURE), version: -5 })).toThrow();
   });
@@ -166,15 +207,15 @@ describe('save migrations', () => {
   /**
    * M9 added two fields and deliberately bumped nothing (invariant 9 wants a
    * migration per schema change; the cheaper honest answer is a change that
-   * needs none). Both are optional, so a v7 save written before M9 parses
-   * unchanged — and the whole v1 chain lands on 7, not 8.
+   * needs none). Both are optional, so a save written before M9 parses
+   * unchanged — the version it lands on is B2's v8.
    */
   describe('M9 added no schema version', () => {
-    it('the migrated chain still ends at v7', () => {
-      expect(migrateSave(structuredClone(V1_FIXTURE)).version).toBe(7);
+    it('the migrated chain still ends at the current version', () => {
+      expect(migrateSave(structuredClone(V1_FIXTURE)).version).toBe(8);
     });
 
-    it('a v7 save carrying M9 fields round-trips, and one without them still parses', () => {
+    it('a save carrying M9 fields round-trips, and one without them still parses', () => {
       const withM9 = structuredClone(V1_FIXTURE) as Record<string, unknown>;
       const migrated = migrateSave(structuredClone(V1_FIXTURE));
 

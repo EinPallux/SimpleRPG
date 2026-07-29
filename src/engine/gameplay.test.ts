@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { monstersOfZone } from '@/content/bestiary';
 import { parseGameSave } from '@/persist/schema';
+import { missionGold, missionXp } from './economy';
 import { createNewSave, deriveEmblem } from './newSave';
 import {
   acceptTavernOffer,
@@ -11,9 +12,11 @@ import {
   getTavernOffers,
   isMissionComplete,
   missionClockSec,
+  missionVigorCost,
   rerollTavernOffers,
   startMission,
   tavernRerollCost,
+  type MissionOffer,
 } from './missions';
 import { canStartPatrol, collectPatrol, startPatrol } from './patrol';
 import { applyTimePassage } from './timePassage';
@@ -33,6 +36,22 @@ function fresh(name = 'Testa'): GameSave {
 
 const HOUR = 3_600_000;
 const MIN = 60_000;
+
+/**
+ * A board offer of a chosen SIZE, priced the way the board would price it.
+ *
+ * Since B2 an offer's size and its vigor cost are two different numbers, so
+ * `{...rolledOffer, durationMin: 20}` would produce something the game can
+ * never hand out: a twenty-minute job still carrying a five-minute price tag.
+ */
+function offerOf(save: GameSave, durationMin: number, extra: Partial<MissionOffer> = {}) {
+  return {
+    ...generateMissionOffers(save)[0]!,
+    durationMin,
+    vigorCost: missionVigorCost(save, durationMin),
+    ...extra,
+  };
+}
 
 describe('xp application', () => {
   it('levels up across multiple thresholds and unlocks zone frontiers', () => {
@@ -76,13 +95,13 @@ describe('missions', () => {
 
   it('start spends vigor up front; claim pays xp/gold and clears the slot', () => {
     const save = fresh();
-    const offer = { ...generateMissionOffers(save)[0]!, durationMin: 10, lucky: false };
+    const offer = offerOf(save, 10, { lucky: false });
     const vigorBefore = save.daily.vigor;
     startMission(save, offer, T0);
-    expect(save.daily.vigor).toBe(vigorBefore - 10);
+    expect(save.daily.vigor).toBe(vigorBefore - offer.vigorCost);
     expect(canStartMission(save, offer)).toBe(false); // one activity at a time
     // Read the clock off the mission rather than assuming size == minutes: the
-    // early game runs compressed, so 10 vigor is not 10 minutes of waiting.
+    // early game runs compressed, and the price comes down with it.
     const runsFor = save.activities.mission!.durationSec * 1000;
     expect(isMissionComplete(save, T0 + runsFor - 1000)).toBe(false);
     expect(() => claimMission(save, T0 + runsFor - 1000)).toThrow();
@@ -98,7 +117,7 @@ describe('missions', () => {
 
   it('every mission ends in a fight, and losing it never costs the reward', () => {
     const save = fresh();
-    const offer = { ...generateMissionOffers(save)[0]!, durationMin: 10, lucky: false };
+    const offer = offerOf(save, 10, { lucky: false });
     startMission(save, offer, T0);
     const rewards = claimMission(save, T0 + save.activities.mission!.durationSec * 1000);
 
@@ -121,7 +140,7 @@ describe('missions', () => {
     save.hero.level = 1;
     save.hero.attrsBought = { str: 0, dex: 0, int: 0, con: 0, lck: 0 };
     save.progress.zonePinned = null;
-    const offer = { ...generateMissionOffers(save)[0]!, durationMin: 5, gold: 500, xp: 400 };
+    const offer = offerOf(save, 5, { gold: 500, xp: 400 });
     startMission(save, offer, T0);
     const goldBefore = save.hero.gold;
     const rewards = claimMission(save, T0 + save.activities.mission!.durationSec * 1000);
@@ -163,7 +182,7 @@ describe('missions', () => {
     save.inventory.capacity = 0; // force the overflow path
     let total = 0;
     for (let i = 0; i < 30 && total === 0; i++) {
-      const offer = { ...generateMissionOffers(save)[0]!, durationMin: 5 };
+      const offer = offerOf(save, 5);
       startMission(save, offer, T0 + i * 10 * MIN);
       const rewards = claimMission(save, T0 + i * 10 * MIN + 5 * MIN);
       total += rewards.autoSoldGold;
@@ -177,7 +196,7 @@ describe('missions', () => {
     save.hero.level = 30; // past the fast-clock band, so size == minutes
     save.stats.missionsCompleted = 5; // past the tutorial's fixed first errand
     save.progress.mountTier = 4; // Ember Drake −50%
-    const offer = { ...generateMissionOffers(save)[0]!, durationMin: 20 };
+    const offer = offerOf(save, 20);
     startMission(save, offer, T0);
     expect(save.activities.mission?.durationSec).toBe(10 * 60);
     expect(save.daily.vigor).toBe(100 - 20);
@@ -185,62 +204,83 @@ describe('missions', () => {
 });
 
 /**
- * The early game runs on a compressed clock (B1). The property that makes it
- * safe is that only the CLOCK moves: vigor and payout are the mission's size,
- * and vigor is what meters the day, so a faster clock buys pace and not power.
+ * The early game runs on a compressed clock (B1), and since B2 the price is
+ * compressed with it: **one vigor per minute, at every level**. The property
+ * that keeps the anti-rush contract intact is no longer "the cost doesn't move"
+ * — it is that INCOME PER VIGOR doesn't move. An early mission is a small
+ * mission, not a big one on sale.
  */
 describe('the early-game clock', () => {
-  it('the very first errand is always 30 seconds, whatever size it was', () => {
+  it('the very first errand is always 30 seconds, and costs half a vigor', () => {
     const save = fresh();
-    const offer = { ...generateMissionOffers(save)[0]!, durationMin: 20 };
+    const offer = offerOf(save, 20);
     startMission(save, offer, T0);
     expect(save.activities.mission?.durationSec).toBe(30);
-    // …and it still cost the full twenty vigor and pays the full reward.
-    expect(save.daily.vigor).toBe(100 - 20);
+    expect(offer.vigorCost).toBe(0.5);
+    expect(save.daily.vigor).toBe(100 - 0.5);
     expect(save.activities.mission?.payload.xp).toBe(offer.xp);
   });
 
-  it('levels 1–10 run 30–90 seconds; every size stays inside the 0.5–2 min band', () => {
+  it('levels 1–10 run 30 s to 2 min, and every band costs its own minutes', () => {
     const save = fresh();
     save.stats.missionsCompleted = 1; // past the tutorial clamp
-    for (const [size, expected] of [
-      [5, 30],
-      [10, 50],
-      [15, 70],
-      [20, 90],
+    for (const [size, seconds, vigor] of [
+      [5, 30, 0.5],
+      [10, 60, 1],
+      [15, 90, 1.5],
+      [20, 120, 2],
     ] as const) {
-      expect(missionClockSec(save, size)).toBe(expected);
-      expect(expected).toBeGreaterThanOrEqual(30);
-      expect(expected).toBeLessThanOrEqual(120);
+      expect(missionClockSec(save, size)).toBe(seconds);
+      expect(missionVigorCost(save, size)).toBe(vigor);
+      expect(seconds).toBeGreaterThanOrEqual(30);
+      expect(seconds).toBeLessThanOrEqual(120);
     }
   });
 
-  it('past level 10 the clock is the size again, in real minutes', () => {
+  it('past level 10 the clock is the size again, in real minutes and real vigor', () => {
     const save = fresh();
     save.stats.missionsCompleted = 1;
     save.hero.level = 11;
     expect(missionClockSec(save, 20)).toBe(20 * 60);
     expect(missionClockSec(save, 5)).toBe(5 * 60);
+    expect(missionVigorCost(save, 20)).toBe(20);
+    expect(missionVigorCost(save, 5)).toBe(5);
   });
 
-  it('the compressed clock does not touch vigor, so a day still buys the same', () => {
-    // The anti-rush property in one assertion: two heroes, one on each side of
-    // the band, spend identical vigor and bank identical rewards for the same
-    // mission size. Only the wait differs.
+  it('income per vigor is the same on both sides of the band', () => {
+    // The anti-rush property, restated for B2. The early hero pays a tenth of
+    // the price and is paid a tenth of the reward, so a day's vigor buys
+    // exactly as much progress at level 3 as it does at level 30 — it just
+    // arrives in more, smaller pieces. If this ever drifts, the compressed
+    // clock has become a discount and §8.2's ceilings are meaningless.
     const early = fresh();
     early.stats.missionsCompleted = 1;
     const late = fresh();
     late.stats.missionsCompleted = 1;
     late.hero.level = 11;
 
-    const offer = { ...generateMissionOffers(early)[0]!, durationMin: 15 };
-    startMission(early, offer, T0);
-    startMission(late, offer, T0);
+    const earlyOffer = generateMissionOffers(early)[0]!;
+    const lateOffer = generateMissionOffers(late)[0]!;
+    expect(earlyOffer.durationMin).toBe(lateOffer.durationMin); // same rng, same rung
+    expect(earlyOffer.vigorCost).toBeLessThan(lateOffer.vigorCost);
 
-    expect(early.daily.vigor).toBe(late.daily.vigor);
-    expect(early.activities.mission?.payload.xp).toBe(late.activities.mission?.payload.xp);
-    expect(early.activities.mission?.payload.gold).toBe(late.activities.mission?.payload.gold);
-    expect(early.activities.mission!.durationSec).toBeLessThan(late.activities.mission!.durationSec);
+    // Both are priced by the SAME rate card — `missionGold(level, vigor)` — so
+    // the compression cannot be a discount. Both heroes sit on their zone's
+    // frontier, so the zone multiplier is 1 for each.
+    for (const [save, offer] of [
+      [early, earlyOffer],
+      [late, lateOffer],
+    ] as const) {
+      const boost = offer.lucky ? 2 : 1;
+      expect(offer.gold).toBe(Math.ceil(missionGold(save.hero.level, offer.vigorCost) * boost));
+      expect(offer.xp).toBe(Math.ceil(missionXp(save.hero.level, offer.vigorCost) * boost));
+    }
+
+    startMission(early, earlyOffer, T0);
+    startMission(late, lateOffer, T0);
+    expect(early.activities.mission!.durationSec).toBeLessThan(
+      late.activities.mission!.durationSec,
+    );
   });
 });
 
@@ -307,7 +347,7 @@ describe('time passage (offline catch-up + resets + tamper guard)', () => {
 
   it('produces schema-valid saves throughout a mission→patrol→multi-day cycle', () => {
     const save = fresh();
-    const offer = { ...generateMissionOffers(save)[0]!, durationMin: 20 };
+    const offer = offerOf(save, 20);
     startMission(save, offer, T0);
     claimMission(save, T0 + 20 * MIN);
     save.daily.vigor = 0;

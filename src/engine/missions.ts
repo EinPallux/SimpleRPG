@@ -15,6 +15,7 @@ import {
   MISSION_DURATIONS,
   MISSION_FIGHT_GOLD_BONUS,
   MISSION_FIGHT_XP_BONUS,
+  MISSION_VIGOR_PER_MIN,
   MOUNT_SPEED,
   TAVERN_REROLL_COST_GEMS,
   TREATS_PER_MISSION,
@@ -35,7 +36,15 @@ import { applyXp, type XpResult } from './xpGain';
 
 export interface MissionOffer {
   zoneIndex: number;
+  /** the rung the board rolled: 5 / 10 / 15 / 20 minutes at full price */
   durationMin: number;
+  /**
+   * What this job actually costs, in vigor — one per minute of its clock, so it
+   * equals `durationMin` at full price and 0.5–2 in the fast early band. Locked
+   * onto the offer next to the rewards it paid for, because both are quoted at
+   * roll time and both must stay true if the hero levels while the board stands.
+   */
+  vigorCost: number;
   lucky: boolean;
   xp: number;
   gold: number;
@@ -58,12 +67,18 @@ export function generateMissionOffers(save: GameSave): MissionOffer[] {
     const durationMin = rng.pick(MISSION_DURATIONS);
     const lucky = rng.chance(LUCKY_CHANCE);
     const boost = lucky ? LUCKY_MULT : 1;
+    // The payout is priced off the VIGOR, not off the rung. `missionXp`/
+    // `missionGold` are linear in their minutes argument, so paying by the
+    // vigor makes reward-per-vigor identical at every level — which is what
+    // lets the early clock compress without touching the economy at all.
+    const vigorCost = missionVigorCost(save, durationMin);
     return {
       zoneIndex: zone.index,
       durationMin,
+      vigorCost,
       lucky,
-      xp: Math.ceil(missionXp(save.hero.level, durationMin) * mult * boost),
-      gold: Math.ceil(missionGold(save.hero.level, durationMin) * mult * boost),
+      xp: Math.ceil(missionXp(save.hero.level, vigorCost) * mult * boost),
+      gold: Math.ceil(missionGold(save.hero.level, vigorCost) * mult * boost),
       flavor: rng.int(0, 9999),
     };
   });
@@ -111,10 +126,11 @@ export function acceptTavernOffer(save: GameSave, index: number, nowMs: number):
  * The clock a mission of this SIZE runs on, before mount and pet speed.
  *
  * Below `MISSION_CLOCK_FAST_MAX_LEVEL` the early game runs on a compressed
- * clock — 30–90 seconds instead of 5–20 minutes — so a new player sees the
+ * clock — 30 s to 2 min instead of 5–20 minutes — so a new player sees the
  * whole accept→wait→claim→reward loop several times in their first sitting.
- * The vigor cost and the payout are the mission's SIZE and do not change, so
- * this buys pace, not power: vigor is what meters the day (BALANCING §2.2).
+ * The cost and the payout come down with it (`missionVigorCost`), so an early
+ * mission is a SMALL mission rather than a big one on sale, and the economy
+ * does not move: vigor is what meters the day (BALANCING §2.2).
  */
 export function missionClockSec(save: GameSave, durationMin: number): number {
   // The very first errand is always the short one, whatever size the board
@@ -126,6 +142,26 @@ export function missionClockSec(save: GameSave, durationMin: number): number {
   if (save.hero.level > MISSION_CLOCK_FAST_MAX_LEVEL) return durationMin * 60;
   const band = MISSION_CLOCK_BANDS.find(([size]) => durationMin <= size);
   return band ? band[1] : MISSION_CLOCK_FAST_CAP_SEC;
+}
+
+/**
+ * What a mission of this size costs, in vigor: one per minute of its clock
+ * (`MISSION_VIGOR_PER_MIN`).
+ *
+ * Read off `missionClockSec` — the BAND clock, before a mount or a pet touches
+ * it. That is the load-bearing detail: if the cost followed the shortened
+ * clock, an Ember Drake would halve the price of every mission and so double
+ * the day's income, turning the Stable's time-saver into the strongest power
+ * item in the game and breaking §8.2's drake row outright. A mount sells time.
+ * It does not sell vigor.
+ *
+ * Rounded to half a vigor so the number on the board is one a player can read.
+ * Today's bands are whole half-minutes and need no rounding at all; the clamp
+ * is here so a future band cannot quietly invent a price of 0.83.
+ */
+export function missionVigorCost(save: GameSave, durationMin: number): number {
+  const minutes = (missionClockSec(save, durationMin) / 60) * MISSION_VIGOR_PER_MIN;
+  return Math.max(0.5, Math.round(minutes * 2) / 2);
 }
 
 /**
@@ -143,7 +179,7 @@ export function missionDurationSec(save: GameSave, durationMin: number): number 
 
 export function canStartMission(save: GameSave, offer: MissionOffer): boolean {
   return (
-    save.daily.vigor >= offer.durationMin &&
+    save.daily.vigor >= offer.vigorCost &&
     save.activities.mission === null &&
     save.activities.patrol === null &&
     save.activities.expedition === null
@@ -156,11 +192,12 @@ export function startMission(save: GameSave, offer: MissionOffer, nowMs: number)
   // Checked here as well as on catch-up: a long session must not let a lapsed
   // rental keep shortening missions until the next time the tab is reopened.
   expireMount(save, nowMs);
-  save.daily.vigor -= offer.durationMin;
-  bump(save, 'vigorSpent', offer.durationMin);
+  save.daily.vigor -= offer.vigorCost;
+  bump(save, 'vigorSpent', offer.vigorCost);
   const payload: MissionPayload = {
     zoneIndex: offer.zoneIndex,
     durationMin: offer.durationMin,
+    vigorCost: offer.vigorCost,
     lucky: offer.lucky,
     xp: offer.xp,
     gold: offer.gold,
