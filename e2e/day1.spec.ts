@@ -42,6 +42,12 @@ test('day-1 loop: offer → mission → claim → reward → second wind → pat
   // The board offers three jobs with flavor text
   await expect(page.getByRole('button', { name: 'Take the job' })).toHaveCount(3);
 
+  // …priced by the clock, not the rung (B2): the first errand of a save is
+  // always 30 seconds, so it costs half a vigor whatever size the board rolled.
+  // The old board quoted the rung and charged for it — "15 min · 15 vigor" on a
+  // job that ran for half a minute.
+  await expect(page.getByText('30s · 0.5 vigor')).toHaveCount(3);
+
   // Accept one and watch the tavern switch to the active-mission view
   await page.getByRole('button', { name: 'Take the job' }).first().click();
   await expect(page.getByText(/Out on a mission/)).toBeVisible();

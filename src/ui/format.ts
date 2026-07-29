@@ -41,6 +41,17 @@ export function formatDuration(totalSec: number): string {
   return mm === 0 ? `${h}h` : `${h}h ${mm}m`;
 }
 
+/**
+ * Vigor, which comes in halves since B2 priced missions at one per minute of
+ * clock: "0.5", "1", "1.5", "15". Never "1.0" and never "0.50" — the halves are
+ * the only fraction the economy can produce, so a fixed decimal place would put
+ * a pointless ".0" on every whole number in the HUD.
+ */
+export function formatVigor(n: number): string {
+  const rounded = Math.round(n * 2) / 2;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
 export function relativeTime(iso: string, nowMs: number): string {
   const delta = Math.max(0, nowMs - Date.parse(iso));
   const minutes = Math.floor(delta / 60_000);

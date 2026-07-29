@@ -154,6 +154,37 @@ const MIGRATIONS: Record<number, (raw: RawSave) => RawSave> = {
       },
     };
   },
+  /**
+   * v7 (M8) → v8 (B2): a mission carries the vigor it cost.
+   *
+   * Vigor is now one per minute of clock, so an offer's price is no longer
+   * recoverable from its size alone — a v7 board rolled at level 3 and a v8
+   * board rolled at level 30 can both say `durationMin: 15`. The price is
+   * therefore stored next to the rewards it bought.
+   *
+   * A v7 save paid the OLD rule, full size, and its stored xp/gold were priced
+   * at full size to match — so `vigorCost = durationMin` is not a default here,
+   * it is the true historical price. Writing anything else would hand a
+   * standing board a discount it was never sold at.
+   */
+  8: (raw) => {
+    const activities = raw.activities as Record<string, unknown>;
+    const priced = (offer: Record<string, unknown>) => ({
+      vigorCost: offer.durationMin,
+      ...offer,
+    });
+    const mission = activities.mission as { payload?: Record<string, unknown> } | null;
+    const offers = activities.tavernOffers as Record<string, unknown>[] | null;
+    return {
+      ...raw,
+      version: 8,
+      activities: {
+        ...activities,
+        tavernOffers: offers ? offers.map(priced) : null,
+        mission: mission?.payload ? { ...mission, payload: priced(mission.payload) } : mission,
+      },
+    };
+  },
 };
 
 export function migrateSave(raw: unknown): GameSave {

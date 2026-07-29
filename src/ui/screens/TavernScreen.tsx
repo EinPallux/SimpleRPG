@@ -20,7 +20,7 @@ import { StoryBanner } from '../components/StoryBanner';
 import { TipOfTheDay } from '../components/TipOfTheDay';
 import { ProgressBar } from '../components/ProgressBar';
 import { TimerBar } from '../components/TimerBar';
-import { fmt, formatDuration } from '../format';
+import { fmt, formatDuration, formatVigor } from '../format';
 import { useGameClock } from '../hooks/useGameClock';
 import { missionFlavor } from '../itemName';
 
@@ -31,7 +31,7 @@ function OfferCard({ index }: { index: number }) {
   if (!offer) return null;
 
   const zone = getZone(offer.zoneIndex);
-  const affordable = save.daily.vigor >= offer.durationMin;
+  const affordable = save.daily.vigor >= offer.vigorCost;
   const busy = save.activities.mission !== null || save.activities.patrol !== null;
 
   return (
@@ -55,14 +55,14 @@ function OfferCard({ index }: { index: number }) {
           {missionFlavor(offer.zoneIndex, offer.flavor)}
         </p>
         <div className="flex items-center justify-between text-[11px] font-bold text-ink-faint">
-          {/* The real clock, not the mission's size. Early missions run in
-              seconds while still costing their full vigor, so printing the size
-              with "min" after it told a level-1 hero a 70-second errand would
-              take fifteen minutes. */}
+          {/* The real clock and the real price, neither of which is the rung
+              the board rolled. Early missions run in seconds and cost half a
+              vigor a minute to match, so a level-1 card reads "30s · 0.5 vigor"
+              — where it once claimed fifteen minutes and charged fifteen. */}
           <span>
             {t('tavern.offerDuration', {
               time: formatDuration(missionDurationSec(save, offer.durationMin)),
-              vigor: offer.durationMin,
+              vigor: formatVigor(offer.vigorCost),
             })}
           </span>
           <span className="text-gold">
@@ -79,7 +79,7 @@ function OfferCard({ index }: { index: number }) {
             ],
             [
               t('tavern.tip.accept.cost'),
-              t('tavern.tip.accept.vigor', { vigor: offer.durationMin }),
+              t('tavern.tip.accept.vigor', { vigor: formatVigor(offer.vigorCost) }),
             ],
             [
               t('tavern.tip.accept.pays'),
@@ -145,7 +145,7 @@ function VigorPanel() {
       <Hint
         title={t('hud.vigor')}
         body={t('hud.vigorTooltip')}
-        rows={[[t('hud.tip.vigor.left'), `${daily.vigor} / ${VIGOR_DAILY_BASE}`]]}
+        rows={[[t('hud.tip.vigor.left'), `${formatVigor(daily.vigor)} / ${VIGOR_DAILY_BASE}`]]}
         footer={t('hud.tip.vigor.refill', { base: VIGOR_DAILY_BASE })}
         className="block"
       >
@@ -153,7 +153,7 @@ function VigorPanel() {
           variant="vigor"
           value={daily.vigor}
           max={Math.max(VIGOR_DAILY_BASE, daily.vigor)}
-          label={`${daily.vigor}`}
+          label={formatVigor(daily.vigor)}
           name={t('hud.vigor')}
           className="h-5"
           tabbable

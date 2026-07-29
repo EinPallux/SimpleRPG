@@ -4,7 +4,7 @@
  * simulator scenarios to stay green (from M1 on) and a row in BALANCING.md §10.
  */
 
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 8;
 export const TAVERN_REROLL_COST_GEMS = 1;
 
 // Shops (GAME_DESIGN.md §9.5, BALANCING.md §5.3–5.4)
@@ -39,38 +39,57 @@ export const VIGOR_DAILY_MAX = 250; // 100 + 50 + 5×20
 
 // Activities
 /**
- * Mission SIZE, in minutes. This is the vigor cost and the reward scale — it is
- * NOT necessarily how long the clock runs (see `MISSION_CLOCK_BANDS`).
+ * Mission SIZE, in minutes — the four rungs the board rolls from. At full price
+ * this is also the clock and the vigor cost; below `MISSION_CLOCK_FAST_MAX_LEVEL`
+ * the clock is compressed and the cost comes down with it (see below).
  */
 export const MISSION_DURATIONS = [5, 10, 15, 20] as const;
 
 /**
+ * **One minute of mission = one vigor. Everywhere, at every level.**
+ *
+ * This is the whole contract, and it is deliberately the only relationship
+ * between the mission's clock and its price. B1 compressed the early clock but
+ * left the cost at the mission's nominal size, which put "30s · 15 vigor" on the
+ * board — half a minute of work charged at fifteen minutes' rates. It also, less
+ * visibly, handed levels 1–10 a silent 10× discount on time: a whole day's vigor
+ * burned through in eight minutes.
+ *
+ * Both are the same bug, and this fixes both. An early mission is now a SMALL
+ * mission — short clock, small price, small payout — rather than a big one sold
+ * at a discount, so income per vigor is identical at level 1 and level 60 and
+ * the anti-rush contract (§8.2) is untouched by the compression.
+ *
+ * The cost is computed from `MISSION_CLOCK_BANDS`, NOT from the mount- and
+ * pet-shortened clock the player actually waits out — otherwise a mount would
+ * make missions *cheaper* and quietly become a power multiplier, which is
+ * exactly what §8.2's drake row exists to prevent. A mount sells time. It has
+ * never sold vigor.
+ */
+export const MISSION_VIGOR_PER_MIN = 1;
+
+/**
  * How long a mission of a given size actually takes on the clock, by hero level.
  *
- * Size and wall-clock used to be the same number, which made the first hour of
- * the game a five-minute wait for a five-vigor errand — the exact opposite of
- * the quick, satisfying loop the early game needs. They are separate now: below
- * `MISSION_CLOCK_FAST_MAX_LEVEL` the clock is compressed to seconds while the
- * vigor cost and the payout stay untouched, so nothing about the economy moves.
- * That matters — vigor is the daily limiter, so speeding the clock lets a new
- * player spend the same budget sooner, never earn more from it.
- *
  * `[sizeMinutes, seconds]`, read as "a mission of at most this size takes this
- * long". Sizes 5/10/15/20 → 30s/50s/70s/90s, i.e. the 0.5–1:30 band, with the
- * ceiling at 2 min reserved for anything a later patch adds above size 20.
+ * long". Sizes 5/10/15/20 → 30/60/90/120 s below `MISSION_CLOCK_FAST_MAX_LEVEL`,
+ * which is the 0.5–2 min band, and — since a minute costs a vigor — 0.5/1/1.5/2
+ * vigor. The seconds are all whole half-minutes on purpose: they are prices as
+ * much as durations, and 50 s would be a cost of 0.83 vigor.
  */
 export const MISSION_CLOCK_FAST_MAX_LEVEL = 10;
 export const MISSION_CLOCK_BANDS: readonly (readonly [number, number])[] = [
   [5, 30],
-  [10, 50],
-  [15, 70],
-  [20, 90],
+  [10, 60],
+  [15, 90],
+  [20, 120],
 ];
 export const MISSION_CLOCK_FAST_CAP_SEC = 120;
 
 /**
  * The tutorial's first errand, in seconds. Short enough that a brand-new player
- * sees the whole loop — accept, wait, claim, reward — inside their first minute.
+ * sees the whole loop — accept, wait, claim, reward — inside their first minute,
+ * and priced to match at half a vigor.
  */
 export const MISSION_CLOCK_TUTORIAL_SEC = 30;
 export const EXPEDITION_COST = 25;

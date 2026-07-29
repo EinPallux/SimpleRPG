@@ -114,7 +114,8 @@ offhand type, and starting attribute spread (CONTENT_CATALOG.md §2).
 - **Second Wind**: once per day, a free claimable **+50** (a button in the tavern — the innkeeper's on-the-house round).
 - **Golden Ale**: up to **5 per day**, **+20 vigor each, 2 Gems each** — the optimizer's gem sink.
 - Daily maximum: **250 vigor**. Unspent vigor is lost at reset (log-in incentive), except tutorial day 1.
-- Missions cost vigor equal to their duration in minutes (5/10/15/20). Expeditions cost 25.
+- Missions cost **one vigor per minute of their clock** — 5/10/15/20 at full price, and 0.5/1/1.5/2 in the
+  compressed level-1–10 band (§5). Expeditions cost 25.
 
 Design intent: vigor bounds the **daily XP/gold ceiling** regardless of playtime → a no-lifer cannot rush a
 patch; a lunch-break player loses nothing they couldn't spend. Mounts compress *real time*, never the cap.
@@ -125,14 +126,16 @@ patch; a lunch-break player loses nothing they couldn't spend. Mounts compress *
 
 At **The Gilded Tankard**, three patrons offer missions; pick one, the other two wait.
 
-- Each offer: destination **zone** (background art), **flavor text** (funny one-liner), **size**
-  (5/10/15/20 — this is the **vigor cost** and the reward scale), rewards preview: gold, XP,
-  **33% item chance**, **5% bonus chest**.
-- **Size is not the same as the clock.** Past level 10 a size-N mission takes N minutes; at levels 1–10 the
-  clock is compressed to **30–90 seconds**, and the very first errand of a save is always **30 seconds**, so
-  a new player sees the whole accept → wait → claim → reward loop several times in their first sitting. The
-  vigor cost and the payout are untouched by this — vigor meters the day, so a faster clock buys pace and
-  never power (BALANCING §2.2, §10).
+- Each offer: destination **zone** (background art), **flavor text** (funny one-liner), its **clock** and
+  its **price in vigor**, rewards preview: gold, XP, **33% item chance**, **5% bonus chest**.
+- **One minute of mission costs one vigor, at every level.** Past level 10 a size-N mission takes N minutes
+  and costs N vigor. At levels 1–10 the clock is compressed to **30 s / 1 / 1.5 / 2 min**, and the price
+  comes down with it to **0.5 / 1 / 1.5 / 2 vigor** — an early mission is a *small* mission, not a big one
+  on sale. The very first errand of a save is always 30 seconds, so a new player sees the whole
+  accept → wait → claim → reward loop several times in their first sitting.
+- The payout scales with the vigor paid, never with the rung, so **income per vigor is the same at level 1
+  as at level 60** and the compression cannot become a discount (BALANCING §2.2, §10). What it does change
+  is how the day is shaped: a level-1–10 day holds many short jobs instead of a handful of long ones.
 - Missions run in real time (continue while the tab is closed). On completion the reward sits banked until
   claimed. Claiming may trigger: item drop reveal, story-quest progress, rare events.
 - **Every mission ends in a fight** with a resident of the zone you were sent to — a real bout at your own

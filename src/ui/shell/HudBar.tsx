@@ -8,7 +8,7 @@ import { HelpButton } from '../components/HelpOverlay';
 import { Hint } from '../components/Hint';
 import { Icon } from '../components/Icon';
 import { ProgressBar } from '../components/ProgressBar';
-import { fmt } from '../format';
+import { fmt, formatVigor } from '../format';
 
 /**
  * The one line of the vigor tooltip worth acting on, or nothing.
@@ -93,7 +93,7 @@ export function HudBar() {
           <Hint
             title={t('hud.vigor')}
             body={t('hud.vigorTooltip')}
-            rows={[[t('hud.tip.vigor.left'), `${daily.vigor} / ${VIGOR_DAILY_BASE}`]]}
+            rows={[[t('hud.tip.vigor.left'), `${formatVigor(daily.vigor)} / ${VIGOR_DAILY_BASE}`]]}
             footer={t('hud.tip.vigor.refill', { base: VIGOR_DAILY_BASE })}
             note={vigorNote(daily.vigor, hero.level)}
             placement="bottom"
@@ -103,7 +103,7 @@ export function HudBar() {
               <div className="mb-0.5 flex items-center justify-between text-[10px] font-bold tracking-wider text-ink-muted uppercase">
                 <span>{t('hud.vigor')}</span>
                 <span>
-                  {daily.vigor}/{VIGOR_DAILY_BASE}
+                  {formatVigor(daily.vigor)}/{VIGOR_DAILY_BASE}
                 </span>
               </div>
               <ProgressBar
