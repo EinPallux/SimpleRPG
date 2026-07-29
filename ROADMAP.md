@@ -126,9 +126,28 @@ was then **re-stated from measurement**: drake-first and ale-max land 2.2% apart
 *Done when:* ✅ `gem-strategies` green — **every §8.2 contract row now has a scenario**; pity asserted per
 banner over hundreds of tosses.
 
-**M8 · Onboarding & polish** — tutorial sequence + skip path, coach marks, help overlays, audio (SFX map,
-volume settings), PWA, settings, error screen, a11y pass (axe + keyboard map), perf budget met.
-*Done when:* a new player reaches the town map unaided in <15 min (hallway test with 3 people).
+**M8 · Onboarding & polish** ✅ — the game stops assuming you already know it. The scripted first fifteen
+minutes (§17) runs as six data-driven beats from the cold open to the town reveal, pointed out by anchored
+**coach marks** that spotlight without caging — no backdrop that eats clicks, no focus trap, and a skip door
+on every step that grants nothing because the tutorial withholds nothing. Fifteen screens carry a
+**15-second first-visit tour**, and all seventeen keep a permanent **"?"** with a hand-written page behind it
+(105 strings, every number read off the real constants rather than the prose). **Sound** arrived as twelve
+synthesised Web Audio cues wired to outcomes, with master/SFX sliders, mute, a reduced-motion override,
+instant-combat and timer-format toggles. The game is now an **installable, offline-capable PWA** that
+updates by prompt rather than behind your back, split four ways so no chunk approaches the 500 kB line.
+**Accessibility** is enforced rather than asserted: axe runs in Playwright over the core screens, a 1–9 nav
+map and Escape contract are wired, and 125% text scaling and 44 px hit areas are asserted — the two HUD
+buttons that failed were widened rather than allow-listed. Schema v7 + migration (an existing save arrives
+already onboarded, but with its tours unseen).
+*Deviations, both documented:* **no audio files exist** — the planned Kenney CC0 sprite was never sourced,
+so the cues are synthesised (ASSETS.md §4.1), and v1.0 ships SFX-only per that doc's own fallback, which is
+why Settings has no music slider. **framer-motion** was never needed; CSS keyframes and the motion tokens
+cover every §7 moment.
+*Done when:* the stated bar was a hallway test with three people, which I cannot run. The substitute is
+mechanical and honest: `e2e/day1.spec.ts` walks a genuinely fresh hero from "New adventurer" through the
+cold open to a claimed reward, and the sequence is six beats long with a one-click escape at every one. A
+real hallway test remains **open for the owner** before v1.0 — it is the one M8 acceptance criterion that
+automation cannot stand in for.
 
 **M9 · Content-complete & balance freeze** — all [build-fill] flavor written (mission texts, boss intros,
 codex lore, tips), icon set finalized, 180-day sim scenarios green, tuning changelog reconciled, QA sweep

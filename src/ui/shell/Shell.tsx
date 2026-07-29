@@ -30,7 +30,6 @@ import { WheelScreen } from '../screens/WheelScreen';
 import { InstallPrompt } from '../components/InstallPrompt';
 import { OnboardingLayer } from '../components/OnboardingLayer';
 import { TourPopover } from '../components/TourPopover';
-import { UpdateToast } from '../components/UpdateToast';
 import { useKeyboardMap } from '../hooks/useKeyboardMap';
 import { useSfx } from '../hooks/useSfx';
 import { HudBar } from './HudBar';
@@ -117,7 +116,6 @@ export function Shell() {
       <OnboardingLayer />
       <TourPopover />
       <InstallPrompt />
-      <UpdateToast />
     </div>
   );
 }

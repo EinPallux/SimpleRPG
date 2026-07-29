@@ -103,10 +103,7 @@ async function expectAccessible(page: Page, screen: string, allow: readonly stri
 }
 
 test('axe: the core screens carry nothing serious or critical', async ({ page, isMobile }) => {
-  test.skip(
-    isMobile,
-    'walks the desktop rail; the mobile chrome is audited by the two specs below',
-  );
+  test.skip(isMobile, 'walks the desktop rail; the mobile chrome has its own axe run below');
 
   await page.clock.setFixedTime(new Date(CLOCK));
 
@@ -235,4 +232,39 @@ test('the tavern is thumb-sized: every button clears 44×44', async ({ page, isM
   // than named around — a gate with an allow-list on it is not a gate.
   const tooSmall = targets.filter((target) => target.width < TAP_MIN || target.height < TAP_MIN);
   expect(tooSmall).toEqual([]);
+});
+
+/**
+ * The mobile chrome had never been audited at all.
+ *
+ * `MobileTabBar` and `NavSheet` exist only below the `lg` breakpoint, and the
+ * desktop run above skips on mobile — so until this test the two surfaces a
+ * phone player touches most were the two axe had never seen. The skip comment
+ * used to claim "the mobile chrome is audited by the two specs below", but
+ * those measure scroll width and tap targets; neither runs axe.
+ */
+test('axe: the mobile chrome, including the nav sheet', async ({ page, isMobile }) => {
+  test.skip(!isMobile, 'this IS the mobile run');
+
+  await page.clock.setFixedTime(new Date(CLOCK));
+  await page.goto('/');
+  await importSave(page, craftSave());
+  await expect(page.getByText('The Gilded Tankard')).toBeVisible();
+
+  // The bottom tab bar, which replaces the rail entirely on a phone.
+  await expectAccessible(page, 'tavern (mobile)');
+
+  // …and the group sheet behind it, which nothing had ever opened under axe.
+  // 'Town', not 'Adventure': group 0's headline entry IS the direct Tavern tab,
+  // so Adventure has no sheet button at all (NavRail.tsx MobileTabBar).
+  await page.getByRole('button', { name: 'Town', exact: true }).click();
+  const sheet = page.getByRole('dialog', { name: 'Town' });
+  await expect(sheet).toBeVisible();
+  await expectAccessible(page, 'nav sheet (mobile)');
+
+  // UI_DESIGN §8: "Esc closes overlays". NavSheet is the one real overlay in
+  // the app that shipped without it — its only dismissal was a backdrop click,
+  // which a keyboard user cannot perform.
+  await page.keyboard.press('Escape');
+  await expect(sheet).toBeHidden();
 });

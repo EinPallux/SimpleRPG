@@ -1,4 +1,4 @@
-import { useId, useState, type ReactNode } from 'react';
+import { useId, useRef, useState, type ReactNode } from 'react';
 import { t } from '@/i18n';
 import type { Prefs, TimerFormat } from '@/persist/prefs';
 import { useGame } from '@/state/store';
@@ -32,6 +32,15 @@ function VolumeSlider({
 }) {
   const id = useId();
   const pct = Math.round(value * 100);
+  // Set by onChange, consumed by the settle handlers — the only honest signal
+  // that this interaction changed anything.
+  const moved = useRef(false);
+  const settle = () => {
+    if (!moved.current) return;
+    moved.current = false;
+    playSfx('ui_click');
+  };
+
   return (
     <div className="flex items-center gap-3">
       <label htmlFor={id} className="w-32 shrink-0 text-sm text-ink-muted">
@@ -45,11 +54,19 @@ function VolumeSlider({
         step={5}
         value={pct}
         aria-valuetext={t('settings.percent', { pct })}
-        onChange={(e) => onChange(Number(e.target.value) / 100)}
-        // You cannot hear a volume change in silence. One blip when the drag
-        // (or the arrow key) settles — firing per change event would machine-gun.
-        onPointerUp={() => playSfx('ui_click')}
-        onKeyUp={() => playSfx('ui_click')}
+        onChange={(e) => {
+          onChange(Number(e.target.value) / 100);
+          moved.current = true;
+        }}
+        // You cannot hear a volume change in silence, so the slider blips once
+        // when it settles. Both handlers check that the value ACTUALLY moved
+        // first: `keyup` also fires for the Tab that moved focus INTO the slider
+        // (Tab's keydown lands on the previous element) and for every modifier
+        // release, so tabbing through this section used to emit a click per
+        // slider — an artifact only keyboard and screen-reader users hear, which
+        // is precisely backwards.
+        onPointerUp={settle}
+        onKeyUp={settle}
         className="h-2 min-w-0 flex-1 accent-gold"
       />
       <span className="w-10 shrink-0 text-right text-sm text-ink">

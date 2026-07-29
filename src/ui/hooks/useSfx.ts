@@ -13,6 +13,7 @@
  * should not cost the Shell a re-render.
  */
 import { useEffect, useRef } from 'react';
+import type { CombatResult } from '@/engine/combat';
 import type { TossResult } from '@/engine/gacha';
 import { useGame } from '@/state/store';
 import { playSfx, type SfxCue } from '../audio';
@@ -41,17 +42,39 @@ function landing<T extends object>(
 }
 
 /**
- * The stinger a batch of tosses earned. Only the two prizes the well is
- * actually *about* get one — a legendary, or the set piece its pity meter has
- * been counting toward. Ten consumables in a row get the splash and nothing
- * more; a fanfare that fires for everything stops meaning anything.
+ * The stinger a batch of tosses earned — best prize wins, one stinger per batch.
+ *
+ * All THREE rarity cues are reachable, and each is named for what it actually
+ * plays for (UI_DESIGN §7 lists "rarity stingers x3"). An earlier cut gated the
+ * epic cue on set pieces alone, which left a genuine `kind: 'epic'` toss silent
+ * and `rarity_rare` fired from nowhere in the entire game. A consumable still
+ * gets the splash and nothing more: a fanfare that fires for everything stops
+ * meaning anything.
  */
 function tossStinger(results: readonly TossResult[]): readonly SfxCue[] {
   if (results.some((r) => r.kind === 'legendary' || r.item?.rarity === 'legendary')) {
     return ['rarity_legendary'];
   }
-  if (results.some((r) => r.kind === 'setPiece' || r.setId !== null)) return ['rarity_epic'];
+  // A set piece is the thing the pity meter counts toward, so it rides with epic.
+  if (results.some((r) => r.kind === 'epic' || r.kind === 'setPiece' || r.setId !== null)) {
+    return ['rarity_epic'];
+  }
+  if (results.some((r) => r.kind === 'rare')) return ['rarity_rare'];
   return [];
+}
+
+/**
+ * Did the hero turn a blow aside? The combat log records every strike, so a
+ * bout that contained a block earns the clang on top of its win/loss cue.
+ *
+ * The hero is always side 0 in a generated `CombatResult`, so a blocked strike
+ * whose ATTACKER was side 1 is one the hero blocked. Without this the cue
+ * existed in the dictionary and was played by nothing.
+ */
+function heroBlocked(result: CombatResult): boolean {
+  return result.rounds.some((round) =>
+    round.events.some((e) => e.outcome === 'blocked' && e.attacker === 1),
+  );
 }
 
 /** UI_DESIGN §7 audio map, read off whatever the store is holding right now. */
@@ -59,8 +82,14 @@ function landings(s: GameState): Record<Channel, Landing> {
   return {
     // A mission pays in coins; one that also popped a chest gets the lid instead.
     reveal: landing(s.reveal, (r) => [r.chest ? 'chest_open' : 'coin_burst']),
-    arena: landing(s.arenaOutcome, (o) => [o.won ? 'crit_hit' : 'ui_deny']),
-    dungeon: landing(s.dungeonOutcome, (o) => [o.won ? 'crit_hit' : 'ui_deny']),
+    arena: landing(s.arenaOutcome, (o) => [
+      o.won ? 'crit_hit' : 'ui_deny',
+      ...(heroBlocked(o.result) ? (['block_clang'] as const) : []),
+    ]),
+    dungeon: landing(s.dungeonOutcome, (o) => [
+      o.won ? 'crit_hit' : 'ui_deny',
+      ...(heroBlocked(o.result) ? (['block_clang'] as const) : []),
+    ]),
     wheel: landing(s.wheelOutcome, () => ['wheel_tick']),
     toss: landing(s.tossOutcome, (o) => ['well_splash', ...tossStinger(o.results)]),
     meta: landing(s.metaReward, () => ['levelup_fanfare']),

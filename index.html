@@ -15,7 +15,17 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="SimpleRPG" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- 'black', not 'black-translucent'. Translucent extends the web view under
+         the status bar, which is only safe if the layout pads with
+         env(safe-area-inset-*) — and nothing in this codebase does. Combined
+         with viewport-fit=cover it would put the sticky HUD under the Dynamic
+         Island and the mobile tab bar under the home indicator on an installed
+         iPhone. Opaque costs a strip of colour and breaks nothing. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <!-- iOS ignores the web manifest's icons entirely and will not take an SVG,
+         so the pinned tile comes from here or it comes out blank. Generated
+         from favicon.svg by scripts/optimize-assets.mjs. -->
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="stylesheet" href="/assets/nine-slice.css" />
     <title>SimpleRPG</title>

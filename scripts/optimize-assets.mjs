@@ -228,6 +228,33 @@ async function buildIcons() {
 }
 
 // ---------------------------------------------------------------------------
+/**
+ * The iOS home-screen tile.
+ *
+ * iOS Safari ignores the web manifest's `icons` array entirely and refuses SVG
+ * for `apple-touch-icon`, so without this the one platform whose standalone
+ * meta tags we set would pin a blank or screenshot-derived square. 180px is the
+ * largest size iOS asks for; it downsamples the rest itself. Opaque background,
+ * because iOS composites the tile onto white and a transparent mark disappears.
+ */
+async function buildAppleTouchIcon() {
+  const svg = await readFile(path.join(ROOT, 'public/favicon.svg'));
+  const size = 180;
+  const mark = await sharp(svg, { density: 384 })
+    .resize(Math.round(size * 0.72), Math.round(size * 0.72), {
+      fit: 'contain',
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
+    .png()
+    .toBuffer();
+  await sharp({
+    create: { width: size, height: size, channels: 4, background: '#0e1420' },
+  })
+    .composite([{ input: mark, gravity: 'center' }])
+    .png({ compressionLevel: 9 })
+    .toFile(path.join(OUT, 'apple-touch-icon.png'));
+}
+
 async function main() {
   const started = performance.now();
   const hash = await inputsHash();
@@ -249,6 +276,7 @@ async function main() {
     buildFrames(),
     buildBackgrounds(),
     buildIcons(),
+    buildAppleTouchIcon(),
   ]);
 
   await writeFile(

@@ -6,22 +6,20 @@ multiplayer: the living world is simulated by deterministic bots that look and b
 No servers, no accounts, no real-money anything. Runs entirely in your browser, deploys as static files
 on Vercel, installs as a PWA.
 
-> **Status: 🎮 Milestones M0–M7 built — the game has things to collect.** On top of the idle loop, hero
-> economy, simulated ladder, active pillars and the whole meta layer, there is now a reason to keep a save
-> for months: a **Menagerie** of 16 pets whose auras grow to 3× on Pet Treats and whose every distinct
-> member is +0.5% to all attributes, a **Stable** of 4 mounts ending in a 60-gem Ember Drake that halves
-> every mission, and the **Wishing Well** — three rotating banners, pity at 10 and 30, dupes that convert
-> instead of evaporating, a free toss every day, and the odds table on screen at all times because that is
-> what an ethical gacha looks like. No real money touches any of it, ever.
+> **Status: 🎮 Milestones M0–M8 built — the game explains itself now.** On top of the idle loop, hero
+> economy, simulated ladder, active pillars, the meta layer and the collection layer, M8 added the part
+> that decides whether any of it lands: a scripted first fifteen minutes with anchored coach marks and a
+> one-click skip on every step, a 15-second tour the first time each screen opens, a permanent **"?"** on
+> all seventeen screens, twelve synthesised sound cues with real volume controls, and an installable
+> offline PWA that asks before it updates. Accessibility is a CI gate, not a promise: axe runs over the
+> core screens, and 125% text scaling and 44 px hit areas are asserted.
 >
-> M7 also closed the **last open row of the anti-rush contract**: every §8.2 scenario now has a test.
-> Getting there turned up something better than a tuning bug — the simulator had never once completed an
-> item set, because it vendored the pieces it was collecting.
-> Next: M8 — onboarding, audio, PWA, polish.
+> No servers, no accounts, no ads, no real money — the premium currency is earned and cannot be bought.
+> Next: M9 — content-complete, balance freeze, v1.0.
 >
 > ```bash
 > pnpm install && pnpm dev                       # play the current build
-> pnpm test && pnpm e2e                          # verify (372 unit tests + clock-emulated e2e)
+> pnpm test && pnpm e2e                          # verify (404 unit tests + 22 clock-emulated e2e)
 > pnpm sim -- --profile gacha-max --days 120     # or ale-max / drake-first — the three gem strategies
 > ```
 
@@ -39,6 +37,8 @@ climb a 750-name Hall of Fame that never noticed it isn't online.
 - 🎰 **Ethical gacha** — one premium currency, earned only in-game, odds on screen, pity on the label,
   and a well that is a *trade* (collection for power), never a trap — asserted in CI
 - 🐾 **The long tail** — 14 item sets, 16 pets, 4 mounts, 70 achievements, codex, titles, login calendar
+- 🎓 **Teaches itself** — scripted first run, per-screen tours, and a "?" page on every screen
+- ♿ **Accessible by gate** — axe in CI, full keyboard map, 125% text, 44 px targets, reduced-motion respected
 - 🛡️ **Anti-rush by contract** — automated balance simulation enforces "a patch is a season, not an evening"
 
 ## Documentation map

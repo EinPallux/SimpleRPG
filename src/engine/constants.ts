@@ -171,6 +171,16 @@ export const WELL_UNLOCK_LEVEL = 18; // §10
 export const MENAGERIE_UNLOCK_LEVEL = 35; // §11.1 — arrives with story chapter 5
 
 /**
+ * Daily resets crossed before the PWA install nudge is allowed to appear
+ * (UI_DESIGN §8: "after day-2 login — never on first session").
+ *
+ * `stats.daysPlayed` counts CROSSED resets, so it is 0 all through day one and
+ * 1 on the day-two login — which makes 1, not 2, the value that matches the
+ * doc. At 2 the card would first appear on day three.
+ */
+export const INSTALL_PROMPT_MIN_DAYS = 1;
+
+/**
  * Treats to go from pet level L to L+1: `ceil(BASE × L^EXP × rarityMult)`.
  *
  * Shaped to be generous at the start and a genuine long-tail at the end: the
