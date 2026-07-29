@@ -13,13 +13,18 @@ import {
   MISSION_CLOCK_FAST_MAX_LEVEL,
   MISSION_CLOCK_TUTORIAL_SEC,
   MISSION_DURATIONS,
+  MISSION_FIGHT_GOLD_BONUS,
+  MISSION_FIGHT_XP_BONUS,
   MOUNT_SPEED,
   TAVERN_REROLL_COST_GEMS,
   TREATS_PER_MISSION,
 } from './constants';
+import { simulateCombat, type Combatant, type CombatResult } from './combat';
+import { archetypeCombatant, heroToCombatant } from './combatants';
+import type { ArchetypeId } from './constants';
 import { missionGold, missionXp, zoneMultiplier } from './economy';
 import { effectiveItemChance, rollDrop, sellPrice, type DropSource } from './items';
-import { bump, recordDrop, recordMonster } from './ledger';
+import { bump, recordCombat, recordDrop, recordMonster } from './ledger';
 import { expireMount } from './mounts';
 import { auraTotal, grantPet, petOwned } from './pets';
 import { getStream } from './rng';
@@ -190,6 +195,64 @@ export interface MissionRewards {
   treats: number;
   /** the zone's pet chain paid off on this run (GAME_DESIGN §11.1) */
   petId: string | null;
+  /** the scrap on the way home — always present (GAME_DESIGN §5) */
+  fight: MissionFight;
+}
+
+/**
+ * The fight every mission ends with.
+ *
+ * The monster is a real resident of the zone you were sent to, built at your
+ * own level so it is a genuine bout rather than a formality, and the whole
+ * exchange is a normal `CombatResult` — the same structure the Arena and the
+ * dungeons hand their playback, so one component animates all three.
+ */
+export interface MissionFight {
+  monsterId: string;
+  archetype: ArchetypeId;
+  hero: Combatant;
+  foe: Combatant;
+  won: boolean;
+  result: CombatResult;
+  /** paid only on a win; the mission's own reward is never at risk */
+  bonusGold: number;
+  bonusXp: number;
+}
+
+/**
+ * Roll the end-of-mission bout.
+ *
+ * The foe is a named resident of the zone the mission went to, built from its
+ * own archetype at the hero's level — so a Caster really does cast and a Brute
+ * really is a wall, and the fight is the zone showing its teeth rather than a
+ * generic punching bag. Rolls on the `combat` stream like every other fight,
+ * so it cannot be re-rolled by reloading.
+ */
+function runMissionFight(save: GameSave, payload: MissionPayload): MissionFight {
+  const residents = monstersOfZone(payload.zoneIndex);
+  const picker = getStream(save.rngState, save.worldSeed, 'missions');
+  const monster = picker.pick(residents);
+
+  const hero = heroToCombatant(save);
+  const foe = archetypeCombatant(monster.archetype, save.hero.level, {
+    id: `mission-${monster.id}`,
+    name: monster.id,
+  });
+  const combat = getStream(save.rngState, save.worldSeed, 'combat');
+  const result = simulateCombat(hero, foe, combat.deriveSeed());
+  const won = result.winner === 0;
+  recordCombat(save, result);
+
+  return {
+    monsterId: monster.id,
+    archetype: monster.archetype,
+    hero,
+    foe,
+    won,
+    result,
+    bonusGold: won ? Math.round(payload.gold * MISSION_FIGHT_GOLD_BONUS) : 0,
+    bonusXp: won ? Math.round(payload.xp * MISSION_FIGHT_XP_BONUS) : 0,
+  };
 }
 
 /** Claim a finished mission: XP, gold, item roll (33%+luck), bonus chest (5%). */
@@ -213,11 +276,15 @@ export function claimMission(save: GameSave, nowMs: number): MissionRewards {
   save.hero.gold += payload.gold;
   save.stats.missionsCompleted = (save.stats.missionsCompleted ?? 0) + 1;
   save.stats.goldEarned = (save.stats.goldEarned ?? 0) + payload.gold;
-  // A mission is a day out in a zone: you meet something, and the Bestiary
-  // remembers it (GAME_DESIGN §13 — the codex fills from where you actually go).
-  const sighted = monstersOfZone(payload.zoneIndex);
-  if (sighted.length > 0) {
-    recordMonster(save, loot.pick(sighted).id);
+
+  // The scrap on the way home. A mission is a day out in a zone, and something
+  // local always takes an interest — you MET it, so the Bestiary remembers it
+  // either way (GAME_DESIGN §13; the codex fills from where you actually go).
+  const fight = runMissionFight(save, payload);
+  recordMonster(save, fight.monsterId);
+  if (fight.won) {
+    save.hero.gold += fight.bonusGold;
+    save.stats.goldEarned = (save.stats.goldEarned ?? 0) + fight.bonusGold;
   }
   let autoSoldGold = 0;
   for (const drop of [item, chest]) {
@@ -253,7 +320,8 @@ export function claimMission(save: GameSave, nowMs: number): MissionRewards {
     petId = chain.id;
   }
 
-  const xp = applyXp(save, payload.xp);
+  // One `applyXp` for the pair so a level-up lands once, with the whole haul.
+  const xp = applyXp(save, payload.xp + fight.bonusXp);
   save.activities.mission = null;
 
   return {
@@ -263,6 +331,7 @@ export function claimMission(save: GameSave, nowMs: number): MissionRewards {
     chest,
     autoSoldGold,
     lucky: payload.lucky,
+    fight,
     zoneIndex: payload.zoneIndex,
     treats,
     petId,

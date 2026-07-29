@@ -125,10 +125,20 @@ patch; a lunch-break player loses nothing they couldn't spend. Mounts compress *
 
 At **The Gilded Tankard**, three patrons offer missions; pick one, the other two wait.
 
-- Each offer: destination **zone** (background art), **flavor text** (funny one-liner), **duration**
-  (5/10/15/20 min — fixed per offer), rewards preview: gold, XP, **33% item chance**, **5% bonus chest**.
+- Each offer: destination **zone** (background art), **flavor text** (funny one-liner), **size**
+  (5/10/15/20 — this is the **vigor cost** and the reward scale), rewards preview: gold, XP,
+  **33% item chance**, **5% bonus chest**.
+- **Size is not the same as the clock.** Past level 10 a size-N mission takes N minutes; at levels 1–10 the
+  clock is compressed to **30–90 seconds**, and the very first errand of a save is always **30 seconds**, so
+  a new player sees the whole accept → wait → claim → reward loop several times in their first sitting. The
+  vigor cost and the payout are untouched by this — vigor meters the day, so a faster clock buys pace and
+  never power (BALANCING §2.2, §10).
 - Missions run in real time (continue while the tab is closed). On completion the reward sits banked until
   claimed. Claiming may trigger: item drop reveal, story-quest progress, rare events.
+- **Every mission ends in a fight** with a resident of the zone you were sent to — a real bout at your own
+  level, played back like an Arena bout. The mission's **gold and XP are paid regardless of the outcome**:
+  you did the job, and this game does not punish. Winning adds a bonus on top (BALANCING §1), losing costs
+  nothing but the bonus. You met the creature either way, so the Codex records it either way.
 - **Reroll** all three offers: 1× per day free, further rerolls 1 Gem.
 - **Special offers** (rolled into the pool): **Lucky Mission** (~5%, double loot, sparkle border),
   **Story Mission** (⚑ marker, advances the active story chapter — see §12).

@@ -83,6 +83,22 @@ export const DUNGEON_COOLDOWN_MIN = 60;
 export const PATROL_TICK_MIN = 30;
 export const PATROL_CAP_HOURS = 8;
 
+/**
+ * Every mission ends in a scrap with something local (B1, the S&F shape).
+ *
+ * The mission's own gold and XP are paid **regardless of the outcome** — you
+ * did the job, and a guard that punishes is the one thing this game does not
+ * do (the same rule expeditions run on: losing never bricks a run, it just
+ * pays less). The fight is upside: winning adds these fractions of the
+ * mission's stated reward on top.
+ *
+ * Sized small on purpose. Missions are already the largest gold faucet in the
+ * game (>40% of lifetime income, §6), so anything generous here reprices the
+ * whole economy rather than adding a flourish to it.
+ */
+export const MISSION_FIGHT_GOLD_BONUS = 0.15;
+export const MISSION_FIGHT_XP_BONUS = 0.15;
+
 // Loot
 export const MISSION_ITEM_CHANCE = 0.33;
 export const MISSION_CHEST_CHANCE = 0.05;

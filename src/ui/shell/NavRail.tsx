@@ -184,7 +184,7 @@ export function MobileTabBar({ onOpenSheet }: { onOpenSheet: (groupIndex: number
         <span className="relative">
           <Icon id="tavern" size={22} />
           {badges.tavern && (
-            <span className="absolute -top-1 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-gold px-0.5 text-[9px] font-extrabold text-canvas">
+            <span className="pulse-soft absolute -top-1 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-gold px-0.5 text-[9px] font-extrabold text-canvas">
               {badges.tavern}
             </span>
           )}

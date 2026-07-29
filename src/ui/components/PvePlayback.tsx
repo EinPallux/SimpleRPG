@@ -13,6 +13,7 @@ import type { ExpeditionState } from '@/engine/types';
 import { t, type I18nKey } from '@/i18n';
 import { useGame } from '@/state/store';
 import type { IconId } from '../icons.gen';
+import { FOE_ICON } from '../foeIcon';
 import { fmt } from '../format';
 import { CombatPlayback } from './CombatPlayback';
 import { Icon } from './Icon';
@@ -99,12 +100,7 @@ export function DungeonPlayback() {
   );
 }
 
-const FOE_ICON: Record<string, IconId> = {
-  grunt: 'wolf',
-  swift: 'raven',
-  caster: 'mage',
-  brute: 'dragon',
-};
+
 
 /** Display copy of the expedition foe with a human-facing name. */
 function expedFoeName(outcome: ExpeditionStepOutcome, exp: ExpeditionState | undefined): string {

@@ -13,6 +13,8 @@ import { t, type I18nKey } from '@/i18n';
 import { useGame } from '@/state/store';
 import { EmblemAvatar } from '../components/EmblemAvatar';
 import { FButton } from '../components/FButton';
+import { StatTooltip } from '../components/StatTooltip';
+import { Tooltip } from '../components/Tooltip';
 import { Icon } from '../components/Icon';
 import { ItemActionModal } from '../components/ItemActionModal';
 import { ItemSlot } from '../components/ItemSlot';
@@ -55,7 +57,11 @@ function AttrRow({ save, attr }: { save: GameSave; attr: AttributeId }) {
   const affordable = save.hero.gold >= nextCost;
   return (
     <div className="flex items-center gap-2 border-b border-ink-faint/20 py-2 last:border-0">
-      <span className="w-24 text-sm font-bold text-ink">{t(`attr.${attr}.name` as I18nKey)}</span>
+      <Tooltip content={<StatTooltip save={save} attr={attr} />}>
+        <span className="w-24 cursor-help text-sm font-bold text-ink underline decoration-ink-faint/40 decoration-dotted underline-offset-4">
+          {t(`attr.${attr}.name` as I18nKey)}
+        </span>
+      </Tooltip>
       <span className="font-display text-lg font-semibold text-gold">{total}</span>
       <div className="ml-auto flex items-center gap-1.5">
         <span className="text-[10px] text-ink-faint">

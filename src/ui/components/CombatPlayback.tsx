@@ -37,7 +37,18 @@ interface FlatEvent {
   event: StrikeEvent;
 }
 
-const BASE_MS = 650;
+/**
+ * Beat length. Shorter than the old flat 650ms and no longer flat: a glance
+ * goes by quickly and a crit is allowed to land, which is most of what makes a
+ * replay feel like a fight rather than a list being read out.
+ */
+const BASE_MS = 520;
+function beatMs(event: StrikeEvent | undefined): number {
+  if (!event) return BASE_MS;
+  if (event.outcome === 'crit') return BASE_MS * 1.5;
+  if (event.outcome === 'evaded' || event.outcome === 'blocked') return BASE_MS * 0.8;
+  return BASE_MS;
+}
 
 function flatten(result: CombatResult): FlatEvent[] {
   const out: FlatEvent[] = [];
@@ -53,21 +64,74 @@ function floaterText(event: StrikeEvent): string {
   return fmt(event.damage);
 }
 
+/**
+ * What this fighter is doing on the current beat.
+ *
+ * The playback used to move nothing but a number and an HP bar, which read as
+ * a spreadsheet recalculating rather than two people hitting each other. Each
+ * beat now drives a class on BOTH portraits — one swings, the other reacts —
+ * and the class is keyed so an identical outcome twice in a row still re-fires.
+ */
+type FighterFx = 'lunge' | 'crit' | 'recoil' | 'block' | 'evade' | 'dead' | null;
+
+function fxFor(event: StrikeEvent | null, side: 0 | 1, over: boolean, lost: boolean): FighterFx {
+  if (over && lost) return 'dead';
+  if (!event) return null;
+  if (event.attacker === side) return event.outcome === 'crit' ? 'crit' : 'lunge';
+  switch (event.outcome) {
+    case 'blocked':
+      return 'block';
+    case 'evaded':
+      return 'evade';
+    default:
+      return 'recoil';
+  }
+}
+
+const FX_CLASS: Record<Exclude<FighterFx, null>, string> = {
+  lunge: 'attack-lunge',
+  crit: 'attack-lunge crit-pop',
+  recoil: 'hit-recoil',
+  block: 'block-flash',
+  evade: 'evade-slip',
+  dead: 'death-fade',
+};
+
 function FighterColumn({
   side,
   hp,
   floater,
   mirrored,
+  fx,
+  fxKey,
 }: {
   side: PlaybackSide;
   hp: number;
   floater: { key: number; event: StrikeEvent } | null;
   mirrored: boolean;
+  fx: FighterFx;
+  fxKey: number;
 }) {
   const c = side.combatant;
+  // Everything leans toward the opponent, so the mirrored side's motion has to
+  // be mirrored too — otherwise the right-hand fighter lunges off-screen.
+  const dir = mirrored ? -1 : 1;
   return (
     <div className={`relative flex min-w-0 flex-1 flex-col gap-2 ${mirrored ? 'items-end' : 'items-start'}`}>
-      <div className={`flex items-center gap-2.5 ${mirrored ? 'flex-row-reverse' : ''}`}>
+      <div
+        key={fx ? `${fx}-${fxKey}` : 'idle'}
+        className={`flex items-center gap-2.5 ${mirrored ? 'flex-row-reverse' : ''} ${
+          fx ? FX_CLASS[fx] : ''
+        }`}
+        style={
+          {
+            '--lunge': `${-9 * dir}px`,
+            '--recoil': `${7 * dir}px`,
+            '--slip': `${14 * dir}px`,
+            '--fall': `${-4 * dir}deg`,
+          } as React.CSSProperties
+        }
+      >
         <SidePortrait side={side} />
         <div className={`min-w-0 ${mirrored ? 'text-right' : ''}`}>
           <div className="truncate font-display text-sm font-bold text-ink">{c.name}</div>
@@ -133,9 +197,9 @@ export function CombatPlayback({
 
   useEffect(() => {
     if (done) return;
-    const id = setTimeout(() => setIdx((i) => i + 1), BASE_MS / speed);
+    const id = setTimeout(() => setIdx((i) => i + 1), beatMs(flat[idx]?.event) / speed);
     return () => clearTimeout(id);
-  }, [idx, speed, done]);
+  }, [idx, speed, done, flat]);
 
   const hp = useMemo<[number, number]>(() => {
     const state: [number, number] = [a.combatant.maxHp, b.combatant.maxHp];
@@ -149,6 +213,9 @@ export function CombatPlayback({
   const last = idx > 0 ? flat[idx - 1]! : null;
   const round = last ? last.round : 1;
   const names = [a.combatant.name, b.combatant.name] as const;
+
+  /** Who is on the floor once the last blow has landed. */
+  const loser: 0 | 1 | null = done ? (result.winner === 0 ? 1 : 0) : null;
 
   const summary = useMemo(() => {
     const dealt: [number, number] = [0, 0];
@@ -177,7 +244,10 @@ export function CombatPlayback({
         role="dialog"
         aria-modal="true"
         aria-label={`${names[0]} vs ${names[1]}`}
-        className="frame-primary panel-fill w-full max-w-xl p-5 outline-none screen-enter"
+        className={`frame-primary panel-fill w-full max-w-xl p-5 outline-none screen-enter ${
+          last?.event.outcome === 'crit' ? 'nudge' : ''
+        }`}
+        key={last?.event.outcome === 'crit' ? `jolt-${idx}` : 'calm'}
       >
         <header className="mb-4 flex items-center justify-between gap-3">
           <span className="font-display text-sm font-bold tracking-wider text-ink-muted uppercase">
@@ -206,9 +276,30 @@ export function CombatPlayback({
         </header>
 
         <div className="flex items-start gap-4">
-          <FighterColumn side={a} hp={hp[0]} floater={last?.event.attacker === 1 ? { key: idx, event: last.event } : null} mirrored={false} />
-          <div className="mt-4 shrink-0 font-display text-lg font-extrabold text-ink-faint">⚔</div>
-          <FighterColumn side={b} hp={hp[1]} floater={last?.event.attacker === 0 ? { key: idx, event: last.event } : null} mirrored={true} />
+          <FighterColumn
+            side={a}
+            hp={hp[0]}
+            floater={last?.event.attacker === 1 ? { key: idx, event: last.event } : null}
+            mirrored={false}
+            fx={fxFor(last?.event ?? null, 0, done, loser === 0)}
+            fxKey={idx}
+          />
+          <div
+            className={`mt-4 shrink-0 font-display text-lg font-extrabold ${
+              done ? 'text-gold victory-glow' : 'text-ink-faint'
+            }`}
+            key={done ? 'clash-done' : 'clash'}
+          >
+            ⚔
+          </div>
+          <FighterColumn
+            side={b}
+            hp={hp[1]}
+            floater={last?.event.attacker === 0 ? { key: idx, event: last.event } : null}
+            mirrored={true}
+            fx={fxFor(last?.event ?? null, 1, done, loser === 1)}
+            fxKey={idx}
+          />
         </div>
 
         {/* Screen-reader play-by-play; visually the floaters carry it. */}

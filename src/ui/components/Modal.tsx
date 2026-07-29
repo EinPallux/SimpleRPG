@@ -35,7 +35,7 @@ export function Modal({ title, onClose, children, variant = 'primary', wide = fa
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`${variant === 'danger' ? 'frame-danger' : 'frame-primary'} panel-fill max-h-[90dvh] w-full overflow-y-auto p-5 outline-none ${wide ? 'max-w-2xl' : 'max-w-md'} screen-enter`}
+        className={`${variant === 'danger' ? 'frame-danger' : 'frame-primary'} panel-fill max-h-[90dvh] w-full overflow-y-auto p-5 outline-none ${wide ? 'max-w-2xl' : 'max-w-md'} pop-in`}
       >
         <header className="mb-4 flex items-center justify-between gap-4">
           <h2 className="font-display text-xl font-semibold text-gold">{title}</h2>

@@ -15,7 +15,7 @@ export function ItemCard({ item, className = '' }: { item: ItemInstance; classNa
 
   return (
     <div
-      className={`frame-slot--${item.rarity} panel-fill relative w-52 p-3 text-left ${className}`}
+      className={`frame-slot--${item.rarity} panel-fill hover-lift relative w-52 p-3 text-left ${className}`}
       style={{ ['--frame-w' as string]: '10px' }}
     >
       <div className={`font-display text-sm font-bold ${RARITY_TEXT[item.rarity]}`}>
