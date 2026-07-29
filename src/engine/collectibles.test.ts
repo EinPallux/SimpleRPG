@@ -31,10 +31,10 @@ import {
   DUPE_LEGENDARY_DUST,
   DUPE_PET_TREATS,
   DUPE_SET_DUST,
+  MOUNT_RENTAL_DAYS,
   MOUNT_SPEED,
   PATROL_TICK_MIN,
   PATROL_TICKS_PER_TREAT,
-  STABLE_UNLOCK_LEVEL,
   TOSS_COST_GEMS,
   TOSS_TEN_COST_GEMS,
   TOSS_TEN_COUNT,
@@ -53,9 +53,12 @@ import { generateItem, generateSetPiece, shopPrice } from './items';
 import { metricValue } from './metrics';
 import { missionDurationSec } from './missions';
 import {
+  activeMountTier,
   buyMount,
   canBuyMount,
   currentMount,
+  expireMount,
+  mountDaysLeft,
   mountPrice,
   mountSpeedup,
   stableUnlocked,
@@ -377,16 +380,23 @@ describe('aura wiring', () => {
   });
 
   it('a missionSpeed pet stacks with the mount MULTIPLICATIVELY', () => {
-    expect(missionDurationSec(fresh(), 10)).toBe(600);
+    // Past the tutorial's fixed 30s first errand AND past the L1–10 compressed
+    // clock, so this measures the stacking rather than the early-game pacing.
+    const veteran = () => {
+      const save = fresh();
+      save.stats.missionsCompleted = 20;
+      return save;
+    };
+    expect(missionDurationSec(veteran(), 10)).toBe(600);
 
-    const mounted = fresh();
+    const mounted = veteran();
     mounted.progress.mountTier = 4; // Ember Drake, −50%
     expect(missionDurationSec(mounted, 10)).toBe(300);
 
-    const petted = withPet(fresh(), FERNWYRM); // −5% at level 1
+    const petted = withPet(veteran(), FERNWYRM); // −5% at level 1
     expect(missionDurationSec(petted, 10)).toBe(570);
 
-    const both = withPet(fresh(), FERNWYRM, PET_MAX_LEVEL); // −15% maxed
+    const both = withPet(veteran(), FERNWYRM, PET_MAX_LEVEL); // −15% maxed
     both.progress.mountTier = 4;
     // 600 × (1 − 0.50) × (1 − 0.15) = 255s. Additive stacking would say 210s and
     // put a near-zero-duration mission in reach, breaking the vigor metering the
@@ -432,47 +442,45 @@ describe('the stable', () => {
     for (const mount of MOUNTS) expect(MOUNT_SPEED[mount.tier]).toBe(mount.speed);
   });
 
-  it('opens at L10 and only ever sells UP, and only what you can pay for', () => {
-    const rookie = fresh(STABLE_UNLOCK_LEVEL - 1);
+  it('opens on day one and rents any tier, up, down or the same one again', () => {
+    // Pre-B1 the Stable waited for L10 and refused to sell a tier you already
+    // had. Both are gone: it opens at level 1, and since a mount is a rental
+    // you must be able to renew it and to step DOWN to something cheaper when
+    // the Drake stops being worth its gems.
+    const rookie = fresh(1);
     rookie.hero.gold = 10_000_000;
     rookie.hero.gems = 999;
-    expect(stableUnlocked(rookie)).toBe(false);
-    expect(canBuyMount(rookie, 1)).toBe(false);
-    expect(() => buyMount(rookie, 1)).toThrow(/not open/);
+    expect(stableUnlocked(rookie)).toBe(true);
+    expect(canBuyMount(rookie, 1)).toBe(true);
+    expect(canBuyMount(rookie, MAX_MOUNT_TIER)).toBe(true);
 
-    const rider = fresh(STABLE_UNLOCK_LEVEL);
-    rider.hero.gold = 10_000_000;
-    rider.hero.gems = 999;
-    expect(stableUnlocked(rider)).toBe(true);
-    expect(canBuyMount(rider, 1)).toBe(true);
-    buyMount(rider, 2);
-    // A tier already in the stall (or below it) would be a free re-grant of its
-    // title, so the Stable refuses rather than clamping (mounts.ts).
-    expect(canBuyMount(rider, 2)).toBe(false);
-    expect(canBuyMount(rider, 1)).toBe(false);
-    expect(canBuyMount(rider, 0)).toBe(false);
-    expect(canBuyMount(rider, MAX_MOUNT_TIER + 1)).toBe(false);
-    expect(canBuyMount(rider, 2.5)).toBe(false);
+    buyMount(rookie, 2, T0);
+    expect(canBuyMount(rookie, 2)).toBe(true); // renew
+    expect(canBuyMount(rookie, 1)).toBe(true); // economise
+    expect(canBuyMount(rookie, 0)).toBe(false); // "on foot" is not for sale
+    expect(canBuyMount(rookie, MAX_MOUNT_TIER + 1)).toBe(false);
+    expect(canBuyMount(rookie, 2.5)).toBe(false);
 
-    const broke = fresh(STABLE_UNLOCK_LEVEL);
+    const broke = fresh(1);
     broke.hero.gold = 4_999; // one coin short of the mule
     expect(canBuyMount(broke, 1)).toBe(false);
-    expect(() => buyMount(broke, 1)).toThrow(/Cannot buy/);
+    expect(() => buyMount(broke, 1, T0)).toThrow(/Cannot buy/);
   });
 
-  it('charges the difference within a currency, and hands over the title once', () => {
-    const save = fresh(STABLE_UNLOCK_LEVEL);
+  it('charges full price every time — a rental has no upgrade discount', () => {
+    const save = fresh(1);
     save.hero.gold = 2_000_000;
 
-    buyMount(save, 1);
+    buyMount(save, 1, T0);
     expect(save.hero.gold).toBe(2_000_000 - 5_000);
     expect(save.progress.mountTier).toBe(1);
 
     const before = save.hero.gold;
-    const purchase = buyMount(save, 3);
-    // Upgrading pays price(3) − price(1), not price(3) (§11.2).
-    expect(purchase.paid.gold).toBe(1_200_000 - 5_000);
-    expect(save.hero.gold).toBe(before - 1_195_000);
+    const purchase = buyMount(save, 3, T0);
+    // Full 1.2M, not the difference: you are renting the Warhorse, not trading
+    // the mule in against it.
+    expect(purchase.paid.gold).toBe(1_200_000);
+    expect(save.hero.gold).toBe(before - 1_200_000);
     expect(save.progress.mountTier).toBe(3);
     expect(save.stats.mountsBought).toBe(2);
     expect(purchase.titleId).toBe(getMount('bastion-warhorse').titleId);
@@ -482,34 +490,79 @@ describe('the stable', () => {
       getMount('bastion-warhorse').titleId,
     ]);
 
-    const held = fresh(STABLE_UNLOCK_LEVEL);
+    const held = fresh(1);
     held.hero.gold = 10_000;
     grantTitle(held, getMount('barley-pack-mule').titleId);
-    expect(buyMount(held, 1).titleId).toBeNull();
+    expect(buyMount(held, 1, T0).titleId).toBeNull();
     expect(held.progress.titles).toHaveLength(1);
   });
 
   it('sells the Ember Drake for its full 60 gems, whatever the horses cost', () => {
-    const rich = fresh(STABLE_UNLOCK_LEVEL);
+    const rich = fresh(1);
     rich.hero.gold = 2_000_000;
     rich.hero.gems = 100;
-    buyMount(rich, 3); // 1.2M gold now sunk into horses
+    buyMount(rich, 3, T0);
 
     const goldBefore = rich.hero.gold;
-    const drake = buyMount(rich, 4);
+    const drake = buyMount(rich, 4, T0);
     expect(drake.paid).toEqual({ gold: 0, gems: 60 });
     expect(rich.hero.gems).toBe(40);
     expect(rich.hero.gold).toBe(goldBefore); // no refund, no cross-currency discount
     expect(currentMount(rich)?.id).toBe('ember-drake');
     expect(mountSpeedup(rich)).toBe(0.5);
 
-    // …and straight from on foot it is the same 60 gems, no gold at all.
-    const direct = fresh(STABLE_UNLOCK_LEVEL);
+    const direct = fresh(1);
     direct.hero.gems = 60;
     expect(mountPrice(direct, 4)).toEqual({ gold: 0, gems: 60 });
-    expect(canBuyMount(direct, 4)).toBe(true);
-    expect(buyMount(direct, 4).paid.gems).toBe(60);
+    expect(buyMount(direct, 4, T0).paid.gems).toBe(60);
     expect(direct.hero.gold).toBe(0);
+  });
+
+  it('a rental lapses after its fortnight and puts the hero back on foot', () => {
+    const save = fresh(1);
+    save.hero.gems = 60;
+    buyMount(save, 4, T0);
+
+    const DAY = 86_400_000;
+    expect(activeMountTier(save, T0)).toBe(4);
+    expect(mountDaysLeft(save, T0)).toBe(MOUNT_RENTAL_DAYS);
+    expect(activeMountTier(save, T0 + (MOUNT_RENTAL_DAYS - 1) * DAY)).toBe(4);
+
+    // The term runs out; the animal goes back to Wilbur.
+    const after = T0 + MOUNT_RENTAL_DAYS * DAY;
+    expect(activeMountTier(save, after)).toBe(0);
+    expect(expireMount(save, after)).toBe(true);
+    expect(save.progress.mountTier).toBe(0);
+    expect(save.progress.mountUntil).toBeNull();
+    expect(expireMount(save, after)).toBe(false); // idempotent
+  });
+
+  it('renewing early EXTENDS the term rather than throwing the remainder away', () => {
+    const save = fresh(1);
+    save.hero.gems = 200;
+    save.hero.gold = 100_000; // enough to switch down to the mule below
+    const DAY = 86_400_000;
+    buyMount(save, 4, T0);
+    // Top up with four days still on the clock.
+    const early = T0 + (MOUNT_RENTAL_DAYS - 4) * DAY;
+    const renewal = buyMount(save, 4, early);
+    expect(renewal.renewed).toBe(true);
+    expect(mountDaysLeft(save, early)).toBe(MOUNT_RENTAL_DAYS + 4);
+
+    // Switching animal does NOT carry the remainder over — different beast.
+    const switched = buyMount(save, 1, early);
+    expect(switched.renewed).toBe(false);
+    expect(mountDaysLeft(save, early)).toBe(MOUNT_RENTAL_DAYS);
+  });
+
+  it('a pre-B1 save with no expiry keeps its mount forever', () => {
+    // `mountUntil` is optional so old saves parse unmigrated; a missing expiry
+    // means the mount was bought outright under the old rules and never lapses.
+    const save = fresh(1);
+    save.progress.mountTier = 3;
+    delete save.progress.mountUntil;
+    expect(activeMountTier(save, T0 + 10 * 365 * 86_400_000)).toBe(3);
+    expect(expireMount(save, T0 + 10 * 365 * 86_400_000)).toBe(false);
   });
 });
 

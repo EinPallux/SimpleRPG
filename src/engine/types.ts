@@ -210,6 +210,14 @@ export interface GameSave {
     pets: Record<string, { owned: boolean; level: number }>;
     equippedPet: string | null;
     mountTier: number;
+    /**
+     * When the current rental lapses (ISO). Mounts are rented, not owned, so
+     * `mountTier` alone is not the whole answer — read it through
+     * `engine/mounts.ts` `activeMountTier`, which is the only thing that knows
+     * whether the animal is still in the stall. Optional so a pre-B1 save (which
+     * bought its mount outright) keeps it: a missing expiry means "never lapses".
+     */
+    mountUntil?: string | null;
     gachaPity: Record<string, { sinceEpic: number; sinceSet: number }>;
     milestonesClaimed: string[];
     /**

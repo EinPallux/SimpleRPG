@@ -26,7 +26,7 @@ export function ProgressBar({
   const pct = max <= 0 ? 0 : Math.max(0, Math.min(100, (value / max) * 100));
   return (
     <div
-      className={`relative h-4 overflow-hidden rounded-sm border border-black/40 bg-panel-inset ${className}`}
+      className={`meter-track relative h-4 overflow-hidden rounded-sm ${className}`}
       role="progressbar"
       aria-valuenow={Math.round(value)}
       aria-valuemin={0}
@@ -35,10 +35,11 @@ export function ProgressBar({
       title={title}
     >
       <div
-        className="h-full transition-[width] duration-(--motion-base)"
+        className="meter-fill relative h-full transition-[width] duration-(--motion-slow) ease-(--ease-out-quart)"
         style={{
           width: `${pct}%`,
           background: `linear-gradient(180deg, color-mix(in srgb, ${COLOR[variant]} 100%, white 18%) 0%, ${COLOR[variant]} 55%, color-mix(in srgb, ${COLOR[variant]} 78%, black) 100%)`,
+          boxShadow: pct > 0 ? `0 0 10px -2px ${COLOR[variant]}` : undefined,
         }}
       />
       {label && (

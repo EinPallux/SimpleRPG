@@ -77,6 +77,7 @@ describe('arena', () => {
     const save = fresh();
     fightArena(save, 0, T0);
     expect(() => fightArena(save, 0, T0 + MIN)).toThrow(/hourglass/);
+    save.hero.gems = 0; // creation now grants STARTING_GEMS
     expect(() => skipCooldown(save)).toThrow(/gems/);
     save.hero.gems = 2;
     skipCooldown(save);

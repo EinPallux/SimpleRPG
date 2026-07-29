@@ -38,7 +38,41 @@ export const ALE_COST_GEMS = 2;
 export const VIGOR_DAILY_MAX = 250; // 100 + 50 + 5×20
 
 // Activities
-export const MISSION_DURATIONS = [5, 10, 15, 20] as const; // minutes == vigor cost
+/**
+ * Mission SIZE, in minutes. This is the vigor cost and the reward scale — it is
+ * NOT necessarily how long the clock runs (see `MISSION_CLOCK_BANDS`).
+ */
+export const MISSION_DURATIONS = [5, 10, 15, 20] as const;
+
+/**
+ * How long a mission of a given size actually takes on the clock, by hero level.
+ *
+ * Size and wall-clock used to be the same number, which made the first hour of
+ * the game a five-minute wait for a five-vigor errand — the exact opposite of
+ * the quick, satisfying loop the early game needs. They are separate now: below
+ * `MISSION_CLOCK_FAST_MAX_LEVEL` the clock is compressed to seconds while the
+ * vigor cost and the payout stay untouched, so nothing about the economy moves.
+ * That matters — vigor is the daily limiter, so speeding the clock lets a new
+ * player spend the same budget sooner, never earn more from it.
+ *
+ * `[sizeMinutes, seconds]`, read as "a mission of at most this size takes this
+ * long". Sizes 5/10/15/20 → 30s/50s/70s/90s, i.e. the 0.5–1:30 band, with the
+ * ceiling at 2 min reserved for anything a later patch adds above size 20.
+ */
+export const MISSION_CLOCK_FAST_MAX_LEVEL = 10;
+export const MISSION_CLOCK_BANDS: readonly (readonly [number, number])[] = [
+  [5, 30],
+  [10, 50],
+  [15, 70],
+  [20, 90],
+];
+export const MISSION_CLOCK_FAST_CAP_SEC = 120;
+
+/**
+ * The tutorial's first errand, in seconds. Short enough that a brand-new player
+ * sees the whole loop — accept, wait, claim, reward — inside their first minute.
+ */
+export const MISSION_CLOCK_TUTORIAL_SEC = 30;
 export const EXPEDITION_COST = 25;
 export const EXPEDITIONS_PER_DAY = 2;
 export const ARENA_FIGHTS_PER_DAY = 10;
@@ -61,6 +95,14 @@ export const MOUNT_SPEED = [0, 0.1, 0.2, 0.3, 0.5] as const;
 export const HONOR_START = 100;
 export const BACKPACK_BASE_CAPACITY = 30;
 export const STARTING_GOLD = 0;
+/**
+ * Gems in the purse at character creation — exactly the Ember Drake's rental
+ * price, so the Stable's headline animal is a day-one choice rather than a
+ * month-two one. Deliberately the *choice* and not the mount itself: a new
+ * player can just as well spend it on ale or the Well, and finding that out is
+ * the point (BALANCING §8.2 `gem-strategies`).
+ */
+export const STARTING_GEMS = 60;
 export const NAME_MIN_LENGTH = 2;
 export const NAME_MAX_LENGTH = 16;
 
@@ -166,7 +208,20 @@ export const WHEEL_JACKPOT_GEMS = 25; // fallback once pets exist and the snail 
 // Pets, Mounts & the Wishing Well (GAME_DESIGN.md §10–11, BALANCING.md §4.7/§7)
 // ---------------------------------------------------------------------------
 
-export const STABLE_UNLOCK_LEVEL = 10; // §11.2
+/**
+ * The Stable opens on day one (B1). It used to wait until L10, which meant the
+ * one system that shortens the wait was locked away for exactly the stretch
+ * where the wait is most likely to lose a new player.
+ */
+export const STABLE_UNLOCK_LEVEL = 1;
+
+/**
+ * A mount is RENTED, not owned (S&F model). Every purchase buys this many days
+ * in the stall at full price; when it lapses the hero walks until they pay
+ * again. That is what keeps the Stable a recurring decision rather than a
+ * one-off purchase you forget about by week two.
+ */
+export const MOUNT_RENTAL_DAYS = 14; // §11.2
 export const WELL_UNLOCK_LEVEL = 18; // §10
 export const MENAGERIE_UNLOCK_LEVEL = 35; // §11.1 — arrives with story chapter 5
 

@@ -5,6 +5,7 @@
  * the clock-tamper guard freezes instead of ever punishing.
  */
 import { CLOCK_ROLLBACK_GRACE_MS, VIGOR_DAILY_BASE } from './constants';
+import { expireMount } from './mounts';
 import { collectPatrol } from './patrol';
 import { prunePotions } from './potions';
 import { resetShopsDaily } from './shops';
@@ -114,6 +115,9 @@ export function applyTimePassage(save: GameSave, nowMs: number): TimePassageResu
   }
 
   prunePotions(save, nowMs);
+  // A rental that ran out while the tab was closed is gone by the time you
+  // look — you should not get a free ride home on an expired mount.
+  expireMount(save, nowMs);
   save.lastSeenAt = new Date(nowMs).toISOString();
   return {
     frozen: false,

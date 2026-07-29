@@ -1,14 +1,28 @@
 /* Design tokens — UI_DESIGN.md §2. The single place colors/spacing/type live. */
 :root {
-  /* Surfaces */
-  --canvas: #0e1420;
-  --panel: #16202e;
-  --panel-raised: #1b2838;
-  --panel-inset: #0b111b;
+  /* Surfaces — a real elevation ladder, darkest page to lightest panel.
+     Re-cut in B1: `--panel-inset` used to be #0b111b, DARKER than the canvas,
+     so every inset block (meter tracks, button interiors, empty states) read as
+     a hole punched through the page rather than a recess in a panel — the
+     "weird dark sections" the frames appeared to float over. It now sits just
+     above the canvas and is sold as a recess by an inset shadow instead of by
+     being blacker than everything around it. The panels came up with it, so a
+     frame has something to sit ON; contrast improved rather than suffered
+     (worst ink-faint pairing 4.54 → 4.81). */
+  --canvas: #0b1018;
+  --panel: #1a2431;
+  --panel-raised: #222d3c;
+  --panel-inset: #131b26;
+
+  /* Depth — one place for the shading that makes the ladder readable. */
+  --edge-light: rgba(255, 255, 255, 0.06);
+  --edge-dark: rgba(0, 0, 0, 0.45);
+  --recess-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.55), inset 0 -1px 0 var(--edge-light);
+  --raise-shadow: inset 0 1px 0 var(--edge-light), 0 1px 2px rgba(0, 0, 0, 0.35);
 
   /* Ink */
   --ink: #e8e3d5;
-  --ink-muted: #9aa5b5;
+  --ink-muted: #a3aebd;
   /* Raised from #5e6a7a in M8: the old value measured 2.71:1 on --panel-raised
      and 3.44:1 on --panel-inset, below the 4.5:1 AA floor for text under
      18.66px — which is exactly the size it is always used at. #838f9f clears
@@ -16,7 +30,7 @@
      staying clearly dimmer than --ink-muted. Fixing the token rather than the
      three screens axe happened to catch means every existing and future use is
      compliant (UI_DESIGN §8). */
-  --ink-faint: #838f9f;
+  --ink-faint: #8d99a8;
 
   /* Accents */
   --gold: #d9a94b;
@@ -50,14 +64,34 @@
   --font-display: 'Cinzel Variable', Georgia, serif;
   --font-body: 'Nunito Sans Variable', system-ui, sans-serif;
 
-  /* Motion (UI_DESIGN.md §7) */
+  /* Motion (UI_DESIGN.md §7).
+     `--motion-slow` and the easings arrived with the B1 animation pass: the
+     game had exactly two durations and one easing, which is why everything
+     either snapped or slid identically. Anything longer than `--motion-slow`
+     is a deliberate set piece (combat beats, reward reveals) and names its own
+     duration at the call site. */
   --motion-fast: 120ms;
   --motion-base: 200ms;
+  --motion-slow: 380ms;
+
+  /* Overshoot for things that should feel physical (pops, claims, drops). */
+  --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* Fast start, long settle — the default for anything entering. */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  /* Symmetric, for things that move and come back (shakes, nudges). */
+  --ease-in-out-soft: cubic-bezier(0.45, 0, 0.55, 1);
 }
 
+/**
+ * Reduced motion zeroes the DURATIONS, which kills every transition and any
+ * animation that reads them. Animations with hard-coded times are individually
+ * disabled next to their keyframes in index.css — a duration token cannot
+ * reach those, which is the trap M8 hit with the Second Wind pulse.
+ */
 @media (prefers-reduced-motion: reduce) {
   :root {
     --motion-fast: 0ms;
     --motion-base: 0ms;
+    --motion-slow: 0ms;
   }
 }

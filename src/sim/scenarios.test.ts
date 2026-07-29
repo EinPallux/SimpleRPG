@@ -259,10 +259,31 @@ describe('anti-rush contract (optimal play ceilings)', () => {
     const gacha = mean((r) => r.gacha.powerScore);
     const drake = mean((r) => r.drake.powerScore);
 
-    // The two strategies that BUY POWER must stay interchangeable: 60 gems for
-    // the Ember Drake must never be a mistake next to 30 ales, or the Stable's
-    // headline purchase becomes a trap.
-    expect(Math.abs(drake - ale) / Math.max(drake, ale)).toBeLessThanOrEqual(0.12);
+    /**
+     * The Drake buys TIME, not power, and the contract has to say so.
+     *
+     * It used to assert drake-first stayed within 12% of ale-max on attribute
+     * power, which worked only while the Drake was a one-off 60 gems — cheap
+     * enough to hide. B1 made it a 60-gem fortnightly rental, and the real
+     * shape of the trade surfaced: vigor meters the day, not the clock, so a
+     * faster mount never earns a point of anything. It hands back hours.
+     *
+     * So the row is now two-sided, and both sides are measured: drake-first
+     * pays a bounded amount of attribute power AND must visibly buy the clock
+     * back. If the mount ever stops working, the second assertion fails even
+     * though the first would happily pass.
+     */
+    const drakeCost = (ale - drake) / ale;
+    expect(drakeCost).toBeLessThanOrEqual(0.2); // measured 14.6%
+
+    const perMission = (r: (typeof runs)[number], k: 'ale' | 'drake') =>
+      r[k].missionMinutes / r[k].missionsRun;
+    const clockRatio = mean((r) => perMission(r, 'drake') / perMission(r, 'ale'));
+    // Measured 0.709 (per-seed 0.693–0.723): the Drake's −50% against a mixed
+    // bag of mission sizes and the ale-funded vigor that fills the rest of them.
+    expect(clockRatio).toBeLessThanOrEqual(0.8);
+    // …which is worth about 129 real-world hours across the 120 days.
+    expect(mean((r) => r.ale.missionMinutes - r.drake.missionMinutes)).toBeGreaterThan(60 * 60);
 
     // All-in gacha buys COLLECTION instead, and pays for it in attributes. The
     // trade is allowed to cost power — it is not allowed to be ruinous, and it
@@ -279,7 +300,13 @@ describe('anti-rush contract (optimal play ceilings)', () => {
     expect(runs.every((r) => r.gacha.gemsSpent.tosses > 400 && r.gacha.gemsSpent.ale === 0)).toBe(
       true,
     );
-    expect(runs.every((r) => r.drake.mountTier === 4 && r.drake.gemsSpent.drake === 60)).toBe(true);
+    // The Drake is RENTED since B1, so "drake-first" means keeping it saddled
+    // for 120 days, not buying it once. Eight-plus fortnights of rent, always a
+    // whole number of terms — if this ever drops toward a single 60 again, the
+    // profile has quietly stopped being about the Drake.
+    expect(runs.every((r) => r.drake.mountTier === 4)).toBe(true);
+    expect(runs.every((r) => r.drake.gemsSpent.drake >= 8 * 60)).toBe(true);
+    expect(runs.every((r) => r.drake.gemsSpent.drake % 60 === 0)).toBe(true);
 
     // Pity is not decorative: hundreds of tosses must trip it repeatedly. Stated
     // as a pool mean with a per-seed floor rather than a tight per-seed bound —

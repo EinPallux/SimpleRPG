@@ -316,16 +316,24 @@ defensible.
   first-clears (2), achievements (2), Wishing Well pet banner (2 exclusives), wheel jackpot (1).
   Full list: CONTENT_CATALOG.md §6.
 
-### 11.2 Mounts — the Stable (unlock L10)
-| Mount | Effect | Cost |
+### 11.2 Mounts — the Stable (unlock L1, rented by the fortnight)
+| Mount | Effect | Rent (14 days) |
 |---|---|---|
 | Barley the Pack Mule | −10% mission duration | 5,000 gold |
 | Dappled Courser | −20% | 75,000 gold |
 | Bastion Warhorse | −30% | 1,200,000 gold |
-| **Ember Drake** | **−50%** | **60 Gems** (the big early gem decision vs. gacha) |
+| **Ember Drake** | **−50%** | **60 Gems** (the big day-one gem decision vs. ale and the Well) |
 
-- Permanent purchases; upgrading pays the difference. Owned mounts appear on the character panel; the equipped
-  mount shows in mission-travel flavor. Mounts also each add a tiny cosmetic title ("…the Well-Saddled").
+- **Rented, not owned** (the S&F model). Every purchase buys 14 days at full price — there is no trade-in
+  and no upgrade discount. When the term is up the animal goes back to Wilbur and you walk until you pay
+  again. Renewing the same mount early *extends* the term; switching animals starts a clean one.
+- **The Stable opens at level 1**, and a new hero starts with exactly the Drake's rent in their purse
+  (`STARTING_GEMS`). That is deliberately the *choice* and not the mount: the same 60 gems buy 30 ales or
+  twelve tosses at the Well, and finding out which you'd rather have is the point.
+- A mount buys **real-world time, never power** — vigor meters the day, so halving mission duration lets a
+  played day fit into fewer hours; it never earns more. The balance contract measures both sides of that
+  trade (BALANCING §8.2 `gem-strategies`).
+- Mounts each add a tiny cosmetic title ("…the Well-Saddled"), and titles are **kept when a rental lapses**.
 
 ---
 

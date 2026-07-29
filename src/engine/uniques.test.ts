@@ -14,7 +14,7 @@ import {
   uniqueBlurbKey,
   uniqueNameKey,
   uniqueSchema,
-  uniquesForClass,
+  availableUniques,
 } from '@/content/uniques';
 import { hasKey } from '@/i18n';
 import { generateUnique } from './items';
@@ -60,33 +60,33 @@ describe('the content', () => {
     }
   });
 
-  it('offers a class only what that class can wear', () => {
-    // A legendary you can never equip is a worse feeling than no drop at all.
+  it('offers all eight to every class, so "all eight" is finishable', () => {
+    // The bug this pins: the pool used to be filtered by class, and only five
+    // uniques are classless. A warrior could reach six, a scout — who has no
+    // unique cut for them at all — five, and the `named-things` achievement
+    // asks for eight. Nobody could ever finish it.
     for (const classId of ['warrior', 'scout', 'mage', 'assassin'] as const) {
-      for (const def of uniquesForClass(classId)) {
-        expect(def.classId === null || def.classId === classId).toBe(true);
+      const save = hero(99, classId);
+      const seen = new Set<string>();
+      for (let i = 0; i < 400; i++) {
+        const id = rollUnique(save, rng(`${classId}-${i}`));
+        if (id) seen.add(id);
       }
+      expect(seen.size, `${classId} can be offered all ${UNIQUE_COUNT}`).toBe(UNIQUE_COUNT);
     }
-    // …and every unique is reachable by somebody.
-    const reachable = new Set(
-      (['warrior', 'scout', 'mage', 'assassin'] as const).flatMap((c) =>
-        uniquesForClass(c).map((u) => u.id),
-      ),
-    );
-    expect(reachable.size).toBe(UNIQUE_COUNT);
   });
 });
 
 describe('the drop path', () => {
   it('never re-offers one already held, so eight is reachable', () => {
-    const save = hero();
-    const wearable = uniquesForClass('warrior').map((u) => u.id);
+    const save = hero(99);
+    const all = availableUniques(99).map((u) => u.id);
 
-    // Hand over everything a warrior can wear.
-    for (const id of wearable) {
+    // Hand over every one that is unlocked at this level.
+    for (const id of all) {
       save.inventory.backpack.push(generateUnique(id, 60, rng(id)));
     }
-    expect(ownedUniqueIds(save).size).toBe(wearable.length);
+    expect(ownedUniqueIds(save).size).toBe(all.length);
 
     // With nothing left to give, the roll declines rather than duplicating —
     // the caller then falls through to a generated legendary.
@@ -102,9 +102,9 @@ describe('the drop path', () => {
       const id = rollUnique(save, rng(`roll-${i}`));
       if (id) seen.add(id);
     }
-    // Everything it offered is wearable by a warrior…
-    const wearable = new Set(uniquesForClass('warrior').map((u) => u.id));
-    for (const id of seen) expect(wearable.has(id)).toBe(true);
+    // Everything it offered is a real unique unlocked at this level…
+    const open = new Set(availableUniques(40).map((u) => u.id));
+    for (const id of seen) expect(open.has(id)).toBe(true);
     // …and over 200 rolls it does actually offer something.
     expect(seen.size).toBeGreaterThan(0);
   });
@@ -143,11 +143,10 @@ describe('the drop path', () => {
       }
       return seen;
     };
-    const atThirty = offered(early);
-    // Only the Kettle (30) is open at level 30 for a warrior; the Ladle is 40.
-    expect([...atThirty]).toEqual(['kettle-of-endless-soup']);
-    // By 80 the whole warrior pool is live.
-    expect(offered(late).size).toBe(uniquesForClass('warrior').length);
+    // Only the Kettle (minLevel 30) is open at level 30.
+    expect([...offered(early)]).toEqual(['kettle-of-endless-soup']);
+    // By 80 every one of the eight is live.
+    expect(offered(late).size).toBe(availableUniques(80).length);
   });
 });
 

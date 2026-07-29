@@ -135,7 +135,19 @@ export function generateItem(input: GenerateItemInput, rng: Rng): ItemInstance {
       (l) => !used.has(l),
     );
     if (pool.length === 0) break;
-    const attr = rng.pick(pool);
+    /**
+     * A class-cut piece leads with that class's main attribute.
+     *
+     * Before B1 the cut was purely a LOCK: it decided who could equip the item
+     * and had no effect whatsoever on what rolled on it, so a "Mage" staff was
+     * as likely to be pure Strength as anything else. Now that anyone can wear
+     * anything, the cut has to be the thing that makes wearing the wrong one a
+     * bad idea — otherwise "cut for a Mage" is decoration and the warning the
+     * UI shows is a lie. Leading with the main attribute is the smallest rule
+     * that makes the slant real and legible on the card.
+     */
+    const lead = i === 0 && !usePercent && classId ? getClass(classId).mainAttr : null;
+    const attr = lead && pool.includes(lead) ? lead : rng.pick(pool);
     used.add(attr);
     let value: number;
     if (attr === 'critDmg' || attr === 'goldFind') value = rng.int(5, 15);

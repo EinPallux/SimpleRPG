@@ -11,7 +11,7 @@
  * pay legendaries instead of needing a schedule of their own, and "all eight"
  * stays reachable because an owned one is never offered twice.
  */
-import { uniqueOrNull, uniquesForClass, UNIQUE_COUNT, type UniqueEffect } from '@/content/uniques';
+import { availableUniques, uniqueOrNull, UNIQUE_COUNT, type UniqueEffect } from '@/content/uniques';
 import { UNIQUE_DROP_SHARE } from './constants';
 import type { Rng } from './rng';
 import type { GameSave, ItemInstance } from './types';
@@ -40,9 +40,9 @@ export function ownsAllUniques(save: GameSave): boolean {
  * Should this legendary drop be a named one, and if so which?
  *
  * Returns null — and the caller falls through to a generated legendary — when:
- *  - the hero already owns every unique their class can wear at their level. A
- *    duplicate name would be strictly worse than a fresh roll, and there is
- *    nothing to convert it into.
+ *  - the hero already owns every unique unlocked at their level. A duplicate
+ *    name would be strictly worse than a fresh roll, and there is nothing to
+ *    convert it into.
  *  - **the backpack is full.** Every legendary source auto-sells into gold when
  *    there is no room (gacha `stow`, the wheel's jackpot). For a generated drop
  *    that is a fair trade; for one of eight it would mean losing a one-of-a-kind
@@ -54,9 +54,7 @@ export function ownsAllUniques(save: GameSave): boolean {
 export function rollUnique(save: GameSave, rng: Rng): string | null {
   if (save.inventory.backpack.length >= save.inventory.capacity) return null;
   const owned = ownedUniqueIds(save);
-  const available = uniquesForClass(save.hero.classId, save.hero.level).filter(
-    (u) => !owned.has(u.id),
-  );
+  const available = availableUniques(save.hero.level).filter((u) => !owned.has(u.id));
   if (available.length === 0) return null;
   if (!rng.chance(UNIQUE_DROP_SHARE)) return null;
   return rng.pick(available).id;

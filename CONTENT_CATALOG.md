@@ -135,7 +135,10 @@ systems rather than inflating the legendary supply. Expect **2–3 of the eight 
 multi-season chase, which is the point.
 
 **Rules that make "all eight" a goal rather than a lottery.** One of each, ever — an owned unique is never
-offered again. A class-cut unique is only ever offered to that class. The **From L** column is a *drop
+offered again. **All eight are offered to every class** — only five are classless, so filtering by class
+used to cap a warrior at six and a scout at five while the achievement asked for eight, which nobody could
+finish. The class column now means only who a piece was *made* for, which is what its stat lines lean
+toward. The **From L** column is a *drop
 gate*, not an item level: the piece rolls at the level of the legendary it replaced, so finding one is
 never a downgrade. And the well declines to offer one at all while the backpack is full, because every
 legendary source auto-sells into gold when there is no room — losing a one-of-a-kind to pocket change,

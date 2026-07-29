@@ -4,16 +4,16 @@
 
 /* Map tokens into Tailwind v4 theme so utilities like bg-panel work. */
 @theme {
-  --color-canvas: #0e1420;
-  --color-panel: #16202e;
-  --color-panel-raised: #1b2838;
-  --color-panel-inset: #0b111b;
+  /* Kept in lockstep with tokens.css — Tailwind utilities resolve THESE
+     variables, so the two files must not drift (a lesson from M8, where a
+     contrast fix edited only tokens.css and silently did nothing). */
+  --color-canvas: #0b1018;
+  --color-panel: #1a2431;
+  --color-panel-raised: #222d3c;
+  --color-panel-inset: #131b26;
   --color-ink: #e8e3d5;
-  --color-ink-muted: #9aa5b5;
-  /* Kept in lockstep with --ink-faint in tokens.css; raised in M8 to clear the
-     4.5:1 AA floor on every surface (see the note there). Tailwind utilities
-     resolve THIS variable, so the two must not drift. */
-  --color-ink-faint: #838f9f;
+  --color-ink-muted: #a3aebd;
+  --color-ink-faint: #8d99a8;
   --color-gold: #d9a94b;
   --color-gold-bright: #f0c75e;
   --color-teal: #3fa7a0;
@@ -52,15 +52,89 @@ h3,
   letter-spacing: 0.04em;
 }
 
-/* Panels: interior fill sits inside the 9-slice frame (background-clip trick). */
+/**
+ * Panels.
+ *
+ * The fill runs to the BORDER box, not the padding box. The 9-slice frames are
+ * mostly transparent — thin lines and corner brackets — so clipping the fill at
+ * the padding box left the canvas showing through the frame and gave every
+ * panel a hard-edged dark rectangle sitting inside its own border. Running the
+ * fill underneath means the frame is drawn ON the panel, which is what a frame
+ * is. The small radius keeps the fill's square corners from poking past the
+ * frame's softer ones (border-image ignores border-radius; backgrounds do not).
+ */
 .panel-fill {
-  background: linear-gradient(180deg, var(--panel-raised) 0%, var(--panel) 100%);
-  background-clip: padding-box;
+  background:
+    radial-gradient(120% 80% at 50% -20%, rgba(217, 169, 75, 0.05), transparent 70%),
+    linear-gradient(180deg, var(--panel-raised) 0%, var(--panel) 60%, var(--panel) 100%);
+  border-radius: 6px;
+  box-shadow:
+    inset 0 1px 0 var(--edge-light),
+    inset 0 -14px 22px -18px rgba(0, 0, 0, 0.9);
 }
 
+/**
+ * The recess. This is the one that used to read as a hole: the old value was
+ * darker than the canvas, so an inset block looked like a gap in the page. It
+ * is now a shade ABOVE the canvas and carved by shadow instead of by darkness.
+ */
 .panel-fill-inset {
-  background: var(--panel-inset);
-  background-clip: padding-box;
+  background: linear-gradient(180deg, var(--panel-inset) 0%, color-mix(in srgb, var(--panel-inset) 88%, black) 100%);
+  border-radius: 4px;
+  box-shadow: var(--recess-shadow);
+}
+
+/* Raised interactive surfaces (buttons, chips) — the opposite of a recess. */
+.surface-raised {
+  background: linear-gradient(180deg, var(--panel-raised) 0%, var(--panel) 100%);
+  box-shadow: var(--raise-shadow);
+}
+
+/**
+ * Button fills. A framed button used the same flat panel fill as the container
+ * it sat in, so it read as a hole with a gold outline rather than as something
+ * you press. Each variant now carries a faint wash of its own accent and a top
+ * highlight, so the button is lit from above and clearly sits proud.
+ */
+.btn-fill {
+  --btn-tint: var(--gold);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--btn-tint) 16%, var(--panel-raised)) 0%, var(--panel) 78%, color-mix(in srgb, var(--btn-tint) 8%, var(--panel)) 100%);
+  border-radius: 4px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -2px 6px -3px rgba(0, 0, 0, 0.8);
+}
+.btn-fill--quiet {
+  --btn-tint: var(--ink-faint);
+}
+.btn-fill--danger {
+  --btn-tint: var(--danger);
+}
+.btn-fill--gem {
+  --btn-tint: var(--gem);
+}
+
+/**
+ * Anything painted with the inset surface is a RECESS, so it gets carved here
+ * once rather than at each of the ~57 call sites. This is what turns the old
+ * flat black rectangles into something that reads as pressed into the panel.
+ */
+[class*='bg-panel-inset'] {
+  box-shadow: var(--recess-shadow);
+}
+
+/* Meter tracks: carved, with a glass highlight over the filled part. */
+.meter-track {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--panel-inset) 85%, black) 0%, var(--panel-inset) 100%);
+  box-shadow: var(--recess-shadow);
+}
+.meter-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 55% 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.28), transparent);
+  pointer-events: none;
 }
 
 /* Gold focus ring everywhere (UI_DESIGN.md §8) */
@@ -80,17 +154,362 @@ h3,
   scrollbar-color: var(--ink-faint) transparent;
 }
 
+/* ==========================================================================
+   MOTION (UI_DESIGN.md §7)
+
+   One vocabulary, used everywhere, so the game moves like one object rather
+   than forty independently-animated components. Anything with a hard-coded
+   duration is switched off explicitly under `prefers-reduced-motion` at the
+   bottom of this block — zeroing the duration tokens cannot reach those.
+   ========================================================================== */
+
 /* Screen transition (CSS-only, honors reduced motion via --motion-base) */
 .screen-enter {
-  animation: screen-in var(--motion-base) ease-out;
+  animation: screen-in var(--motion-slow) var(--ease-out-quart);
 }
 @keyframes screen-in {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(8px) scale(0.995);
   }
   to {
     opacity: 1;
+    transform: none;
+  }
+}
+
+/* --- entrances ---------------------------------------------------------- */
+
+/** Rise into place. The workhorse for panels, rows and cards. */
+.rise-in {
+  animation: rise-in var(--motion-slow) var(--ease-out-quart) backwards;
+}
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/** Pop into place, with overshoot. For things that ARRIVE — drops, rewards. */
+.pop-in {
+  animation: pop-in var(--motion-slow) var(--ease-pop) backwards;
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/**
+ * Stagger children. `--stagger-step` is the gap; the nth-child rules cover the
+ * first twelve, which is more than any list this game renders in one screenful.
+ * Set `--stagger-base` to delay the whole group.
+ */
+.stagger > * {
+  --stagger-step: 45ms;
+  --stagger-base: 0ms;
+  animation-delay: calc(var(--stagger-base) + var(--i, 0) * var(--stagger-step));
+}
+.stagger > *:nth-child(1) {
+  --i: 0;
+}
+.stagger > *:nth-child(2) {
+  --i: 1;
+}
+.stagger > *:nth-child(3) {
+  --i: 2;
+}
+.stagger > *:nth-child(4) {
+  --i: 3;
+}
+.stagger > *:nth-child(5) {
+  --i: 4;
+}
+.stagger > *:nth-child(6) {
+  --i: 5;
+}
+.stagger > *:nth-child(7) {
+  --i: 6;
+}
+.stagger > *:nth-child(8) {
+  --i: 7;
+}
+.stagger > *:nth-child(9) {
+  --i: 8;
+}
+.stagger > *:nth-child(10) {
+  --i: 9;
+}
+.stagger > *:nth-child(11) {
+  --i: 10;
+}
+.stagger > *:nth-child(12) {
+  --i: 11;
+}
+
+/* --- interaction -------------------------------------------------------- */
+
+/** Every framed button: lifts to meet the cursor, sinks when pressed. */
+.btn-press {
+  transition:
+    filter var(--motion-fast) ease-out,
+    transform var(--motion-fast) ease-out,
+    box-shadow var(--motion-fast) ease-out;
+}
+.btn-press:enabled:hover {
+  filter: brightness(1.18);
+  transform: translateY(-1px);
+}
+.btn-press:enabled:active {
+  filter: brightness(1.05);
+  transform: translateY(1px);
+}
+
+/** Cards and rows that are themselves click targets. */
+.hover-lift {
+  transition:
+    transform var(--motion-base) var(--ease-out-quart),
+    filter var(--motion-base) ease-out;
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+}
+
+/* --- attention ---------------------------------------------------------- */
+
+/** A slow breath for something waiting to be collected. */
+.pulse-soft {
+  animation: pulse-soft 2.4s var(--ease-in-out-soft) infinite;
+}
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.62;
+  }
+}
+
+/** A gold sweep across a surface — legendary drops, claimable rewards. */
+.sheen {
+  position: relative;
+  overflow: hidden;
+}
+.sheen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 35%,
+    rgba(240, 199, 94, 0.22) 50%,
+    transparent 65%
+  );
+  transform: translateX(-100%);
+  animation: sheen 2.6s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes sheen {
+  0%,
+  55% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/** A number that just changed. Applied on a key change, so it re-fires. */
+.count-flash {
+  animation: count-flash 0.5s var(--ease-pop);
+}
+@keyframes count-flash {
+  0% {
+    transform: scale(1.28);
+    color: var(--gold-bright);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/** Shake — a refused action, or a hit landing. */
+.nudge {
+  animation: nudge 0.32s var(--ease-in-out-soft);
+}
+@keyframes nudge {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
+
+/* --- combat ------------------------------------------------------------- */
+
+/** The struck fighter recoils away from the blow. */
+.hit-recoil {
+  animation: hit-recoil 0.34s var(--ease-out-quart);
+}
+@keyframes hit-recoil {
+  0% {
+    transform: translateX(0);
+    filter: none;
+  }
+  22% {
+    transform: translateX(var(--recoil, 7px));
+    filter: brightness(1.9) saturate(0.4);
+  }
+  100% {
+    transform: translateX(0);
+    filter: none;
+  }
+}
+
+/** The attacker lunges into it. Paired with .hit-recoil on the other side. */
+.attack-lunge {
+  animation: attack-lunge 0.34s var(--ease-out-quart);
+}
+@keyframes attack-lunge {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  35% {
+    transform: translateX(var(--lunge, -9px));
+  }
+}
+
+/** A crit: bigger, brighter, and it rings. */
+.crit-pop {
+  animation: crit-pop 0.52s var(--ease-pop);
+}
+@keyframes crit-pop {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.16);
+    filter: brightness(1.6);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/** A block: the shield takes it, nothing moves much, everything flashes. */
+.block-flash {
+  animation: block-flash 0.4s ease-out;
+}
+@keyframes block-flash {
+  0% {
+    filter: none;
+  }
+  25% {
+    filter: brightness(1.5) drop-shadow(0 0 8px rgba(217, 169, 75, 0.9));
+  }
+  100% {
+    filter: none;
+  }
+}
+
+/** An evade: slip aside and ghost out for a beat. */
+.evade-slip {
+  animation: evade-slip 0.42s var(--ease-out-quart);
+}
+@keyframes evade-slip {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  40% {
+    transform: translateX(var(--slip, 14px));
+    opacity: 0.35;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/** The loser goes down. */
+.death-fade {
+  animation: death-fade 0.7s var(--ease-out-quart) forwards;
+}
+@keyframes death-fade {
+  0% {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+  100% {
+    opacity: 0.18;
+    transform: translateY(6px) rotate(var(--fall, -4deg));
+    filter: grayscale(1) brightness(0.6);
+  }
+}
+
+/** The winner's frame catches the light. */
+.victory-glow {
+  animation: victory-glow 1.1s var(--ease-out-quart);
+}
+@keyframes victory-glow {
+  0% {
+    filter: none;
+  }
+  35% {
+    filter: brightness(1.35) drop-shadow(0 0 14px rgba(240, 199, 94, 0.75));
+  }
+  100% {
+    filter: none;
+  }
+}
+
+/**
+ * Reduced motion. The entrance and attention animations are switched OFF
+ * rather than shortened — a 0ms pop still repaints and a 0ms infinite loop
+ * still spins the compositor. Combat keeps its colour flashes (they carry
+ * information) but loses all movement.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .rise-in,
+  .pop-in,
+  .pulse-soft,
+  .sheen::before,
+  .count-flash,
+  .nudge,
+  .hit-recoil,
+  .attack-lunge,
+  .crit-pop,
+  .evade-slip,
+  .victory-glow {
+    animation: none;
+  }
+  .death-fade {
+    animation: none;
+    opacity: 0.18;
+    filter: grayscale(1) brightness(0.6);
+  }
+  .btn-press:enabled:hover,
+  .btn-press:enabled:active,
+  .hover-lift:hover {
     transform: none;
   }
 }

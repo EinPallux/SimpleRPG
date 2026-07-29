@@ -215,6 +215,7 @@ export const gameSaveSchema = z
         pets: z.record(z.object({ owned: z.boolean(), level: z.number().int().min(0) }).strict()),
         equippedPet: z.string().nullable(),
         mountTier: z.number().int().min(0).max(4),
+        mountUntil: z.string().nullable().optional(),
         gachaPity: z.record(
           z
             .object({ sinceEpic: z.number().int().min(0), sinceSet: z.number().int().min(0) })

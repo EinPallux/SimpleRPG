@@ -5,6 +5,7 @@ import { generateSetPiece } from './items';
 import { createNewSave, deriveEmblem } from './newSave';
 import { Rng, seedState } from './rng';
 import type { GameSave } from './types';
+import { STARTING_GEMS } from './constants';
 
 const T0 = new Date(2026, 6, 28, 9, 0).getTime();
 const MIN = 60_000;
@@ -54,7 +55,7 @@ describe('dungeons', () => {
     expect(outcome.won).toBe(true); // 500 str at L13 flattens a L14 rat
     expect(save.progress.dungeonFloors['rat-cellars']).toBe(1);
     expect(outcome.gems).toBe(1);
-    expect(save.hero.gems).toBe(1);
+    expect(save.hero.gems).toBe(STARTING_GEMS + 1);
     expect(outcome.gold).toBeGreaterThan(0);
     expect(outcome.xp?.gained).toBeGreaterThan(0);
     expect(['rare', 'epic', 'legendary']).toContain(outcome.drop?.rarity);
@@ -95,7 +96,7 @@ describe('dungeons', () => {
     expect(outcome.wallHint!.bossHpLeftPct).toBeGreaterThan(0);
     expect(outcome.wallHint!.rounds).toBeGreaterThan(0);
     expect(canAttemptFloor(save, 'rat-cellars', T0)).toEqual({ ok: false, reason: 'cooldown' });
-    expect(save.hero.gems).toBe(0);
+    expect(save.hero.gems).toBe(STARTING_GEMS); // a bounce pays nothing
   });
 
   it('a finished wing refuses further attempts', () => {

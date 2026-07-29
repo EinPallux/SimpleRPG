@@ -515,7 +515,7 @@ export const useGame = create<GameStore>()(
         let bought: { name: string } | null = null;
         set((s) => {
           if (!s.save || !canBuyMount(s.save, tier)) return;
-          const purchase = buyMount(s.save, tier);
+          const purchase = buyMount(s.save, tier, systemClock.now());
           bought = { name: t(`${purchase.mount.nameKey}` as I18nKey) };
         });
         if (bought) get().toast(t('stable.bought', bought));
