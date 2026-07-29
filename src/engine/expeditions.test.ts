@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import { allMinibossSlugs } from '@/content/expeditions';
 import { getSet } from '@/content/sets';
 import {
   canStartExpedition,
   chestTier,
   ensureCards,
+  expeditionMiniboss,
   expeditionsLeft,
   resolveCard,
   startExpedition,
@@ -15,13 +17,16 @@ import type { GameSave } from './types';
 
 const T0 = new Date(2026, 6, 28, 9, 0).getTime();
 
-function fresh(): GameSave {
+function fresh(worldSeed = '12'.repeat(16)): GameSave {
+  // The seed has to go in HERE: `createNewSave` pre-seeds every stream from it,
+  // so assigning `save.worldSeed` afterwards changes nothing and every "different
+  // world" would replay the same rolls.
   const save = createNewSave(
     {
       name: 'Rover',
       classId: 'scout',
       emblem: deriveEmblem('Rover', 'scout'),
-      worldSeed: '12'.repeat(16),
+      worldSeed,
     },
     T0,
   );
@@ -113,5 +118,41 @@ describe('expeditions', () => {
     expect(expeditionsLeft(save)).toBe(3);
     const state = startExpedition(save, 'pinewatch');
     expect(state.heroism).toBe(6);
+  });
+});
+
+describe('mini-boss reserves (CONTENT §5)', () => {
+  const roster = new Set(allMinibossSlugs());
+
+  it('draws a real mini-boss every run, and not always the locale regular', () => {
+    const seen = new Set<string>();
+    for (let i = 0; i < 60; i++) {
+      const save = fresh(i.toString(16).padStart(32, '0'));
+      const state = startExpedition(save, 'castaway-cove');
+      const slug = expeditionMiniboss(state);
+      expect(roster.has(slug)).toBe(true);
+      seen.add(slug);
+    }
+    // The Cove's own Captain Flotsam still turns up most, but he is not the only
+    // face the Cove has — that is the whole point of the reserves.
+    expect(seen.has('captain-flotsam')).toBe(true);
+    expect(seen.size).toBeGreaterThan(2);
+  });
+
+  it('holds the same face for the whole run — encounter 3 cannot swap mid-expedition', () => {
+    const save = fresh();
+    const state = startExpedition(save, 'crystal-ruins');
+    const first = expeditionMiniboss(state);
+    ensureCards(save);
+    resolveCard(save, 0);
+    expect(expeditionMiniboss(save.activities.expedition!)).toBe(first);
+  });
+
+  it('an expedition already in flight before M9 falls back to the locale regular', () => {
+    // `minibossSlug` is optional precisely so a v7 save mid-run keeps working.
+    const save = fresh();
+    const state = startExpedition(save, 'watchmans-rest');
+    delete state.minibossSlug;
+    expect(expeditionMiniboss(state)).toBe('sergeant-nap');
   });
 });

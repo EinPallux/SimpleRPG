@@ -1,5 +1,6 @@
+import { arenaQuipKey } from '@/content/flavor';
 import type { ArenaOutcome } from '@/engine/arena';
-import { t, type I18nKey } from '@/i18n';
+import { t } from '@/i18n';
 import { useGame } from '@/state/store';
 import { fmt } from '../format';
 import { CombatPlayback } from './CombatPlayback';
@@ -10,9 +11,9 @@ function RewardStrip({ outcome }: { outcome: ArenaOutcome }) {
   if (outcome.sparring) {
     return <p className="mt-3 text-sm text-ink-muted italic">{t('arena.reward.sparNote')}</p>;
   }
-  const defeatLine = t(
-    `arena.defeatLine.${Math.abs(outcome.result.seed[0] ?? 0) % 5}` as I18nKey,
-  );
+  // A quip either way (§13: 15 + 15). Keyed off the fight's own seed, so the
+  // line is stable for that fight rather than reshuffling on every re-render.
+  const quip = t(arenaQuipKey(outcome.won, Math.abs(outcome.result.seed[0] ?? 0)));
   return (
     <div className="mt-3 flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-bold">
@@ -34,7 +35,7 @@ function RewardStrip({ outcome }: { outcome: ArenaOutcome }) {
       <p className="text-xs font-semibold text-ink-muted">
         {t('arena.rankNow', { rank: outcome.newRank })}
       </p>
-      {!outcome.won && <p className="text-xs text-ink-faint italic">{defeatLine}</p>}
+      <p className="text-xs text-ink-faint italic">{quip}</p>
       {outcome.chest && outcome.chestAutoSoldGold === 0 && (
         <div>
           <p className="mb-1.5 text-xs font-bold text-gold-bright">{t('arena.reward.chest')}</p>

@@ -69,7 +69,12 @@ function LocaleSelect() {
                   {t(locale.nameKey as I18nKey)}
                 </div>
                 <div className="text-[11px] text-ink-muted [text-shadow:0_1px_3px_#000]">
-                  {t(`miniboss.${locale.minibossSlug}.name` as I18nKey)}
+                  {/* "usually" because the reserves can hold the slot instead
+                      (content/expeditions.ts) — the card should not promise a
+                      name the run may not deliver. */}
+                  {t('exped.minibossUsually', {
+                    name: t(`miniboss.${locale.minibossSlug}.name` as I18nKey),
+                  })}
                 </div>
               </div>
             </div>

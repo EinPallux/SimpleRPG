@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { generateItem } from '@/engine/items';
+import { UNIQUES } from '@/content/uniques';
+import { generateItem, generateUnique } from '@/engine/items';
 import { Rng, seedState } from '@/engine/rng';
 import type { EquipSlot, Rarity } from '@/engine/types';
-import { itemName, lineText, missionFlavor } from './itemName';
+import { itemName, lineText, missionFlavor, uniqueEffectText } from './itemName';
 
 const SLOTS: EquipSlot[] = [
   'weapon',
@@ -41,6 +42,44 @@ describe('item naming', () => {
     expect(lineText({ attr: 'str', value: 12 })).toBe('+12 Strength');
     expect(lineText({ attr: 'all', value: 5 })).toBe('+5 All Attributes');
     expect(lineText({ attr: 'critDmg', value: 9 })).toBe('+9% Crit Damage');
+  });
+
+  it('keeps the name of a named legendary rather than generating one', () => {
+    const rng = new Rng(seedState('naming3', 'loot'));
+    const ladle = generateUnique('grandmas-battle-ladle', 60, rng);
+    expect(itemName(ladle)).toBe("Grandma's Battle Ladle");
+    expect(itemName({ ...ladle, upgrade: 3 })).toBe("Grandma's Battle Ladle +3");
+  });
+});
+
+describe('unique effect text', () => {
+  it('puts every bespoke effect into words — none may render a raw key', () => {
+    // A unique's whole reason for existing lives OUTSIDE `lines`, so a missing
+    // key here would ship a legendary whose power is invisible on its card.
+    const rng = new Rng(seedState('fx', 'loot'));
+    for (const def of UNIQUES) {
+      const text = uniqueEffectText(generateUnique(def.id, 60, rng));
+      expect(text).not.toBeNull();
+      expect(text!.length).toBeGreaterThan(10);
+      expect(text).not.toContain('unique.');
+      expect(text).not.toContain('{');
+    }
+  });
+
+  it('is null for anything that is not one of the eight', () => {
+    const rng = new Rng(seedState('fx2', 'loot'));
+    expect(uniqueEffectText(generateItem({ ilvl: 40, rarity: 'legendary' }, rng))).toBeNull();
+  });
+
+  it('reads the numbers off the definition', () => {
+    const rng = new Rng(seedState('fx3', 'loot'));
+    expect(uniqueEffectText(generateUnique('gilded-iou', 60, rng))).toBe('Shop prices −15%');
+    expect(uniqueEffectText(generateUnique('boots-of-somewhere-else', 60, rng))).toBe(
+      '+8 pp evade',
+    );
+    expect(uniqueEffectText(generateUnique('crown-of-the-understudy', 60, rng))).toBe(
+      '+1 to every attribute per 10 levels',
+    );
   });
 });
 

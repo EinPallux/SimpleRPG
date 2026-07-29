@@ -1,6 +1,7 @@
+import { patrolTickKey } from '@/content/flavor';
 import { PATROL_CAP_HOURS, PATROL_TICK_MIN } from '@/engine/constants';
 import { canStartPatrol, previewPatrol } from '@/engine/patrol';
-import { t, type I18nKey } from '@/i18n';
+import { t } from '@/i18n';
 import { useGame } from '@/state/store';
 import { FButton } from '../components/FButton';
 import { Icon } from '../components/Icon';
@@ -14,7 +15,7 @@ function TickLog({ totalTicks }: { totalTicks: number }) {
   const lines = [0, 1, 2]
     .map((i) => totalTicks - i)
     .filter((n) => n > 0)
-    .map((n) => t(`patrol.tick.${n % 10}` as I18nKey));
+    .map((n) => t(patrolTickKey(n)));
   if (lines.length === 0) return null;
   return (
     <ul className="mt-3 space-y-1.5">

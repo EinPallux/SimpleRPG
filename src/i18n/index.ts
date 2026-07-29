@@ -12,6 +12,7 @@ import en from './en.json';
 import achievements from './parts/achievements.json';
 import bestiary from './parts/bestiary.json';
 import calendar from './parts/calendar.json';
+import flavor from './parts/flavor.json';
 import gacha from './parts/gacha.json';
 import help from './parts/help.json';
 import mounts from './parts/mounts.json';
@@ -19,12 +20,14 @@ import pets from './parts/pets.json';
 import quests from './parts/quests.json';
 import story from './parts/story.json';
 import titles from './parts/titles.json';
+import uniques from './parts/uniques.json';
 
 const catalog = {
   ...en,
   ...achievements,
   ...bestiary,
   ...calendar,
+  ...flavor,
   ...gacha,
   ...help,
   ...mounts,
@@ -32,6 +35,7 @@ const catalog = {
   ...quests,
   ...story,
   ...titles,
+  ...uniques,
 };
 
 export type I18nKey = keyof typeof catalog;

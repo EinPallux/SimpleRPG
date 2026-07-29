@@ -21,6 +21,31 @@ export const LOCALES: readonly LocaleDef[] = [
   { id: 'pinewatch', nameKey: 'locale.pinewatch', bg: 9, minibossSlug: 'pinewatch-impostor' },
 ];
 
+/**
+ * Reserve mini-bosses (CONTENT §5: "one per locale + 6 reserve").
+ *
+ * Without these, the third encounter of every Castaway Cove run for the rest of
+ * the game is Captain Flotsam — a locale you revisit for months should not have
+ * exactly one face. The locale's own mini-boss stays the one you meet most; the
+ * reserves are the rest of the roster it can draw from.
+ */
+export const MINIBOSS_RESERVES: readonly string[] = [
+  'the-tidewright',
+  'gallery-attendant-nine',
+  'the-relief-watch',
+  'great-aunt-pinewatch',
+  'the-second-lantern',
+  'quartermaster-nobody',
+];
+
+/** Share of expeditions whose mini-boss comes from the reserve pool instead. */
+export const MINIBOSS_RESERVE_SHARE = 0.5;
+
+/** Everyone who can hold the encounter-3 slot — what content validation walks. */
+export function allMinibossSlugs(): string[] {
+  return [...LOCALES.map((l) => l.minibossSlug), ...MINIBOSS_RESERVES];
+}
+
 export const localeSchema = z
   .object({
     id: z.string().regex(/^[a-z0-9-]+$/),

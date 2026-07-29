@@ -17,7 +17,8 @@ import {
   WHEEL_XP_MULT,
 } from './constants';
 import { missionGold, missionXp } from './economy';
-import { generateItem, rollDrop, sellPrice } from './items';
+import { generateItem, generateUnique, rollDrop, sellPrice } from './items';
+import { rollUnique, uniqueTotal } from './uniques';
 import { bump, recordDrop } from './ledger';
 import { grantPet } from './pets';
 import { getStream, type Rng } from './rng';
@@ -62,11 +63,21 @@ export interface WheelOutcome {
 /** The one pet the wheel keeps — jackpot-only, by design (CONTENT §6.3). */
 const WHEEL_JACKPOT_PET = 'the-gilded-snail';
 
-function pickSlot(rng: Rng, exclude: WheelSlotKind[] = []): number {
+function pickSlot(save: GameSave, rng: Rng, exclude: WheelSlotKind[] = []): number {
+  // Wheelwright's Lucky Spoke adds percentage points to the gem slot's share —
+  // the weights are relative, so it is added to that one slot's weight against
+  // the table's total rather than to a probability.
+  const spoke = uniqueTotal(save, 'wheelGemPP');
+  const total = WHEEL_SLOTS.reduce((sum, slot) => sum + slot.weight, 0);
   const pool = WHEEL_SLOTS.map((slot, index) => ({ slot, index })).filter(
     ({ slot }) => !exclude.includes(slot.kind),
   );
-  const picked = rng.weighted(pool.map((p) => [p, p.slot.weight] as const));
+  const picked = rng.weighted(
+    pool.map(
+      (p) =>
+        [p, p.slot.kind === 'gem' ? p.slot.weight + (spoke / 100) * total : p.slot.weight] as const,
+    ),
+  );
   return picked.index;
 }
 
@@ -79,12 +90,12 @@ export function spinWheel(save: GameSave): WheelOutcome {
   save.stats.goldSpent = (save.stats.goldSpent ?? 0) + cost;
 
   const rng = getStream(save.rngState, save.worldSeed, 'wheel');
-  let slotIndex = pickSlot(rng);
+  let slotIndex = pickSlot(save, rng);
   let mystery = false;
   if (WHEEL_SLOTS[slotIndex]!.kind === 'mystery') {
     // Mystery: land somewhere else, payout doubled (jackpot stays earned, not gifted).
     mystery = true;
-    slotIndex = pickSlot(rng, ['mystery', 'jackpot']);
+    slotIndex = pickSlot(save, rng, ['mystery', 'jackpot']);
   }
   const kind = WHEEL_SLOTS[slotIndex]!.kind;
   const mult = mystery ? 2 : 1;
@@ -117,15 +128,17 @@ export function spinWheel(save: GameSave): WheelOutcome {
     gems = WHEEL_GEMS * mult;
   } else if (kind === 'jackpot') {
     bump(save, 'wheelJackpots');
-    // The jackpot always pays a Legendary (BALANCING §4.6). On top of that it
-    // is the ONLY source of The Gilded Snail (CONTENT §6.3) — and once the
-    // snail is in the menagerie, that slot pays gems instead, so a second
-    // jackpot never feels like a worse first one.
+    // The jackpot always pays a Legendary (BALANCING §4.6) — and it is the best
+    // chance in the game for that legendary to be one of the eight NAMED ones
+    // (CONTENT §6.2). It is also the ONLY source of The Gilded Snail (§6.3);
+    // once the snail is in the menagerie the slot pays gems instead, so a
+    // second jackpot never feels like a worse first one.
+    const namedId = rollUnique(save, rng);
+    const ilvl = save.hero.level + 2;
     items.push(
-      generateItem(
-        { ilvl: save.hero.level + 2, rarity: 'legendary', biasClass: save.hero.classId },
-        rng,
-      ),
+      namedId
+        ? generateUnique(namedId, ilvl, rng)
+        : generateItem({ ilvl, rarity: 'legendary', biasClass: save.hero.classId }, rng),
     );
     if (grantPet(save, WHEEL_JACKPOT_PET)) {
       petId = WHEEL_JACKPOT_PET;

@@ -5,6 +5,7 @@
 import { PATROL_CAP_HOURS, PATROL_TICK_MIN, PATROL_TICKS_PER_TREAT } from './constants';
 import { patrolGoldPerHour, patrolXpPerHour } from './economy';
 import { auraTotal } from './pets';
+import { uniqueTotal } from './uniques';
 import type { GameSave, PatrolPayload, TimedActivity } from './types';
 import { applyXp, type XpResult } from './xpGain';
 
@@ -89,7 +90,10 @@ export function collectPatrol(save: GameSave, untilMs: number): PatrolCollection
   if (ticks === 0) return { ticks: 0, gold: 0, xp: null, treats: 0 };
 
   const hours = (ticks * PATROL_TICK_MIN) / 60;
-  const gold = Math.round(patrolGoldPerHour(save.hero.level) * hours);
+  // Kettle of Endless Soup: the one unique that pays while you are asleep.
+  const gold = Math.round(
+    patrolGoldPerHour(save.hero.level) * hours * (1 + uniqueTotal(save, 'patrolGold')),
+  );
   const xpAmount = Math.round(patrolXpPerHour(save.hero.level) * hours);
   const treats = patrolTreats(save, ticks);
 

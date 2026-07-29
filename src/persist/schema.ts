@@ -63,6 +63,7 @@ const expeditionState = z
     step: z.number().int().min(0).max(4),
     heroism: z.number().min(0),
     cards: z.array(expeditionCard).length(3).nullable(),
+    minibossSlug: z.string().optional(),
   })
   .strict();
 
@@ -84,6 +85,7 @@ const itemInstance = z
     upgrade: z.number().int().min(0).max(20),
     seed: z.number().int(),
     setId: z.string().optional(),
+    uniqueId: z.string().optional(),
   })
   .strict();
 
@@ -219,9 +221,7 @@ export const gameSaveSchema = z
             .strict(),
         ),
         milestonesClaimed: z.array(z.string()),
-        onboarding: z
-          .object({ step: z.number().int().min(0), skipped: z.boolean() })
-          .strict(),
+        onboarding: z.object({ step: z.number().int().min(0), skipped: z.boolean() }).strict(),
         toursSeen: z.array(z.string()),
       })
       .strict(),

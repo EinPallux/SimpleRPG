@@ -1,7 +1,7 @@
 import { itemArmor, slotOf, weaponDamage } from '@/engine/items';
 import type { ItemInstance } from '@/engine/types';
 import { t, type I18nKey } from '@/i18n';
-import { itemName, lineText } from '../itemName';
+import { itemName, lineText, uniqueEffectText } from '../itemName';
 import { RARITY_TEXT } from '../rarity';
 
 /** Compact item card: rarity frame, name, base stat, bonus lines, colorblind pips. */
@@ -11,6 +11,7 @@ export function ItemCard({ item, className = '' }: { item: ItemInstance; classNa
   const dmg = isWeapon ? weaponDamage(item) : null;
   const armor = itemArmor(item);
   const pipCount = { common: 0, uncommon: 1, rare: 2, epic: 3, set: 4, legendary: 5 }[item.rarity];
+  const uniqueFx = uniqueEffectText(item);
 
   return (
     <div
@@ -27,6 +28,9 @@ export function ItemCard({ item, className = '' }: { item: ItemInstance; classNa
         <div className="text-[10px] font-bold text-[#35c99a]">
           {t(`set.${item.setId}` as I18nKey)}
         </div>
+      )}
+      {uniqueFx && (
+        <div className={`text-[10px] font-bold ${RARITY_TEXT.legendary}`}>{t('unique.badge')}</div>
       )}
       {dmg && (
         <div className="mt-1.5 text-xs font-bold text-ink">
@@ -46,6 +50,9 @@ export function ItemCard({ item, className = '' }: { item: ItemInstance; classNa
             </li>
           ))}
         </ul>
+      )}
+      {uniqueFx && (
+        <div className={`mt-1 text-[11px] font-bold ${RARITY_TEXT.legendary}`}>{uniqueFx}</div>
       )}
       {pipCount > 0 && (
         <div className="absolute top-1.5 right-2 flex gap-0.5" aria-hidden="true">

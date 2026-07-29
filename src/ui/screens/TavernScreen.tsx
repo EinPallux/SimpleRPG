@@ -15,6 +15,7 @@ import { FButton } from '../components/FButton';
 import { Icon } from '../components/Icon';
 import { Panel } from '../components/Panel';
 import { StoryBanner } from '../components/StoryBanner';
+import { TipOfTheDay } from '../components/TipOfTheDay';
 import { ProgressBar } from '../components/ProgressBar';
 import { TimerBar } from '../components/TimerBar';
 import { fmt } from '../format';
@@ -230,6 +231,8 @@ export function TavernScreen() {
         <VigorPanel />
         <BoardControls />
       </div>
+
+      <TipOfTheDay />
     </div>
   );
 }

@@ -28,6 +28,7 @@ import {
 } from './constants';
 import { getClass } from '@/content/classes';
 import { getSet } from '@/content/sets';
+import { getUnique } from '@/content/uniques';
 import type { Rng } from './rng';
 import type { AttributeId, BonusLineType, ClassId, EquipSlot, ItemInstance, Rarity } from './types';
 
@@ -170,13 +171,37 @@ export function effectiveItemChance(luck: number, level: number): number {
   );
 }
 
+/**
+ * One of the eight named legendaries (CONTENT §6.2), rolled at `ilvl`.
+ *
+ * Callers pass the SAME item level they would have generated a plain legendary
+ * at, because a unique substitutes for that drop rather than being a separate,
+ * lesser prize. Pinning it to the def's `minLevel` instead would make every
+ * named legendary a downgrade past level ~55 — a story nobody wants to tell,
+ * and one that quietly taxed whichever strategy rolled the legendary row most.
+ *
+ * Rolled through `generateItem` so it gets the same stat lines any legendary of
+ * its slot would — the bespoke effect is a bonus ON TOP, not a replacement.
+ */
+export function generateUnique(uniqueId: string, ilvl: number, rng: Rng): ItemInstance {
+  const def = getUnique(uniqueId);
+  const item = generateItem(
+    {
+      ilvl: Math.max(ilvl, def.minLevel),
+      rarity: 'legendary',
+      slot: def.slot,
+      classId: def.classId,
+    },
+    rng,
+  );
+  item.uniqueId = def.id;
+  return item;
+}
+
 /** A set piece: fixed slot, fixed ilvl (the set's level), set rarity + setId. */
 export function generateSetPiece(setId: string, slot: EquipSlot, rng: Rng): ItemInstance {
   const def = getSet(setId);
-  const item = generateItem(
-    { ilvl: def.level, rarity: 'set', slot, classId: def.classId },
-    rng,
-  );
+  const item = generateItem({ ilvl: def.level, rarity: 'set', slot, classId: def.classId }, rng);
   item.setId = setId;
   return item;
 }

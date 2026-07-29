@@ -181,6 +181,19 @@ export const MENAGERIE_UNLOCK_LEVEL = 35; // §11.1 — arrives with story chapt
 export const INSTALL_PROMPT_MIN_DAYS = 1;
 
 /**
+ * Share of legendary drops that become one of the eight NAMED legendaries
+ * instead of a generated one (CONTENT §6.2), when the hero is still missing at
+ * least one their class can wear.
+ *
+ * Sized against how rare legendaries already are — the wheel jackpot, the 1%
+ * well row and deep dungeon floors — so the set of eight is a long chase across
+ * the whole v1.0 horizon rather than a side quest. Owned uniques are never
+ * re-offered, so this is a share of *progress*, not a lottery you can lose to
+ * duplicates (engine/uniques.ts).
+ */
+export const UNIQUE_DROP_SHARE = 0.35;
+
+/**
  * Treats to go from pet level L to L+1: `ceil(BASE × L^EXP × rarityMult)`.
  *
  * Shaped to be generous at the start and a genuine long-tail at the end: the

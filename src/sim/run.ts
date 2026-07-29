@@ -135,6 +135,8 @@ export interface SimResult {
   mountTier: number;
   /** The single scalar the gem strategies are compared on */
   powerScore: number;
+  /** Named legendaries found (CONTENT §6.2) — the long tail's other collection */
+  uniquesOwned: number;
   /** Sets fully owned, and set pieces actually WORN — the gacha payoff */
   setsCompleted: number;
   setPiecesEquipped: number;
@@ -279,6 +281,13 @@ function sellBackpack(save: GameSave): number {
     if (item?.setId) held.add(`${item.setId}:${slotOf(item)}`);
   }
   for (const item of save.inventory.backpack) {
+    // A named legendary is one of eight and never comes again (CONTENT §6.2).
+    // Nobody vendors those, and a model that did would report the collection as
+    // permanently empty — the same shape of bug `held` above exists to avoid.
+    if (item.uniqueId) {
+      keep.push(item);
+      continue;
+    }
     const setId = item.setId;
     if (setId) {
       const def = getSet(setId);
@@ -716,6 +725,7 @@ export function simulateDays(profile: Profile, days: number, seed = 'sim-seed'):
     framesOwned: save.progress.frames.length,
     mountTier: save.progress.mountTier,
     powerScore: powerScore(save),
+    uniquesOwned: metricValue(save, 'uniquesOwned'),
     setsCompleted: metricValue(save, 'setsCompleted'),
     setPiecesEquipped: Object.values(save.inventory.equipped).filter((i) => i?.setId).length,
     equippedCount: Object.values(save.inventory.equipped).filter(Boolean).length,

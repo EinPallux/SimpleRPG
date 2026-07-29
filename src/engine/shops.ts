@@ -11,6 +11,7 @@ import {
 } from './constants';
 import { generateItem, shopPrice } from './items';
 import { auraTotal } from './pets';
+import { uniqueTotal } from './uniques';
 import { getStream } from './rng';
 import type { EquipSlot, GameSave, ItemInstance, Rarity, ShopId } from './types';
 
@@ -60,7 +61,11 @@ export function rerollShopStock(save: GameSave, shopId: ShopId): void {
  * at the till is a bug, not a surprise.
  */
 export function heroShopPrice(save: GameSave, item: ItemInstance): number {
-  const discount = Math.min(CAP_SHOP_DISCOUNT, auraTotal(save, 'shopDiscount'));
+  // A pet's discount and the Gilded IOU stack, under the one shared ceiling.
+  const discount = Math.min(
+    CAP_SHOP_DISCOUNT,
+    auraTotal(save, 'shopDiscount') + uniqueTotal(save, 'shopDiscount'),
+  );
   return Math.max(1, Math.round(shopPrice(item) * (1 - discount)));
 }
 

@@ -3,8 +3,10 @@
 > **Canonical for all content enumerations.** Systems/rules: GAME_DESIGN.md. Numbers: BALANCING.md.
 > Every entry here becomes a typed record in `src/content/` (TECHNICAL_ARCHITECTURE.md §8) with a stable
 > `id` (kebab-case of the name unless noted). Flavor strings live in the i18n catalog, keyed by id.
-> Counts marked **[build-fill]** define required volume; final prose is written during the build milestone,
-> following the Writing Guide (§13).
+> Counts were marked **[build-fill]** while the prose was outstanding. **As of M9 none remain** — every
+> pool in §13 is written to its stated volume and asserted against the catalog by `content/flavor.test.ts`.
+> New content added after v1.0 follows the Writing Guide (§13) and the same rule: declare the volume, then
+> make a test hold you to it.
 
 ---
 
@@ -84,8 +86,12 @@ hero's frontier zone, and every claimed mission records a sighting (GAME_DESIGN 
 1 Gatekeeper Morrow · 2 The Bone Sommelier · 3 Pale Jester · 4 Twin Regents · 5 **The Queen's Echo** ·
 6 Master of Hounds · 7 The Unlit Chandelier · 8 Chancellor Vane · 9 The King's Conscience · 10 **The Pale King**
 
-Expedition mini-bosses (one per locale + reserves): Captain Flotsam (Cove) · The Crystal Curator (Ruins) ·
-Sergeant Nap (Watchman's Rest) · The Pinewatch Impostor · +6 reserve **[build-fill]**.
+Expedition mini-bosses (one per locale + 6 reserve): Captain Flotsam (Cove) · The Crystal Curator (Ruins) ·
+Sergeant Nap (Watchman's Rest) · The Pinewatch Impostor. **Reserves:** The Tidewright · Gallery Attendant
+Nine · The Relief Watch · Great-Aunt Pinewatch · The Second Lantern · Quartermaster Nobody. Half of all
+runs draw from the reserve pool instead of the locale's regular, rolled once at embark and fixed for that
+run — a locale you revisit for months should not have exactly one face. The picker card therefore reads
+"{name}, usually" rather than promising who you will meet.
 
 ## 6. Item sets (14), legendaries (8), pets (16), mounts (4)
 
@@ -110,11 +116,34 @@ Sergeant Nap (Watchman's Rest) · The Pinewatch Impostor · +6 reserve **[build-
 Piece slots: 4-pc = helm/chest/gloves/boots · 5-pc adds weapon · 6-pc adds belt.
 
 ### 6.2 Legendary uniques (8)
-Kettle of Endless Soup (talisman — patrol gold +25%) · The Snickering Dagger (Asn offhand — first strike
-always crits) · Grandma's Battle Ladle (War weapon — blocks CLANG for 8% reflected) · The Polite Grimoire
-(Mage tome — +12% dmg, apologizes) · Boots of Somewhere Else (boots — +8 pp evade) · The Gilded IOU (amulet
-— shop prices −15%) · Wheelwright's Lucky Spoke (ring — wheel gem slot +4 pp) · Crown of the Understudy
-(helm — +1 all attrs per 10 levels).
+
+| Unique | Slot · Class | From L | Effect |
+|---|---|---|---|
+| Kettle of Endless Soup | talisman · any | 30 | patrol gold +25% |
+| The Gilded IOU | amulet · any | 35 | shop prices −15% |
+| Wheelwright's Lucky Spoke | ring · any | 35 | wheel gem slot +4 pp |
+| Grandma's Battle Ladle | weapon · Warrior | 40 | blocks CLANG for 8% reflected |
+| The Snickering Dagger | offhand · Assassin | 45 | first strike always crits |
+| The Polite Grimoire | offhand · Mage | 45 | +12% dmg, apologizes |
+| Boots of Somewhere Else | boots · any | 50 | +8 pp evade |
+| Crown of the Understudy | helm · any | 55 | +1 all attrs per 10 levels |
+
+**Sources.** Uniques have **no faucet of their own**: the two sources that already pay a guaranteed
+Legendary — the Wheel's jackpot and the Well's 1% row — ask first, and hand over a named one instead of a
+generated one `UNIQUE_DROP_SHARE` of the time (BALANCING §10). They therefore inherit the pacing of those
+systems rather than inflating the legendary supply. Expect **2–3 of the eight by day 120**; all eight is a
+multi-season chase, which is the point.
+
+**Rules that make "all eight" a goal rather than a lottery.** One of each, ever — an owned unique is never
+offered again. A class-cut unique is only ever offered to that class. The **From L** column is a *drop
+gate*, not an item level: the piece rolls at the level of the legendary it replaced, so finding one is
+never a downgrade. And the well declines to offer one at all while the backpack is full, because every
+legendary source auto-sells into gold when there is no room — losing a one-of-a-kind to pocket change,
+unseen, is not a thing this game does.
+
+Found uniques are listed in the **Codex → Armory** tab, which shows all eight from the start (the missing
+ones are the reason to keep spinning) and the achievement *Named Things* counts the named eight — never
+generic legendary-rarity drops.
 
 ### 6.3 Pets (16) — family · rarity · aura (major/minor) · source
 | Pet | Family · Rarity | Aura | Source |
@@ -228,7 +257,7 @@ Snail; then 25 💎) · "The wheel salutes you" 1 (nothing + funny line).
 - Collision handling: append digits. Player-name profanity/impersonation filter: none needed (offline), but
   bot generator excludes the player's chosen name.
 
-## 13. Flavor-text Writing Guide + required volumes **[build-fill]**
+## 13. Flavor-text Writing Guide + required volumes
 
 Voice: warm, dry, a little absurd; jokes about adventuring logistics, never about the player. 1–2 sentences.
 PG. No real-world brands/IP. Examples (zone 1): "Somebody taught the boars to queue. It's unsettling — deal
@@ -236,13 +265,20 @@ with it." · "The toll-troll now accepts exposure as payment. He would prefer go
 
 | Pool | Volume | Keys |
 |---|---|---|
-| Mission offers | 6/zone + 12 generic = 72 | `mission.z{z}.{i}` |
-| Patrol tick events | 20 | `patrol.tick.{i}` |
+| Mission offers | 6/zone + 12 generic = 72 ✅ M9 | `mission.z{z}.{i}` |
+| Patrol tick events | 20 ✅ M9 | `patrol.tick.{i}` |
 | Expedition events (choose-1-of-2 outcomes) | 24 ✅ M5 | `exped.event.{i}` |
-| Arena defeat/victory quips | 15 + 15 | `arena.win/lose.{i}` |
+| Arena defeat/victory quips | 15 + 15 ✅ M9 | `arena.win/lose.{i}` |
 | Boss intro threats | 50 ✅ M5 | `boss.{id}.intro` |
 | Codex monster lore | 80 ✅ M6 | `monster.{id}.lore` |
-| Loading/reset tips | 25 | `tips.{i}` |
+| Loading/reset tips | 25 ✅ M9 | `tips.{i}` |
+
+Pool sizes are declared once in `src/content/flavor.ts` and asserted against the real catalog by
+`flavor.test.ts` — a pool that claims a size it cannot deliver fails CI. They used to be inline modulo
+literals at each call site, which is how the Patrol screen spent three milestones cycling ten of its
+twenty lines without anything breaking. Surfaces: mission offers on the Tavern board, patrol lines in the
+Watch log, arena quips under a fight's reward strip (win **and** loss), and one tip a day on the Tavern,
+rotating at the daily reset.
 
 ## 14. Elixirs (The Arcanum)
 

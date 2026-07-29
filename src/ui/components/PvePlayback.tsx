@@ -5,10 +5,11 @@
  * (UI_DESIGN §6-13).
  */
 import { getDungeon } from '@/content/dungeons';
-import { getLocale } from '@/content/expeditions';
+import { expeditionMiniboss } from '@/engine/expeditions';
 import type { BossTrait } from '@/content/dungeons';
 import type { DungeonOutcome } from '@/engine/dungeons';
 import type { ExpeditionStepOutcome } from '@/engine/expeditions';
+import type { ExpeditionState } from '@/engine/types';
 import { t, type I18nKey } from '@/i18n';
 import { useGame } from '@/state/store';
 import type { IconId } from '../icons.gen';
@@ -106,10 +107,11 @@ const FOE_ICON: Record<string, IconId> = {
 };
 
 /** Display copy of the expedition foe with a human-facing name. */
-function expedFoeName(outcome: ExpeditionStepOutcome, localeId: string | undefined): string {
+function expedFoeName(outcome: ExpeditionStepOutcome, exp: ExpeditionState | undefined): string {
   if (outcome.card.kind === 'miniboss') {
-    const slug = localeId ? getLocale(localeId).minibossSlug : null;
-    return slug ? t(`miniboss.${slug}.name` as I18nKey) : t('exped.card.miniboss');
+    // The run's own mini-boss, which may be one of the reserves rather than the
+    // locale's regular (content/expeditions.ts MINIBOSS_RESERVES).
+    return exp ? t(`miniboss.${expeditionMiniboss(exp)}.name` as I18nKey) : t('exped.card.miniboss');
   }
   if (outcome.card.kind === 'fight') return t(`exped.foe.${outcome.card.foe}` as I18nKey);
   return '';
@@ -166,7 +168,7 @@ export function ExpedPlayback() {
   const outcome = useGame((s) => s.expedOutcome);
   const close = useGame((s) => s.closeExpedOutcome);
   if (!save || !outcome || !outcome.result || !outcome.foe || !outcome.heroCombatant) return null;
-  const localeId = outcome.state?.localeId ?? save.activities.expedition?.localeId;
+  const exp = outcome.state ?? save.activities.expedition ?? undefined;
   const icon: IconId =
     outcome.card.kind === 'miniboss'
       ? 'crown'
@@ -180,7 +182,7 @@ export function ExpedPlayback() {
         emblem: save.hero.portrait,
         classId: save.hero.classId,
       }}
-      b={{ combatant: { ...outcome.foe, name: expedFoeName(outcome, localeId) }, icon }}
+      b={{ combatant: { ...outcome.foe, name: expedFoeName(outcome, exp) }, icon }}
       result={outcome.result}
       onDone={close}
     >

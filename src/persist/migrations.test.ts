@@ -162,4 +162,39 @@ describe('save migrations', () => {
   it('refuses saves with no migration path', () => {
     expect(() => migrateSave({ ...structuredClone(V1_FIXTURE), version: -5 })).toThrow();
   });
+
+  /**
+   * M9 added two fields and deliberately bumped nothing (invariant 9 wants a
+   * migration per schema change; the cheaper honest answer is a change that
+   * needs none). Both are optional, so a v7 save written before M9 parses
+   * unchanged — and the whole v1 chain lands on 7, not 8.
+   */
+  describe('M9 added no schema version', () => {
+    it('the migrated chain still ends at v7', () => {
+      expect(migrateSave(structuredClone(V1_FIXTURE)).version).toBe(7);
+    });
+
+    it('a v7 save carrying M9 fields round-trips, and one without them still parses', () => {
+      const withM9 = structuredClone(V1_FIXTURE) as Record<string, unknown>;
+      const migrated = migrateSave(structuredClone(V1_FIXTURE));
+
+      // A named legendary in the bag and a reserve mini-boss mid-expedition:
+      // the exact two shapes M9 introduced.
+      const raw = JSON.parse(JSON.stringify(migrated)) as typeof migrated;
+      raw.inventory.backpack[0]!.uniqueId = 'gilded-iou';
+      raw.activities.expedition = {
+        localeId: 'castaway-cove',
+        step: 1,
+        heroism: 8,
+        cards: null,
+        minibossSlug: 'the-tidewright',
+      };
+      const reparsed = migrateSave(raw);
+      expect(reparsed.inventory.backpack[0]?.uniqueId).toBe('gilded-iou');
+      expect(reparsed.activities.expedition?.minibossSlug).toBe('the-tidewright');
+
+      // …and the pre-M9 shape, with neither field present, is still legal.
+      expect(migrateSave(withM9).inventory.backpack[0]?.uniqueId).toBeUndefined();
+    });
+  });
 });
