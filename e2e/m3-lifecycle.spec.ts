@@ -78,7 +78,9 @@ test('item lifecycle: import → shop → equip → attributes → forge → eli
   await page.getByRole('button', { name: boughtName, exact: true }).click();
   await page.getByRole('button', { name: 'Equip', exact: true }).click();
   await page.getByRole('button', { name: 'Equipment', exact: true }).click();
-  await expect(page.getByTitle(boughtName)).toBeVisible();
+  // By accessible name, not `title`: an item cell carries a real tooltip now
+  // (B1), so its name lives on `aria-label` where a screen reader can find it.
+  await expect(page.getByRole('button', { name: boughtName, exact: true })).toBeVisible();
 
   // Attributes: the infinite sink accepts its first coin
   await page.getByRole('button', { name: '+', exact: true }).first().click();
@@ -102,6 +104,8 @@ test('item lifecycle: import → shop → equip → attributes → forge → eli
   await page.reload();
   await page.getByRole('button', { name: 'Continue' }).click();
   await rail.getByTitle('Character').click();
-  await expect(page.getByTitle(new RegExp(`^${boughtName.replace(/[+]/g, '\\+')}`))).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: new RegExp(`^${boughtName.replace(/[+]/g, '\\+')}`) }),
+  ).toBeVisible();
   await expect(page.getByText(/Minor Elixir of Strength · /)).toBeVisible();
 });

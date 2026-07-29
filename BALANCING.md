@@ -17,7 +17,11 @@ z      zone index (1..10)        ALE_VIGOR          = 20
 ilvl   item level                ALE_MAX_PER_DAY    = 5
 rnd    seeded stream roll        ALE_COST_GEMS      = 2
                                  VIGOR_DAILY_MAX    = 250   // 100 + 50 + 5×20
-MISSION_DURATIONS  = [5, 10, 15, 20] min == vigor cost
+MISSION_DURATIONS  = [5, 10, 15, 20]  // mission SIZE: vigor cost + reward scale
+MISSION_CLOCK      = L1-10: 30/50/70/90 s by size (first errand always 30 s); L11+: size in minutes
+MISSION_FIGHT_GOLD_BONUS = MISSION_FIGHT_XP_BONUS = 0.15  // on a won end-of-mission fight
+STARTING_GEMS      = 60   // exactly the Ember Drake's fortnightly rent
+MOUNT_RENTAL_DAYS  = 14
 EXPEDITION_COST    = 25 vigor, EXPEDITIONS_PER_DAY = 2
 ARENA_FIGHTS_PER_DAY = 10, ARENA_COOLDOWN_MIN = 10
 WHEEL_SPINS_PER_DAY  = 5, DISMANTLES_PER_DAY = 5
@@ -388,6 +392,7 @@ stays viable at ~6 min for streak preservation. Both must remain true through tu
 
 | Date | Change | Why | Sim impact |
 |---|---|---|---|
+| 2026-07-29 | **B1 end-of-mission fight**: new `MISSION_FIGHT_GOLD_BONUS` / `MISSION_FIGHT_XP_BONUS`, both **0.15** of the mission's own reward, paid only on a win | Every mission now ends in a bout with a zone resident (the S&F shape). The mission's own gold and XP are paid **regardless of the outcome** — the same rule expeditions run on, and the same reason: a guard that punishes is the one thing this game does not do. Sized deliberately small: missions are already the largest gold faucet in the game (>40% of lifetime income, §6), so anything generous here reprices the whole economy rather than adding a flourish to it | all 8 anti-rush ceilings unmoved |
 | 2026-07-29 | **B1 mission clock decoupled from mission SIZE**: new `MISSION_CLOCK_FAST_MAX_LEVEL` 10, `MISSION_CLOCK_BANDS` (sizes 5/10/15/20 → 30/50/70/90 s), `MISSION_CLOCK_FAST_CAP_SEC` 120, `MISSION_CLOCK_TUTORIAL_SEC` 30. `MISSION_DURATIONS` unchanged | `durationMin` was the vigor cost, the reward scale **and** the wall clock, so the first hour of the game was a five-minute wait for a five-vigor errand. Levels 1–10 now run 30–90 s. **Nothing about the economy moved**: vigor is what meters the day, so a faster clock lets a new player spend the same budget sooner, never earn more from it — asserted directly ("the compressed clock does not touch vigor"). The very first errand is always 30 s, keyed off `missionsCompleted === 0` so it cannot desync from the onboarding script | all 8 anti-rush ceilings unmoved, including day-1 ≤ 13 |
 | 2026-07-29 | **B1 gear is no longer class-locked**; `canEquip` always true, and `generateItem` now **leads a class-cut piece with that class's main attribute** | Two thirds of every drop was a dead card the moment it was named. The cut is now advice, not permission — `classFitness` scores how much of an off-class piece you actually get to use, and the item modal says so. The generator change is what makes that true: before B1 the cut affected **nothing** about the roll, so "cut for a Mage" was decoration and any warning about it would have been a lie. Also fixes a live bug — the unique pool was class-filtered and only five of the eight are classless, so a warrior could reach six and a scout five, while the `named-things` achievement asks for eight. **Nobody could finish it** | `gem-strategies` re-measured (below); all ceilings green |
 | 2026-07-29 | **B1 mounts: rented, not owned.** `STABLE_UNLOCK_LEVEL` 10 → **1**, new `MOUNT_RENTAL_DAYS` 14, new `STARTING_GEMS` 60. Rentals cost full price (no more "pay the difference"), any tier can be rented at any time (renew or economise), renewing early extends rather than restarts | S&F's model. A permanent mount made the Stable a four-line checklist you finished and forgot; a rental is a standing decision the game keeps asking. Opening at L1 with the Drake's exact price in the purse makes it a **day-one choice** — ale, the Well, or the dragon. Deliberately the choice and not the mount itself | day-1 still ≤ 13 (ale is capped at 5/day, so 60 gems cannot be dumped into vigor); every other ceiling unmoved |

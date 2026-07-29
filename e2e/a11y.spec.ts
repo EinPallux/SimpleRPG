@@ -93,7 +93,34 @@ function report(violation: Violation): string[] {
  * missing `<h1>` inside the Shell and the Modal's `<header>` reading as a
  * second banner landmark.
  */
+/**
+ * Wait for every running animation to finish.
+ *
+ * Panels, cards and rewards animate in (B1), and several are staggered, so for
+ * the first half-second after a navigation the screen is genuinely part-way
+ * through a fade. axe samples computed colour, so auditing during that window
+ * measures elements at partial opacity and reports a dozen contrast failures
+ * that do not exist once the screen has settled. The audit's subject is the
+ * settled UI, so wait for it.
+ */
+async function settle(page: Page) {
+  await page.waitForFunction(
+    () =>
+      document
+        .getAnimations()
+        // Infinite ones never finish by definition — the attention pulses run
+        // forever. They are excluded from the wait AND from mattering: they
+        // animate transform and brightness, never opacity, so there is no beat
+        // at which they change what a contrast check would measure.
+        .filter((a) => (a.effect?.getComputedTiming().iterations ?? 1) !== Infinity)
+        .every((a) => a.playState !== 'running'),
+    undefined,
+    { timeout: 5000 },
+  );
+}
+
 async function expectAccessible(page: Page, screen: string, allow: readonly string[] = []) {
+  await settle(page);
   const { violations } = await new AxeBuilder({ page }).analyze();
   const findings = violations
     .filter((v) => v.impact === 'serious' || v.impact === 'critical')

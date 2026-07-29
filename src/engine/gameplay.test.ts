@@ -1,5 +1,6 @@
 /** Missions, patrol, vigor, xp application, and the time-passage engine. */
 import { describe, expect, it } from 'vitest';
+import { monstersOfZone } from '@/content/bestiary';
 import { parseGameSave } from '@/persist/schema';
 import { createNewSave, deriveEmblem } from './newSave';
 import {
@@ -87,10 +88,47 @@ describe('missions', () => {
     expect(() => claimMission(save, T0 + runsFor - 1000)).toThrow();
 
     const rewards = claimMission(save, T0 + runsFor);
+    // `rewards.gold` is the mission's own reward; the end-of-mission fight's
+    // bonus is reported separately and only lands on a win.
     expect(rewards.gold).toBe(offer.gold);
-    expect(save.hero.gold).toBe(offer.gold);
+    expect(save.hero.gold).toBe(offer.gold + (rewards.fight.won ? rewards.fight.bonusGold : 0));
     expect(save.activities.mission).toBeNull();
     expect(save.stats.missionsCompleted).toBe(1);
+  });
+
+  it('every mission ends in a fight, and losing it never costs the reward', () => {
+    const save = fresh();
+    const offer = { ...generateMissionOffers(save)[0]!, durationMin: 10, lucky: false };
+    startMission(save, offer, T0);
+    const rewards = claimMission(save, T0 + save.activities.mission!.durationSec * 1000);
+
+    // A real bout against a real resident of the zone you were sent to.
+    const residents = monstersOfZone(offer.zoneIndex).map((m) => m.id);
+    expect(residents).toContain(rewards.fight.monsterId);
+    expect(rewards.fight.result.rounds.length).toBeGreaterThan(0);
+    // …and you met it, so the Codex remembers it either way.
+    expect(save.progress.codex.monstersSeen[rewards.fight.monsterId] ?? 0).toBeGreaterThan(0);
+
+    // The job was done, so the job is paid — win or lose.
+    expect(rewards.gold).toBe(offer.gold);
+    expect(rewards.fight.bonusGold).toBe(rewards.fight.won ? Math.round(offer.gold * 0.15) : 0);
+  });
+
+  it('a hopeless hero still gets paid — the fight is upside, never a toll', () => {
+    // Strip the hero to nothing and send them at a zone-10 monster: they lose
+    // the scrap, and the mission's gold and XP arrive in full regardless.
+    const save = fresh();
+    save.hero.level = 1;
+    save.hero.attrsBought = { str: 0, dex: 0, int: 0, con: 0, lck: 0 };
+    save.progress.zonePinned = null;
+    const offer = { ...generateMissionOffers(save)[0]!, durationMin: 5, gold: 500, xp: 400 };
+    startMission(save, offer, T0);
+    const goldBefore = save.hero.gold;
+    const rewards = claimMission(save, T0 + save.activities.mission!.durationSec * 1000);
+
+    expect(rewards.gold).toBe(500);
+    expect(save.hero.gold).toBeGreaterThanOrEqual(goldBefore + 500);
+    expect(rewards.xp.gained).toBeGreaterThanOrEqual(400);
   });
 
   it('the tavern board persists until accepted — no offer-fishing', () => {

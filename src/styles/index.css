@@ -288,17 +288,26 @@ h3,
 
 /* --- attention ---------------------------------------------------------- */
 
-/** A slow breath for something waiting to be collected. */
+/**
+ * A slow breath for something waiting to be collected.
+ *
+ * Scales and BRIGHTENS rather than fading. An opacity pulse on a badge means
+ * its text spends half of every cycle at partial contrast — a real regression
+ * that an accessibility audit is right to fail, and that a player with low
+ * vision experiences as the number flickering out of legibility.
+ */
 .pulse-soft {
   animation: pulse-soft 2.4s var(--ease-in-out-soft) infinite;
 }
 @keyframes pulse-soft {
   0%,
   100% {
-    opacity: 1;
+    transform: scale(1);
+    filter: none;
   }
   50% {
-    opacity: 0.62;
+    transform: scale(1.09);
+    filter: brightness(1.15);
   }
 }
 

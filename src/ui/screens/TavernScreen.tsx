@@ -34,7 +34,7 @@ function OfferCard({ index }: { index: number }) {
 
   return (
     <div
-      className={`${offer.lucky ? 'frame-special' : 'frame-secondary'} panel-fill relative flex flex-col overflow-hidden`}
+      className={`${offer.lucky ? 'frame-special' : 'frame-secondary'} panel-fill hover-lift rise-in relative flex flex-col overflow-hidden`}
     >
       <div className="relative h-20 shrink-0 overflow-hidden">
         <BackgroundArt name={zone.bg} />
@@ -216,7 +216,7 @@ export function TavernScreen() {
       ) : (
         <Panel variant="primary" title={t('screen.tavern.title')}>
           <p className="-mt-2 mb-3 text-xs text-ink-muted italic">{t('screen.tavern.welcome')}</p>
-          <div id="tavern-offers" className="grid gap-3 md:grid-cols-3">
+          <div id="tavern-offers" className="stagger grid gap-3 md:grid-cols-3">
             {[0, 1, 2].map((i) => (
               <OfferCard
                 key={`${i}-${save.activities.tavernOffers?.[i]?.flavor ?? 'x'}`}
