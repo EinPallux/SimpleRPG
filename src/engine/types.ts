@@ -74,6 +74,13 @@ export interface ExpeditionState {
   heroism: number;
   /** current encounter's three cards (null = roll on next visit) */
   cards: ExpeditionCard[] | null;
+  /**
+   * Who holds the encounter-3 slot this run — the locale's own mini-boss or one
+   * of the reserves (content/expeditions.ts). Rolled once at embark so it can't
+   * change mid-run. Optional so an expedition already in flight on a pre-M9
+   * save keeps working and simply falls back to the locale's own.
+   */
+  minibossSlug?: string;
 }
 
 export interface ActivePotion {

@@ -16,7 +16,14 @@ import {
   floorLevel,
 } from './dungeons';
 import { EMBLEM_ICONS, EMBLEM_PALETTES } from './emblems';
-import { EVENTS, eventSchema, LOCALES, localeSchema } from './expeditions';
+import {
+  allMinibossSlugs,
+  EVENTS,
+  eventSchema,
+  LOCALES,
+  localeSchema,
+  MINIBOSS_RESERVES,
+} from './expeditions';
 import { classSetAt, getSet, SETS, setSchema } from './sets';
 import { WHEEL_SLOTS, wheelSlotSchema } from './wheel';
 
@@ -146,6 +153,17 @@ describe('expeditions (M5)', () => {
       expect(hasKey(`miniboss.${locale.minibossSlug}.intro`)).toBe(true);
     }
     expect(new Set(LOCALES.map((l) => l.bg)).size).toBe(4);
+  });
+
+  it('every mini-boss who can hold encounter 3 has a name and a threat (§5: 4 + 6 reserve)', () => {
+    const roster = allMinibossSlugs();
+    expect(MINIBOSS_RESERVES).toHaveLength(6);
+    expect(roster).toHaveLength(10);
+    expect(new Set(roster).size).toBe(10); // a reserve must not duplicate a locale's own
+    for (const slug of roster) {
+      expect(hasKey(`miniboss.${slug}.name`)).toBe(true);
+      expect(hasKey(`miniboss.${slug}.intro`)).toBe(true);
+    }
   });
 
   it('all 24 events validate and carry their five strings', () => {

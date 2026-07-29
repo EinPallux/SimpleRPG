@@ -7,6 +7,7 @@
  * which is the point of having one.
  */
 import { fnv1a } from '@/engine/hash';
+import { MISSION_GENERIC_POOL, MISSION_ZONE_POOL } from '@/content/flavor';
 import { uniqueNameKey, uniqueOrNull } from '@/content/uniques';
 import { slotOf } from '@/engine/items';
 import type { ItemInstance } from '@/engine/types';
@@ -47,11 +48,17 @@ export function itemName(item: ItemInstance): string {
   return `${quality} ${base}${upgrade}`;
 }
 
-/** "Mission flavor" line for an offer: prefers zone-specific pools, falls back to generic. */
+/**
+ * "Mission flavor" line for an offer: prefers zone-specific pools, falls back
+ * to generic. All ten zones carry a full six-line pool as of M9, so the
+ * `hasKey` guard is now belt-and-braces rather than the common path — it stays
+ * because a zone added in a later patch should degrade to generic prose rather
+ * than render a raw key.
+ */
 export function missionFlavor(zoneIndex: number, flavor: number): string {
-  const zoneKey = `mission.z${zoneIndex}.${flavor % 6}`;
+  const zoneKey = `mission.z${zoneIndex}.${flavor % MISSION_ZONE_POOL}`;
   if (flavor % 5 >= 2 && hasKey(zoneKey)) return t(zoneKey);
-  return t(`mission.generic.${flavor % 12}` as I18nKey);
+  return t(`mission.generic.${flavor % MISSION_GENERIC_POOL}` as I18nKey);
 }
 
 /**

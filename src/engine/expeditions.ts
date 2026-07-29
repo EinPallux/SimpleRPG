@@ -5,7 +5,12 @@
  * it just pays less. Card draws ride the persisted `missions` stream, fights
  * the `combat` stream, chests the `loot` stream: nothing here is fishable.
  */
-import { EVENTS, getLocale } from '@/content/expeditions';
+import {
+  EVENTS,
+  getLocale,
+  MINIBOSS_RESERVE_SHARE,
+  MINIBOSS_RESERVES,
+} from '@/content/expeditions';
 import { monstersOfArchetype } from '@/content/bestiary';
 import { frontierZoneIndex } from '@/content/zones';
 import {
@@ -60,19 +65,36 @@ export function canStartExpedition(
 export function startExpedition(save: GameSave, localeId: string): ExpeditionState {
   const gate = canStartExpedition(save);
   if (!gate.ok) throw new Error(`Expedition refused: ${gate.reason}`);
-  getLocale(localeId); // throws on unknown locale
+  const locale = getLocale(localeId); // throws on unknown locale
   save.daily.vigor -= EXPEDITION_COST;
   save.daily.expeditions += 1;
   bump(save, 'vigorSpent', EXPEDITION_COST);
   flag(save, 'localeVisited', localeId);
+  // Who you meet at encounter 3, decided now so it cannot shift mid-run. The
+  // locale's own mini-boss stays the most likely face; the reserves keep a
+  // months-long grind from having exactly four of them.
+  const rng = getStream(save.rngState, save.worldSeed, 'missions');
+  const minibossSlug = rng.chance(MINIBOSS_RESERVE_SHARE)
+    ? rng.pick(MINIBOSS_RESERVES)
+    : locale.minibossSlug;
   const state: ExpeditionState = {
     localeId,
     step: 0,
     heroism: activeEffect(save, 'expedition')?.heroism ?? 0,
     cards: null,
+    minibossSlug,
   };
   save.activities.expedition = state;
   return state;
+}
+
+/**
+ * The mini-boss holding encounter 3 of a given run. The `?? locale` fallback is
+ * what lets the field be optional: an expedition that was already in flight
+ * when M9 landed simply meets the locale's own mini-boss, as it always did.
+ */
+export function expeditionMiniboss(exp: ExpeditionState): string {
+  return exp.minibossSlug ?? getLocale(exp.localeId).minibossSlug;
 }
 
 /** The current encounter's three cards, rolled once and persisted. */
@@ -210,7 +232,7 @@ export function resolveCard(
     foe =
       card.kind === 'miniboss'
         ? archetypeCombatant('elite', save.hero.level + 2, {
-            id: `miniboss-${getLocale(exp.localeId).minibossSlug}`,
+            id: `miniboss-${expeditionMiniboss(exp)}`,
           })
         : archetypeCombatant(card.foe, save.hero.level, { id: `exped-${card.foe}` });
     const combatStream = getStream(save.rngState, save.worldSeed, 'combat');

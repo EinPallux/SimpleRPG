@@ -63,6 +63,7 @@ const expeditionState = z
     step: z.number().int().min(0).max(4),
     heroism: z.number().min(0),
     cards: z.array(expeditionCard).length(3).nullable(),
+    minibossSlug: z.string().optional(),
   })
   .strict();
 

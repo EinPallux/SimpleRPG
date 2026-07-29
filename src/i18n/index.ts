@@ -12,6 +12,7 @@ import en from './en.json';
 import achievements from './parts/achievements.json';
 import bestiary from './parts/bestiary.json';
 import calendar from './parts/calendar.json';
+import flavor from './parts/flavor.json';
 import gacha from './parts/gacha.json';
 import help from './parts/help.json';
 import mounts from './parts/mounts.json';
@@ -26,6 +27,7 @@ const catalog = {
   ...achievements,
   ...bestiary,
   ...calendar,
+  ...flavor,
   ...gacha,
   ...help,
   ...mounts,
